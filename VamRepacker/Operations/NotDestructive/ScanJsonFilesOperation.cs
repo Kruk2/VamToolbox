@@ -56,31 +56,12 @@ namespace VamRepacker.Operations.NotDestructive
         {
             var stopWatch = new Stopwatch();
             stopWatch.Start();
-            var varFilesWithScene = varFiles
-                .Where(t => (varFilters != null && varFilters.Matches(t.FullPath)) || varFilters is null)
-                .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
-                .Any(x => x.FilenameLower != "meta.json" && x.ExtLower is ".json" or ".vap" or ".vaj"));
-
-            var files = freeFiles
-                .Where(_ => varFilters is null)
-                .SelectMany(x => x.SelfAndChildren())
-                .Where(t => t.ExtLower is ".json" or ".vap" or ".vaj")
-                .Select(t => new PotentialJsonFile(t))
-                .Concat(varFilesWithScene.Select(t => new PotentialJsonFile(t)))
-                .ToList();
-            
-
-            _freeFilesIndex = freeFiles
-                .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
-            _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
-            InitVamFilesById(freeFiles, varFiles);
-            InitMorphNames(freeFiles);
 
             _context = context;
             _logger.Init("scan_json_files.log");
-
             _progressTracker.InitProgress();
-            var potentialScenes = files.ToList();
+
+            var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
 
             foreach (var json in potentialScenes)
             {
@@ -103,6 +84,31 @@ namespace VamRepacker.Operations.NotDestructive
             PrintWarnings(scenes);
 
             return scenes;
+        }
+
+        private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles, IVarFilters varFilters)
+        {
+            return await Task.Run(() =>
+            {
+                var varFilesWithScene = varFiles
+                    .Where(t => (varFilters != null && varFilters.Matches(t.FullPath)) || varFilters is null)
+                    .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
+                        .Any(x => x.FilenameLower != "meta.json" && x.ExtLower is ".json" or ".vap" or ".vaj"));
+
+                _freeFilesIndex = freeFiles
+                    .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
+                _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
+                InitVamFilesById(freeFiles, varFiles);
+                InitMorphNames(freeFiles);
+
+                return freeFiles
+                    .Where(_ => varFilters is null)
+                    .SelectMany(x => x.SelfAndChildren())
+                    .Where(t => t.ExtLower is ".json" or ".vap" or ".vaj")
+                    .Select(t => new PotentialJsonFile(t))
+                    .Concat(varFilesWithScene.Select(t => new PotentialJsonFile(t)))
+                    .ToList();
+            });
         }
 
         private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)

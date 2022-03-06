@@ -70,12 +70,12 @@ namespace VamRepackerUi
         private async void copyMissingDepsFromRepoBtn_Click(object sender, EventArgs e)
         {
             var ctx = GetContext();
-            RemoveOldLinks();
             await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
+            await RemoveOldLinks(scope, ctx);
             await scope.Resolve<IScanJsonFilesOperation>()
                 .ExecuteAsync(ctx, _freeFiles, _vars);
-            scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
+            await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
 
             if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
@@ -101,44 +101,13 @@ namespace VamRepackerUi
             }
 
             var ctx = GetContext();
-            RemoveOldLinks();
             await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
             await scope.Resolve<IScanJsonFilesOperation>()
                 .ExecuteAsync(ctx, _freeFiles, _vars, BuildFilters());
+            await RemoveOldLinks(scope, ctx);
             await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, BuildFilters());
-        }
-
-        private void RemoveOldLinks()
-        {
-            if (dryRunCheckbox.Checked)
-                return;
-
-            // todo seperate operation
-            if (!removeAllSoftLinkBeforeChk.Checked) return;
-            var linker = _ctx.Resolve<IFileLinker>();
-            var addonDir = Path.Combine(vamDirTxt.Text, "AddonPackages");
-
-            Directory
-                .EnumerateFiles(vamDirTxt.Text, "*.*", SearchOption.AllDirectories)
-                .Where(t => linker.IsSoftLink(t))
-                .ForEach(File.Delete);
-
-            static void processDirectory(string startLocation)
-            {
-                foreach (var directory in Directory.GetDirectories(startLocation))
-                {
-                    processDirectory(directory);
-                    if (Directory.GetFiles(directory).Length == 0 && 
-                        Directory.GetDirectories(directory).Length == 0)
-                    {
-                        Directory.Delete(directory, false);
-                    }
-                }
-            }
-
-            processDirectory(addonDir);
         }
 
         private (bool, string) AskFirDirectory(string root = null)
@@ -154,6 +123,7 @@ namespace VamRepackerUi
            {
                _stopwatch.Start();
                progressBar.Value = 0;
+               progressBar.Style = ProgressBarStyle.Blocks;
                SwitchUI(true);
            });
 
@@ -168,6 +138,12 @@ namespace VamRepackerUi
             RunInvokedInvoke(() =>
             {
                 operationStatusLabel.Text = progress.Current;
+                if (progress.Total == 0)
+                {
+                    progressBar.Style = ProgressBarStyle.Marquee;
+                    return;
+                }
+
                 if (progressBar.Maximum != progress.Total)
                     progressBar.Maximum = progress.Total;
                 progressBar.Value = progress.Processed;
@@ -326,6 +302,13 @@ namespace VamRepackerUi
             await RunIndexing(ctx);
             await scope.Resolve<ITrustAllVarsOperation>()
                 .ExecuteAsync(ctx, _vars);
+        }
+
+        private Task RemoveOldLinks(ILifetimeScope scope, OperationContext ctx)
+        {
+            if (!removeAllSoftLinkBeforeChk.Checked) return Task.CompletedTask;
+            return scope.Resolve<IRemoveSoftLinks>()
+                .ExecuteAsync(ctx);
         }
     }
 }

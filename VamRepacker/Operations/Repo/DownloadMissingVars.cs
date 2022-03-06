@@ -32,6 +32,74 @@ namespace VamRepacker.Operations.Repo
             _reporter.InitProgress();
             _logger.Init("download_missing_from_vam.log");
             int processed = 0;
+            var unresolvedVars = await Task.Run(() => FindMissingReferences(vars, freeFiles));
+
+            var vamResult = await QueryVam(unresolvedVars, vars.Select(t => t.Name).ToHashSet());
+            if (vamResult.Count == 0)
+            {
+                _reporter.Complete("Downloaded 0 packages");
+                return;
+            }
+
+            var folderDestination = Path.Combine(context.VamDir, "AddonPackages", "other");
+            if (!context.DryRun)
+                Directory.CreateDirectory(folderDestination);
+            var count = vamResult.Count;
+
+            using var handler = new HttpClientHandler { UseCookies = false };
+            using var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36 Edg/99.0.1150.30");
+            
+            foreach (var (packageInfo, i) in vamResult.Zip(Enumerable.Range(0, count)))
+            {
+                var varDestination = Path.Combine(folderDestination, packageInfo.Filename);
+                if(File.Exists(varDestination))
+                    continue;
+                if (context.DryRun)
+                    continue;
+
+                _logger.Log($"Downloading {packageInfo.DownloadUrl}");
+                _reporter.Report(new ProgressInfo(processed, count, $"Downloading {i}/{count} " + packageInfo.Filename));
+
+                if (await DownloadVar(packageInfo, client, varDestination))
+                {
+                    _logger.Log($"Downloaded {packageInfo.DownloadUrl}");
+                }
+
+                _reporter.Report(new ProgressInfo(++processed, count, $"Downloaded {i}/{count} " + packageInfo.Filename));
+            }
+
+            _reporter.Complete($"Downloaded {processed} vars. Check download_missing_from_vam.log");
+        }
+
+        private async Task<bool> DownloadVar(PackageInfo packageInfo, HttpClient client, string destt)
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, packageInfo.DownloadUrl);
+            message.Headers.Add("Cookie", "vamhubconsent=yes");
+            var response = await client.SendAsync(message);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.Log($"Unable to download {packageInfo.DownloadUrl}. Status code: {response.StatusCode}");
+                return false;
+            }
+
+            if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentType is not
+                {
+                    MediaType: "application/octet-stream"
+                })
+            {
+                _logger.Log(
+                    $"Unable to download {packageInfo.DownloadUrl}. Invalid size: {response.Content.Headers.ContentLength ?? 0} or content-type: {response.Content.Headers.ContentType?.MediaType ?? string.Empty}");
+                return false;
+            }
+
+            await using var fs = new FileStream(destt, FileMode.CreateNew);
+            await response.Content.CopyToAsync(fs);
+            return true;
+        }
+
+        private static List<string> FindMissingReferences(IList<VarPackage> vars, IList<FreeFile> freeFiles)
+        {
             var jsonFiles = vars.Where(t => t.IsInVaMDir).SelectMany(t => t.JsonFiles)
                 .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.JsonFiles));
 
@@ -41,60 +109,7 @@ namespace VamRepacker.Operations.Repo
                 .Where(t => t != null)
                 .Distinct()
                 .ToList();
-
-            var vamResult = await QueryVam(unresolvedVars, vars.Select(t => t.Name).ToHashSet());
-            if (vamResult.Count == 0)
-            {
-                _reporter.Complete("Downloaded 0 packages");
-                return;
-            }
-
-            var destAddonPackagesOtherFolder = Path.Combine(context.VamDir, "AddonPackages", "other");
-            if (!context.DryRun)
-                Directory.CreateDirectory(destAddonPackagesOtherFolder);
-            var count = vamResult.Count;
-
-            using var handler = new HttpClientHandler { UseCookies = false };
-            using var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36 Edg/99.0.1150.30");
-            
-            foreach (var packageInfo in vamResult)
-            {
-                var destt = Path.Combine(destAddonPackagesOtherFolder, packageInfo.Filename);
-                if(File.Exists(destt))
-                    continue;
-                if (context.DryRun)
-                    continue;
-
-                _logger.Log($"Downloading {packageInfo.DownloadUrl}");
-                _reporter.Report(new ProgressInfo(processed, count, "Downloading " + packageInfo.Filename));
-
-                using var message = new HttpRequestMessage(HttpMethod.Get, packageInfo.DownloadUrl);
-                message.Headers.Add("Cookie", "vamhubconsent=yes");
-                var response = await client.SendAsync(message);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.Log($"Unable to download {packageInfo.DownloadUrl}. Status code: {response.StatusCode}");
-                    continue;
-                }
-
-                if (!response.Content.Headers.ContentLength.HasValue || response.Content.Headers.ContentType is not
-                    {
-                        MediaType: "application/octet-stream"
-                    })
-                {
-                    _logger.Log($"Unable to download {packageInfo.DownloadUrl}. Invalid size: {response.Content.Headers.ContentLength ?? 0} or content-type: {response.Content.Headers.ContentType?.MediaType ?? string.Empty}");
-                    continue;
-                }
-
-                await using var fs = new FileStream(destt, FileMode.CreateNew);
-                await response.Content.CopyToAsync(fs);
-
-                _logger.Log($"Downloaded {packageInfo.DownloadUrl}");
-                _reporter.Report(new ProgressInfo(++processed, count, "Downloaded " + packageInfo.Filename));
-            }
-
-            _reporter.Complete($"Downloaded {processed} vars. Check download_missing_from_vam.log");
+            return unresolvedVars;
         }
 
         private async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<string> unresolvedVars,

@@ -159,7 +159,7 @@ namespace VamRepackerUi
             // 
             this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(365, 281);
             this.copyMissingDepsFromRepoBtn.Name = "copyMissingDepsFromRepoBtn";
-            this.copyMissingDepsFromRepoBtn.Size = new System.Drawing.Size(136, 96);
+            this.copyMissingDepsFromRepoBtn.Size = new System.Drawing.Size(136, 74);
             this.copyMissingDepsFromRepoBtn.TabIndex = 13;
             this.copyMissingDepsFromRepoBtn.Text = "Search for missing dependencies in VAM and soft-link them from REPO";
             this.copyMissingDepsFromRepoBtn.UseVisualStyleBackColor = true;
@@ -240,7 +240,6 @@ namespace VamRepackerUi
             // 
             // groupBox3
             // 
-            this.groupBox3.Controls.Add(this.removeAllSoftLinkBeforeChk);
             this.groupBox3.Controls.Add(this.profilesListBox);
             this.groupBox3.Controls.Add(this.manageProfilesBtn);
             this.groupBox3.Controls.Add(this.copyVarsFromRepoBtn);
@@ -254,11 +253,11 @@ namespace VamRepackerUi
             // removeAllSoftLinkBeforeChk
             // 
             this.removeAllSoftLinkBeforeChk.AutoSize = true;
-            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(196, 69);
+            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(365, 386);
             this.removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
-            this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(136, 49);
+            this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(136, 19);
             this.removeAllSoftLinkBeforeChk.TabIndex = 18;
-            this.removeAllSoftLinkBeforeChk.Text = "Remove all soft-links\nfrom VAM before\napplying profile";
+            this.removeAllSoftLinkBeforeChk.Text = "Remove all soft-links";
             this.removeAllSoftLinkBeforeChk.UseVisualStyleBackColor = true;
             // 
             // profilesListBox
@@ -271,7 +270,7 @@ namespace VamRepackerUi
             // 
             // manageProfilesBtn
             // 
-            this.manageProfilesBtn.Location = new System.Drawing.Point(196, 125);
+            this.manageProfilesBtn.Location = new System.Drawing.Point(196, 69);
             this.manageProfilesBtn.Name = "manageProfilesBtn";
             this.manageProfilesBtn.Size = new System.Drawing.Size(135, 24);
             this.manageProfilesBtn.TabIndex = 16;
@@ -310,7 +309,7 @@ namespace VamRepackerUi
             // moveMissingDepsChk
             // 
             this.moveMissingDepsChk.AutoSize = true;
-            this.moveMissingDepsChk.Location = new System.Drawing.Point(394, 392);
+            this.moveMissingDepsChk.Location = new System.Drawing.Point(365, 361);
             this.moveMissingDepsChk.Name = "moveMissingDepsChk";
             this.moveMissingDepsChk.Size = new System.Drawing.Size(80, 19);
             this.moveMissingDepsChk.TabIndex = 24;
@@ -320,7 +319,7 @@ namespace VamRepackerUi
             // shallowChk
             // 
             this.shallowChk.AutoSize = true;
-            this.shallowChk.Location = new System.Drawing.Point(394, 417);
+            this.shallowChk.Location = new System.Drawing.Point(446, 361);
             this.shallowChk.Name = "shallowChk";
             this.shallowChk.Size = new System.Drawing.Size(67, 19);
             this.shallowChk.TabIndex = 25;
@@ -332,6 +331,7 @@ namespace VamRepackerUi
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(537, 507);
+            this.Controls.Add(this.removeAllSoftLinkBeforeChk);
             this.Controls.Add(this.shallowChk);
             this.Controls.Add(this.moveMissingDepsChk);
             this.Controls.Add(this.clearRepoDirBtn);
@@ -358,7 +358,6 @@ namespace VamRepackerUi
             this.groupBox1.ResumeLayout(false);
             this.groupBox2.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
-            this.groupBox3.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 

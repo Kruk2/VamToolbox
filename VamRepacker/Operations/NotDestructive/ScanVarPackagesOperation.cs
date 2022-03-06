@@ -49,18 +49,7 @@ namespace VamRepacker.Operations.NotDestructive
 
             var stopWatch = new Stopwatch();
             stopWatch.Start();
-            var packageFiles = _fs.Directory
-                .GetFiles(_fs.Path.Combine(_context.VamDir, "AddonPackages"), "*.var", SearchOption.AllDirectories)
-                .ToList();
-
-            if(!string.IsNullOrEmpty(_context.RepoDir))
-                packageFiles.AddRange(_fs.Directory.GetFiles(_context.RepoDir, "*.var", SearchOption.AllDirectories));
-
-            _totalVarsCount = packageFiles.Count;
-            var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
-            _favMorphs = freeFiles
-                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
-                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
+            var packageFiles = await InitLookups(freeFiles);
 
             var scanPackageBlock = CreateBlock();
             foreach (var packageFile in packageFiles)
@@ -97,6 +86,27 @@ namespace VamRepacker.Operations.NotDestructive
                 _logger.Log($"[INVALID-VAR] {err}");
 
             return _result.Vars;
+        }
+
+        private Task<List<string>> InitLookups(IEnumerable<FreeFile> freeFiles)
+        {
+            return Task.Run(() =>
+            {
+                var packageFiles = _fs.Directory
+                    .GetFiles(_fs.Path.Combine(_context.VamDir, "AddonPackages"), "*.var", SearchOption.AllDirectories)
+                    .ToList();
+
+                if (!string.IsNullOrEmpty(_context.RepoDir))
+                    packageFiles.AddRange(_fs.Directory.GetFiles(_context.RepoDir, "*.var", SearchOption.AllDirectories));
+
+                _totalVarsCount = packageFiles.Count;
+                var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
+                _favMorphs = freeFiles
+                    .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
+                    .ToLookup(t => t.FilenameWithoutExt,
+                        t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
+                return packageFiles;
+            });
         }
 
         private ActionBlock<(string, VarPackageName)> CreateBlock()

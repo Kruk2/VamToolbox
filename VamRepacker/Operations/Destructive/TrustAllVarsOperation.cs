@@ -37,7 +37,7 @@ namespace VamRepacker.Operations.Destructive
         {
             _context = context;
             _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
-            if (context.DryRun)
+            if (!context.DryRun)
                 Directory.CreateDirectory(_vamPrefsDir);
 
             _progressTracker.InitProgress();
@@ -61,14 +61,7 @@ namespace VamRepacker.Operations.Destructive
             var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
             dynamic json;
 
-            if (_fs.File.Exists(prefFile))
-            {
-                json = JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile));
-            }
-            else
-            {
-                json = new ExpandoObject();
-            }
+            json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile)) : new ExpandoObject();
 
             var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
             var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");
