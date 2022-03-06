@@ -96,7 +96,7 @@ namespace VamRepacker.Helpers
                 }
 
                 if(!updated)
-                    throw new InvalidOperationException($"Unable to find reference {updateDto.ReferenceToUpdate.FullLine} in json file {jsonFile}");
+                    throw new InvalidOperationException($"Unable to find reference {updateDto.ReferenceToUpdate.Value} in json file {jsonFile}");
             }
         }
 

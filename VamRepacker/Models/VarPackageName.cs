@@ -43,7 +43,7 @@ namespace VamRepacker.Models
 
         public override string ToString()
         {
-            return Name != null ? $"{Name} v{Version} by {Author} ({Filename})" : Filename;
+            return Name != null ? $"{Name} v{Version} by {Author}" : Filename;
         }
 
         public bool Equals(VarPackageName other)

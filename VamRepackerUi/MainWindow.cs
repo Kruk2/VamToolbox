@@ -33,6 +33,7 @@ namespace VamRepackerUi
         private List<VarPackage> _vars;
         private IList<FreeFile> _freeFiles;
         private bool _working;
+        private Stopwatch _sw = new();
 
         public MainWindow(ILifetimeScope ctx)
         {
@@ -152,6 +153,10 @@ namespace VamRepackerUi
                     progressBar.Style = ProgressBarStyle.Marquee;
                     return;
                 }
+                else if (progressBar.Style != ProgressBarStyle.Blocks)
+                {
+                    progressBar.Style = ProgressBarStyle.Blocks;
+                }
 
                 if (progressBar.Maximum != progress.Total)
                     progressBar.Maximum = progress.Total;
@@ -172,6 +177,7 @@ namespace VamRepackerUi
         void SwitchUI(bool working)
         {
             if (_working == working) return;
+            if(working) _sw.Restart();
 
             _working = working;
             var controls = Controls
@@ -196,7 +202,8 @@ namespace VamRepackerUi
 
             if (!working)
             {
-                stageTxt.Text = "Idle";
+                _sw.Stop();
+                stageTxt.Text = $"Finished in {_sw.Elapsed.Minutes}min and {_sw.Elapsed.Seconds}s";
                 operationStatusLabel.Text = string.Empty;
             }
         }
@@ -204,13 +211,15 @@ namespace VamRepackerUi
         private OperationContext GetContext(int stages)
         {
             _totalStages = stages;
+            _stage = 0;
 
             var ctx = new OperationContext
             {
                 DryRun = dryRunCheckbox.Checked,
                 Threads = (int)comboThreads.SelectedItem,
                 RepoDir = additionalVarsDir.Text,
-                VamDir = vamDirTxt.Text
+                VamDir = vamDirTxt.Text,
+                ShallowDeps = shallowChk.Checked
             };
             return ctx;
         }

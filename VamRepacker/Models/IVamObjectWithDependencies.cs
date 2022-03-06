@@ -4,13 +4,13 @@ namespace VamRepacker.Models
 {
     public interface IVamObjectWithDependencies
     {
-
-        public List<VarPackage> AllResolvedVarDependencies { get; }
-        public List<FreeFile> AllResolvedFreeDependencies { get; }
-
-        public IEnumerable<string> UnresolvedDependencies { get; }
-        public void CalculateDeps();
-        public void CalculateShallowDeps();
+        List<VarPackage> TrimmedResolvedVarDependencies { get; }
+        List<VarPackage> AllResolvedVarDependencies { get; }
+        List<FreeFile> TrimmedResolvedFreeDependencies { get; }
+        List<FreeFile> AllResolvedFreeDependencies { get; }
+        IEnumerable<string> UnresolvedDependencies { get; }
+        void CalculateDeps();
+        void CalculateShallowDeps();
         void ClearDependencies();
     }
 }

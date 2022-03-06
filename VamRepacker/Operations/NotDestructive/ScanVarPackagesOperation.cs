@@ -176,12 +176,11 @@ namespace VamRepacker.Operations.NotDestructive
             _reporter.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalVarsCount, name.Filename));
         }
 
-        private async Task UpdateDatabase(List<VarPackage> varPackages)
+        private void UpdateDatabase(List<VarPackage> varPackages)
         {
-            if (_context.DryRun) return;
             foreach (var varPackage in varPackages)
             {
-                var size = await _database.GetFileSize(varPackage.FullPath);
+                var (_, size) = _database.GetFileSize(varPackage.FullPath);
                 if (size == null || varPackage.Size != size.Value)
                 {
                     varPackage.Dirty = true;

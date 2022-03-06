@@ -8,12 +8,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Transactions;
 using MoreLinq;
 using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
 using VamRepacker.Operations.Repo;
+using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive
 {
@@ -23,6 +25,7 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly IFileSystem _fs;
         private readonly ILogger _logger;
         private readonly IJsonFileParser _jsonFileParser;
+        private readonly IDatabase _database;
         private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
         private readonly ConcurrentBag<string> _errors = new();
         private int _scanned;
@@ -42,13 +45,15 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly ConcurrentBag<(List<JsonReference> jsonReferences, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
         private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
         private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
+        private ILookup<string, ReferenceEntry> _globalReferenceCache;
 
-        public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser)
+        public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IDatabase database)
         {
             _progressTracker = progressTracker;
             _fs = fs;
             _logger = logger;
             _jsonFileParser = jsonFileParser;
+            _database = database;
         }
 
         public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles,
@@ -62,19 +67,16 @@ namespace VamRepacker.Operations.NotDestructive
             _progressTracker.InitProgress("Scanning scenes/presets references");
 
             var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
+            await Task.Run(() => ReadCache(potentialScenes));
 
-            foreach (var json in potentialScenes)
-            {
-                if (json.IsVar) _queuedVars[json.Var] = true;
-                else _queuedFreeFiles[json.Free] = true;
-            }
-
-            _total = potentialScenes.Count;
+                _total = potentialScenes.Count;
             await RunScenesScan(potentialScenes);
             await RunDeepScan();
 
             _total = varFiles.Count + freeFiles.Count;
             await CalculateDeps(varFiles, freeFiles);
+
+            await Task.Run(() => SaveCache(varFiles, freeFiles));
 
             var missingCount = _jsonFiles.Sum(s => s.Missing.Count);
             var resolvedCount = _jsonFiles.Sum(s => s.References.Count);
@@ -86,6 +88,104 @@ namespace VamRepacker.Operations.NotDestructive
             return scenes;
         }
 
+        private void ReadCache(List<PotentialJsonFile> potentialScenes)
+        {
+            int progress = 0;
+            _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database"));
+            _globalReferenceCache = _database.ReadReferenceCache().ToLookup(t => t.FilePath, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var json in potentialScenes)
+            {
+                if (json.IsVar && _queuedVars.TryAdd(json.Var, true))
+                {
+                    ReadReferenceCache(json);
+                }
+                else if (!json.IsVar && _queuedFreeFiles.TryAdd(json.Free, true))
+                {
+                    ReadReferenceCache(json);
+                }
+
+                _progressTracker.Report(new ProgressInfo(progress++, potentialScenes.Count, "Reading cache: " + (json.IsVar ? json.Var.ToString() : json.Free.ToString())));
+            }
+        }
+
+        private void SaveCache(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
+        {
+            var jsonFiles = varFiles
+                .SelectMany(t => t.JsonFiles)
+                .Concat(freeFiles.SelectMany(t => t.JsonFiles))
+                .Where(t => t != null)
+                .Where(t => t.IsVar ? t.Var.Dirty : t.Free.Dirty)
+                .ToList();
+
+            var progress = 0;
+            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).Where(t => t.Dirty).ToList();
+            var dirtyVarFiles = varFiles.Where(t => t.Dirty).ToList();
+            var total = jsonFiles.Count + dirtyFreeFiles.Count + dirtyVarFiles.Count;
+
+            var bulkInsertFiles = new Dictionary<string, (long size, long id)>();
+            var bulkInsertJsonFiles = new Dictionary<(string filePath, string jsonLocalPath), long>();
+            var bulkInsertReferences = new List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)>();
+
+            foreach (var jsonFile in jsonFiles)
+            {
+                var fullPath = jsonFile.Free?.FullPath ?? jsonFile.Var.FullPath;
+                var size = jsonFile.Free?.Size ?? jsonFile.Var.Size;
+                var localJsonPath = jsonFile.IsVar ? jsonFile.JsonPathInVar : null;
+                var references = jsonFile.References.Select(t => t.Reference).Concat(jsonFile.Missing);
+                
+                bulkInsertFiles[fullPath] = (size, 0);
+                bulkInsertJsonFiles.Add((fullPath, localJsonPath), 0);
+                bulkInsertReferences.Add((fullPath, localJsonPath, references));
+
+                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {jsonFile.Free?.ToString() ?? jsonFile.Var.ToString()}"));
+            }
+
+            foreach (var varPackage in dirtyVarFiles)
+            {
+                bulkInsertFiles[varPackage.FullPath] = (varPackage.Size, 0);
+                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {varPackage}"));
+            }
+
+            foreach (var freeFile in dirtyFreeFiles)
+            {
+                bulkInsertFiles[freeFile.FullPath] = (freeFile.Size, 0);
+                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {freeFile}"));
+            }
+
+            _progressTracker.Report("Saving file cache");
+            _database.SaveFiles(bulkInsertFiles);
+            _progressTracker.Report("Saving json cache");
+            _database.UpdateJson(bulkInsertJsonFiles, bulkInsertFiles);
+            _progressTracker.Report("Saving references cache");
+            _database.UpdateReferences(bulkInsertReferences, bulkInsertJsonFiles);
+        }
+
+        private void ReadReferenceCache(PotentialJsonFile jsonFile)
+        {
+            if (jsonFile.IsVar && !jsonFile.Var.Dirty)
+            {
+                var var = jsonFile.Var;
+                var filesToCheck = var.Files.Where(t => t.FilenameLower != "meta.json" && IsPotentialJsonFile(t.ExtLower)).Where(t => !t.Dirty);
+                foreach (var file in filesToCheck)
+                {
+                    var references = _globalReferenceCache[var.FullPath].Where(t => t.LocalJsonPath == file.LocalPath);
+                    var mappedReferences = references.Select(t => new Reference(t)).ToList();
+
+                    if (!mappedReferences.Any()) continue;
+
+                    jsonFile.AddCachedReferences(file.LocalPath, mappedReferences);
+                }
+            }
+            else if(!jsonFile.IsVar && !jsonFile.Free.Dirty)
+            {
+                var free = jsonFile.Free;
+                var references = _globalReferenceCache[free.FullPath];
+                var mappedReferences = references.Select(t => new Reference(t)).ToList();
+                jsonFile.AddCachedReferences(mappedReferences);
+            }
+        }
+
         private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles, IVarFilters varFilters)
         {
             return await Task.Run(() =>
@@ -93,7 +193,7 @@ namespace VamRepacker.Operations.NotDestructive
                 var varFilesWithScene = varFiles
                     .Where(t => (varFilters != null && varFilters.Matches(t.FullPath)) || varFilters is null)
                     .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
-                        .Any(x => x.FilenameLower != "meta.json" && x.ExtLower is ".json" or ".vap" or ".vaj"));
+                        .Any(x => x.FilenameLower != "meta.json" && IsPotentialJsonFile(x.ExtLower)));
 
                 _freeFilesIndex = freeFiles
                     .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
@@ -104,12 +204,14 @@ namespace VamRepacker.Operations.NotDestructive
                 return freeFiles
                     .Where(_ => varFilters is null)
                     .SelectMany(x => x.SelfAndChildren())
-                    .Where(t => t.ExtLower is ".json" or ".vap" or ".vaj")
+                    .Where(t => IsPotentialJsonFile(t.ExtLower))
                     .Select(t => new PotentialJsonFile(t))
                     .Concat(varFilesWithScene.Select(t => new PotentialJsonFile(t)))
                     .ToList();
             });
         }
+
+        private static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
 
         private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
         {
@@ -118,8 +220,8 @@ namespace VamRepacker.Operations.NotDestructive
             var progress = 0;
             var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
                 {
-                    t.CalculateDeps();
-                    t.CalculateShallowDeps();
+                    if(_context.ShallowDeps) t.CalculateShallowDeps();
+                    else t.CalculateDeps();
                     _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), _total, $"Calculating dependencies for {t}"));
                 },
                 new ExecutionDataflowBlockOptions
@@ -160,6 +262,9 @@ namespace VamRepacker.Operations.NotDestructive
                         .Select(t => new PotentialJsonFile(t))
                         .Concat(_queueFree.Distinct().Select(t => new PotentialJsonFile(t)))
                         .ToList();
+
+                    foreach (var potentialJsonFile in json)
+                        ReadReferenceCache(potentialJsonFile);
 
                     _total += json.Count;
                     _queueFree.Clear();
@@ -255,8 +360,8 @@ namespace VamRepacker.Operations.NotDestructive
             try 
             { 
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _total, potentialJson.Name));
-                foreach (var (jsonStream, jsonLocalPath) in potentialJson.OpenJsons())
-                    await ScanJsonAsync(jsonStream, jsonLocalPath, potentialJson);
+                foreach (var openedJson in potentialJson.OpenJsons())
+                    await ScanJsonAsync(openedJson, potentialJson);
 
             }
             catch(Exception ex)
@@ -269,19 +374,37 @@ namespace VamRepacker.Operations.NotDestructive
             }
         }
 
-        private async Task ScanJsonAsync(Stream potentialSceneStream, string jsonLocalPath,
-            PotentialJsonFile potentialJson)
+        private async Task ScanJsonAsync(OpenedPotentialJson openedJson, PotentialJsonFile potentialJson)
         {
-            using var streamReader = new StreamReader(potentialSceneStream);
+            using var streamReader = openedJson.Stream == null ? null : new StreamReader(openedJson.Stream);
             var sceneFolder =  potentialJson.Free?.LocalPath == null ? null : _fs.Path.GetDirectoryName(potentialJson.Free.LocalPath);
             Reference nextScanForUuidOrMorphName = null;  
             var references = new List<JsonReference>();
             var missing = new HashSet<Reference>();
             var offset = 0;
-            var jsonDirectoryPath = Path.GetDirectoryName(jsonLocalPath).NormalizePathSeparators();
+            var jsonDirectoryPath = Path.GetDirectoryName(openedJson.LocalJsonPath).NormalizePathSeparators();
             var hasDelayedReferences = false;
 
-            while(!streamReader.EndOfStream)
+            if (openedJson.CachedReferences != null)
+            {
+                foreach (var reference in openedJson.CachedReferences)
+                {
+                    if (reference.InternalId != null)
+                    {
+                        ProcessVamReference(reference);
+                    }
+                    else if (reference.MorphName != null)
+                    {
+                        ProcessMorphReference(reference);
+                    }
+                    else
+                    {
+                        ProcessJsonReference(reference);
+                    }
+                }
+            }
+
+            while(streamReader is { EndOfStream: false })
             {
                 var line = await streamReader.ReadLineAsync();
                 if (string.IsNullOrEmpty(line))
@@ -292,14 +415,8 @@ namespace VamRepacker.Operations.NotDestructive
                     if (line.Contains("\"internalId\""))
                     {
                         var internalId = line.Replace("\"internalId\"", "");
-                        internalId = internalId[(internalId.IndexOf("\"") + 1)..internalId.LastIndexOf("\"")];
-                        var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, internalId, nextScanForUuidOrMorphName);
-                        if (jsonReferenceById != null)
-                            references.Add(jsonReferenceById);
-                        else if (!delayedReference)
-                            missing.Add(nextScanForUuidOrMorphName);
-                        else
-                            hasDelayedReferences = true;
+                        nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf("\"") + 1)..internalId.LastIndexOf("\"")];
+                        hasDelayedReferences = ProcessVamReference(nextScanForUuidOrMorphName);
 
                         nextScanForUuidOrMorphName = null;
                         offset += line.Length;
@@ -309,14 +426,8 @@ namespace VamRepacker.Operations.NotDestructive
                     if (line.Contains("\"name\""))
                     {
                         var morphName = line.Replace("\"name\"", "");
-                        morphName = morphName[(morphName.IndexOf("\"") + 1)..morphName.LastIndexOf("\"")];
-                        var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphName, nextScanForUuidOrMorphName);
-                        if (jsonReferenceByMorphName != null)
-                            references.Add(jsonReferenceByMorphName);
-                        else if (!delayedReference)
-                            missing.Add(nextScanForUuidOrMorphName);
-                        else
-                            hasDelayedReferences = true;
+                        nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf("\"") + 1)..morphName.LastIndexOf("\"")];
+                        hasDelayedReferences = ProcessMorphReference(nextScanForUuidOrMorphName);
 
                         nextScanForUuidOrMorphName = null;
                         offset += line.Length;
@@ -334,7 +445,7 @@ namespace VamRepacker.Operations.NotDestructive
                 }
                 catch (Exception e)
                 {
-                    _logger.Log($"[ERROR] {e.Message} Unable to parse asset '{line}' in {jsonLocalPath}. {(potentialJson.IsVar ? "Var: " + potentialJson.Var.Name.Filename : "")}.");
+                    _logger.Log($"[ERROR] {e.Message} Unable to parse asset '{line}' in {openedJson.LocalJsonPath}. {(potentialJson.IsVar ? "Var: " + potentialJson.Var.Name.Filename : "")}.");
                     throw;
                 }
                 finally
@@ -349,18 +460,32 @@ namespace VamRepacker.Operations.NotDestructive
                     continue;
                 }
 
+                nextScanForUuidOrMorphName = ProcessJsonReference(reference);
+            }
+
+            var item = new JsonFile(potentialJson, openedJson.LocalJsonPath, references, missing.ToList());
+            if (references.Count > 0 || missing.Count > 0 || hasDelayedReferences)
+                _jsonFiles.Add(item);
+
+            QueueReferences(references);
+
+            Reference ProcessJsonReference(Reference reference)
+            {
                 JsonReference jsonReference = null;
                 if (reference.Value.Contains(":"))
                 {
                     jsonReference = ScanPackageSceneReference(potentialJson, reference, reference.Value, jsonDirectoryPath);
                 }
-                if(jsonReference == null && (!reference.Value.Contains(':') || (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:"))))
+
+                if (jsonReference == null && (!reference.Value.Contains(':') ||
+                                              (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:"))))
                 {
                     jsonReference = ScanFreeFileSceneReference(sceneFolder, reference);
                     // it can be inside scene in var
                     if (jsonReference == default && potentialJson.IsVar)
                     {
-                        jsonReference = ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, jsonDirectoryPath);
+                        jsonReference =
+                            ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, jsonDirectoryPath);
                     }
                 }
 
@@ -377,23 +502,44 @@ namespace VamRepacker.Operations.NotDestructive
                     else
                         missing.Add(reference);
                 }
+
+                return nextScanForUuidOrMorphName;
             }
 
-            var item = new JsonFile(potentialJson, jsonLocalPath, references, missing.ToList());
-            if (references.Count > 0 || missing.Count > 0 || hasDelayedReferences)
-                _jsonFiles.Add(item);
+            bool ProcessMorphReference(Reference morphReference)
+            {
+                var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphReference);
+                if (jsonReferenceByMorphName != null)
+                    references.Add(jsonReferenceByMorphName);
+                else if (!delayedReference)
+                    missing.Add(morphReference);
+                else
+                    hasDelayedReferences = true;
 
-            QueueReferences(references);
+                return hasDelayedReferences;
+            }
+
+            bool ProcessVamReference(Reference vamReference)
+            {
+                var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, vamReference);
+                if (jsonReferenceById != null)
+                    references.Add(jsonReferenceById);
+                else if (!delayedReference)
+                    missing.Add(vamReference);
+                else
+                    hasDelayedReferences = true;
+                return hasDelayedReferences;
+            }
         }
 
-        private (JsonReference, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, string internalId, Reference reference)
+        private (JsonReference, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, Reference reference)
         {
-            return MatchAssetByUuidOrName(jsonReferences, internalId, reference, _vamFilesById);
+            return MatchAssetByUuidOrName(jsonReferences, reference.InternalId, reference, _vamFilesById);
         }
 
-        private (JsonReference, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, string displayName, Reference reference)
+        private (JsonReference, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, Reference reference)
         {
-            return MatchAssetByUuidOrName(jsonReferences, displayName, reference, _morphFilesByName);
+            return MatchAssetByUuidOrName(jsonReferences, reference.MorphName, reference, _morphFilesByName);
         }
 
         private (JsonReference, bool) MatchAssetByUuidOrName(List<JsonReference> jsonReferences, string uuidOrName, Reference reference, ILookup<string, FileReferenceBase> lookup)
@@ -473,10 +619,10 @@ namespace VamRepacker.Operations.NotDestructive
                         .Select(t => t is VarPackageFile varFile ? varFile.ParentVar : (IVamObjectWithDependencies)t)
                         .ToList();
 
-                    objectsWithDependencies.ForEach(t => t.CalculateDeps());
+                    objectsWithDependencies.ForEach(t => t.CalculateShallowDeps());
 
                     var dependenciesCount = objectsWithDependencies.Select(t =>
-                        t.AllResolvedVarDependencies.Count + t.AllResolvedFreeDependencies.Count);
+                        t.TrimmedResolvedVarDependencies.Count(t => !t.IsInVaMDir) + t.TrimmedResolvedFreeDependencies.Count(t => !t.IsInVaMDir));
                     var minCount = dependenciesCount.Min();
                     var zipped = bestMatchesByJsonCount.Zip(dependenciesCount);
 

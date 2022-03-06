@@ -211,7 +211,7 @@ namespace VamRepacker.Operations.Destructive
                 }
             }
 
-            throw new InvalidOperationException($"Unable to find reference {missing.FullLine} in json file {jsonLocalPath}");
+            throw new InvalidOperationException($"Unable to find reference {missing.Value} in json file {jsonLocalPath}");
         }
 
         private async Task<List<string>> ReadJson(JsonFile json)

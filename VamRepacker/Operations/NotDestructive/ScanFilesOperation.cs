@@ -76,7 +76,7 @@ namespace VamRepacker.Operations.NotDestructive
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
 
                 _reporter.Report("Updating local database");
-                await UpdateDatabase(files);
+                UpdateDatabase(files);
 
             });
 
@@ -99,13 +99,11 @@ namespace VamRepacker.Operations.NotDestructive
             return files;
         }
 
-        private async Task UpdateDatabase(List<FreeFile> files)
+        private void UpdateDatabase(List<FreeFile> files)
         {
-            if (_context.DryRun) return;
-
             foreach (var freeFile in files)
             {
-                var size = await _database.GetFileSize(freeFile.FullPath);
+                var (_, size) = _database.GetFileSize(freeFile.FullPath);
                 if (size == null || freeFile.Size != size.Value)
                 {
                     freeFile.Dirty = true;

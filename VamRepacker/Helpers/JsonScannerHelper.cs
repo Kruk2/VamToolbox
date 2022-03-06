@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using VamRepacker.Sqlite;
 
 namespace VamRepacker.Helpers
 {
@@ -27,14 +28,31 @@ namespace VamRepacker.Helpers
 
 
         public string NormalizedLocalPath => Value.Split(':').Last().NormalizePathSeparators();
-        public string FullLine { get; init; }
         public string Value { get; init; }
         public int Index { get; init; }
         public int Length { get; init; }
 
-        public override string ToString() => $"{Value} at index {Index}. {FullLine}";
+        // these are read from next line in JSON file
+        public string MorphName { get; set; }
+        public string InternalId { get; set; }
+
+        public override string ToString() => $"{Value} at index {Index}";
 
         private string _estimatedReferenceLocation;
+
+        public Reference()
+        {
+        }
+
+        public Reference(ReferenceEntry referenceEntry)
+        {
+            Value = referenceEntry.Value;
+            InternalId = referenceEntry.InternalId;
+            MorphName = referenceEntry.MorphName;
+            Index = referenceEntry.Index;
+            Length = referenceEntry.Length;
+        }
+
         public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
         public string EstimatedVarName => Value.StartsWith("SELF:") || !Value.Contains(':') ? null : Value.Split(':').First();
 
@@ -106,8 +124,7 @@ namespace VamRepacker.Helpers
             {
                 Value = assetName.ToString(),
                 Index = offset + prevQuoteIndex + 1,
-                Length = lastQuoteIndex - prevQuoteIndex - 1,
-                FullLine = l
+                Length = lastQuoteIndex - prevQuoteIndex - 1
             };
         }
 
