@@ -29,23 +29,36 @@ namespace VamRepacker.Operations.NotDestructive
 
         public async Task<List<FreeFile>> ExecuteAsync(OperationContext context)
         {
-            var files = new List<FreeFile>();
             _reporter.InitProgress();
             _logger.Init("scan_files.log");
             _context = context;
 
+            var files = await ScanFolder(_context.VamDir);
+            if(!string.IsNullOrEmpty(context.RepoDir))
+            {
+                files.AddRange(await ScanFolder(_context.RepoDir));
+            }
+
+            _reporter.Complete($"Scanned {files.Count} files in the Saves and Custom folders. Check scan_files.log");
+
+            return files;
+        }
+
+        private async Task<List<FreeFile>> ScanFolder(string rootDir)
+        {
+            var files = new List<FreeFile>();
 
             await Task.Run(async () =>
             {
-                files.AddRange(ScanFolder("Custom"));
-                files.AddRange(ScanFolder("Saves"));
+                files.AddRange(ScanFolder(rootDir, "Custom"));
+                files.AddRange(ScanFolder(rootDir, "Saves"));
 
                 var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
                 var favMorphs = files
                     .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
-                    .ToLookup(t => t.FilenameWithoutExt, t => (basePath: KnownNames.MorphDirs.Single(x => t.LocalPath.StartsWith(x)), file: (FileReferenceBase)t));
+                    .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
 
-                Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(_context.VamDir, p));
+                Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
                 await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
                 await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, varName: null, openFileStream: OpenFileStream, favMorphs);
@@ -53,18 +66,20 @@ namespace VamRepacker.Operations.NotDestructive
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
             });
 
-            _reporter.Complete($"Scanned {files.Count} files in the Saves and Custom folders. Check scan_files.log");
-
             return files;
         }
 
-        private IEnumerable<FreeFile> ScanFolder(string folder)
+        private IEnumerable<FreeFile> ScanFolder(string rootDir, string folder)
         {
-            var vam = _context.VamDir;
+            var searchDir = _fs.Path.Combine(rootDir, folder);
+            if (!Directory.Exists(searchDir))
+                return Enumerable.Empty<FreeFile>();
+
+            var isVamDir = _context.VamDir == rootDir;
             var files = _fs.Directory
-                .EnumerateFiles(_fs.Path.Combine(vam, folder), "*.*", SearchOption.AllDirectories)
+                .EnumerateFiles(searchDir, "*.*", SearchOption.AllDirectories)
                 .Where(f => !f.Contains(@"\."))
-                .Select(f => new FreeFile(f, f.RelativeTo(vam), _fs.FileInfo.FromFileName(f).Length))
+                .Select(f => new FreeFile(f, f.RelativeTo(rootDir), _fs.FileInfo.FromFileName(f).Length, isVamDir))
                 .ToList();
 
             return files;

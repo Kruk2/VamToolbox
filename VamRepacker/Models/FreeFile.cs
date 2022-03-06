@@ -16,18 +16,21 @@ namespace VamRepacker.Models
 
         public List<VarPackage> TrimmedResolvedVarDependencies { get; private set; }
         public List<VarPackage> AllResolvedVarDependencies { get; private set; }
-
         public List<FreeFile> TrimmedResolvedFreeDependencies { get; private set; }
         public List<FreeFile> AllResolvedFreeDependencies { get; private set; }
 
         public IEnumerable<string> UnresolvedDependencies => JsonFiles
             .SelectMany(t => t.Missing.Select(x => x.Value + " from " + t))
             .Distinct();
-        
-        public FreeFile(string path, string localPath, long size)
+
+        public bool IsInVaMDir { get; }
+        public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
+
+        public FreeFile(string path, string localPath, long size, bool isInVamDir)
             : base(localPath, size)
         {
             FullPath = path.NormalizePathSeparators();
+            IsInVaMDir = isInVamDir;
         }
 
         public IEnumerable<FreeFile> SelfAndChildren()
@@ -43,11 +46,16 @@ namespace VamRepacker.Models
             ((FreeFile) children).ParentFile = this;
         }
 
-        public void CalculateDeps(bool force = false)
+        public void CalculateDeps()
         {
-            if (TrimmedResolvedFreeDependencies != null && !force) return;
-            (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateVarRecursiveDeps(JsonFiles);
+            if (AlreadyCalculatedDeps) return;
             (AllResolvedVarDependencies, AllResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
+        }
+
+        public void CalculateShallowDeps()
+        {
+            if (TrimmedResolvedVarDependencies != null) return;
+            (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
         }
 
         public void ClearDependencies()

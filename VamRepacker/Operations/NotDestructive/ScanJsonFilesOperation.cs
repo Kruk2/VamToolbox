@@ -28,7 +28,7 @@ namespace VamRepacker.Operations.NotDestructive
         private int _scanned;
         private int _total;
 
-        private Dictionary<string, FreeFile> _freeFilesIndex;
+        private ILookup<string, FreeFile> _freeFilesIndex;
         private ILookup<string, VarPackage> _varFilesIndex;
         private ILookup<string, FileReferenceBase> _vamFilesById;
         private ILookup<string, FileReferenceBase> _morphFilesByName;
@@ -71,7 +71,7 @@ namespace VamRepacker.Operations.NotDestructive
             
 
             _freeFilesIndex = freeFiles
-                .ToDictionary(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
+                .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
             _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
             InitVamFilesById(freeFiles, varFiles);
             InitMorphNames(freeFiles);
@@ -107,23 +107,22 @@ namespace VamRepacker.Operations.NotDestructive
 
         private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
         {
+            var dependencies = varFiles.Cast<IVamObjectWithDependencies>().Concat(freeFiles).ToList();
+            dependencies.ForEach(t => t.ClearDependencies());
             var progress = 0;
-            var depScanBlock = new ActionBlock<(VarPackage var, FreeFile free)>(
-                t =>
+            var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
                 {
-                    t.var?.CalculateDeps(force: true);
-                    t.free?.CalculateDeps(force: true);
-                    _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), _total, $"Calculating dependencies for {t.free?.ToString() ?? t.var?.Name?.Filename}"));
+                    t.CalculateDeps();
+                    t.CalculateShallowDeps();
+                    _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), _total, $"Calculating dependencies for {t}"));
                 },
                 new ExecutionDataflowBlockOptions
                 {
                     MaxDegreeOfParallelism = _context.Threads
                 });
 
-            foreach (var var in varFiles)
-                depScanBlock.Post((var, null));
-            foreach (var free in freeFiles)
-                depScanBlock.Post((null, free));
+            foreach (var d in dependencies)
+                depScanBlock.Post(d);
 
             depScanBlock.Complete();
             await depScanBlock.Completion;
@@ -457,11 +456,10 @@ namespace VamRepacker.Operations.NotDestructive
                     }
 
                     // prefer files that are in vam dir, if any
-                    if (bestMatchesByJsonCount.Any(t =>
-                        t is not VarPackageFile varFile || varFile.ParentVar.IsInVaMDir))
+                    bool IsInVamDirExpression(FileReferenceBase t) => (t is VarPackageFile varFile && varFile.ParentVar.IsInVaMDir) || (t is FreeFile freeFile && freeFile.IsInVaMDir);
+                    if (bestMatchesByJsonCount.Any(IsInVamDirExpression))
                     {
-                        bestMatchesByJsonCount = bestMatchesByJsonCount.Where(t =>
-                            t is not VarPackageFile varFile || varFile.ParentVar.IsInVaMDir);
+                        bestMatchesByJsonCount = bestMatchesByJsonCount.Where(IsInVamDirExpression);
                     }
 
                     // prefer vars/json with least dependencies
@@ -542,14 +540,15 @@ namespace VamRepacker.Operations.NotDestructive
             var refPath = reference.Value.Split(':').Last();
             refPath = refPath.NormalizePathSeparators();
             refPath = MigrateLegacyPaths(refPath);
-            if (sceneFolder != null &&
-                _freeFilesIndex.TryGetValue(_fs.Path.Combine(sceneFolder, refPath).NormalizePathSeparators(), out var f1))
+            if (sceneFolder != null && _freeFilesIndex[_fs.Path.Combine(sceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any())
             {
-                return new JsonReference(f1, reference);
+                var x = f1.FirstOrDefault(t => t.IsInVaMDir) ?? f1.FirstOrDefault();
+                return new JsonReference(x, reference);
             }
-            if (_freeFilesIndex.TryGetValue(refPath, out var f2))
+            if (_freeFilesIndex[refPath] is var f2 && f2.Any())
             {
-                return new JsonReference(f2, reference);
+                var x = f2.FirstOrDefault(t => t.IsInVaMDir) ?? f2.FirstOrDefault();
+                return new JsonReference(x, reference);
             }
 
             return default;

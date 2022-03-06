@@ -55,6 +55,7 @@ namespace VamRepackerUi
             this.comboThreads = new System.Windows.Forms.ComboBox();
             this.clearRepoDirBtn = new System.Windows.Forms.Button();
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
+            this.shallowChk = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -316,11 +317,22 @@ namespace VamRepackerUi
             this.moveMissingDepsChk.Text = "Move files";
             this.moveMissingDepsChk.UseVisualStyleBackColor = true;
             // 
+            // shallowChk
+            // 
+            this.shallowChk.AutoSize = true;
+            this.shallowChk.Location = new System.Drawing.Point(394, 417);
+            this.shallowChk.Name = "shallowChk";
+            this.shallowChk.Size = new System.Drawing.Size(67, 19);
+            this.shallowChk.TabIndex = 25;
+            this.shallowChk.Text = "Shallow";
+            this.shallowChk.UseVisualStyleBackColor = true;
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(537, 507);
+            this.Controls.Add(this.shallowChk);
             this.Controls.Add(this.moveMissingDepsChk);
             this.Controls.Add(this.clearRepoDirBtn);
             this.Controls.Add(this.comboThreads);
@@ -380,6 +392,7 @@ namespace VamRepackerUi
         private System.Windows.Forms.Button clearRepoDirBtn;
         private System.Windows.Forms.CheckBox moveMissingDepsChk;
         private System.Windows.Forms.Button trustAllVarsBtn;
+        private System.Windows.Forms.CheckBox shallowChk;
     }
 }
 

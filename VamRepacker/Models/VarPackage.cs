@@ -14,10 +14,8 @@ namespace VamRepacker.Models
         public List<VarPackageFile> Files { get; }
         public List<JsonFile> JsonFiles { get; } = new();
 
-
         public List<VarPackage> TrimmedResolvedVarDependencies { get; private set; }
         public List<VarPackage> AllResolvedVarDependencies { get; private set; }
-
         public List<FreeFile> TrimmedResolvedFreeDependencies { get; private set; }
         public List<FreeFile> AllResolvedFreeDependencies { get; private set; }
 
@@ -30,6 +28,8 @@ namespace VamRepacker.Models
             .SelectMany(t => t.SelfAndChildren())
             .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
             .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
+
+        public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
 
         public VarPackage(
             VarPackageName name, 
@@ -47,11 +47,16 @@ namespace VamRepacker.Models
 
         public override string ToString() => Name.ToString();
 
-        public void CalculateDeps(bool force = false)
+        public void CalculateDeps()
         {
-            if (TrimmedResolvedFreeDependencies != null && !force) return;
-            (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateVarRecursiveDeps(JsonFiles);
+            if (AlreadyCalculatedDeps) return;
             (AllResolvedVarDependencies, AllResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
+        }
+
+        public void CalculateShallowDeps()
+        {
+            if(TrimmedResolvedFreeDependencies != null) return;
+            (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
         }
 
         public void ClearDependencies()
@@ -78,5 +83,6 @@ namespace VamRepacker.Models
         //}
 
         //public override int GetHashCode() => Name.GetHashCode();
+
     }
 }

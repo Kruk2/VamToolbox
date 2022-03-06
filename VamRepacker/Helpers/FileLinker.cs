@@ -8,13 +8,13 @@ namespace VamRepacker.Helpers
 {
     public interface IFileLinker
     {
-        bool SoftLink(string destination, string source, bool dryRun);
+        int SoftLink(string destination, string source, bool dryRun);
         bool IsSoftLink(string file);
     }
 
     public class FileLinker : IFileLinker
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool CreateSymbolicLink(
             string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
 
@@ -60,7 +60,7 @@ namespace VamRepacker.Helpers
             public byte[] PathBuffer;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern SafeFileHandle CreateFile(
             string lpFileName,
             uint dwDesiredAccess,
@@ -131,23 +131,19 @@ namespace VamRepacker.Helpers
         }
 
 
-        public bool SoftLink(string destination, string source, bool dryRun)
+        public int SoftLink(string destination, string source, bool dryRun)
         {
             if (File.Exists(destination))
-                return true;
+                return 0;
             if (!File.Exists(source))
                 throw new VamRepackerException($"Copying failed. {source} doesn't exist;");
 
             if (dryRun)
-                return true;
+                return 0;
 
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
-            #if DEBUG
-            File.Copy(source, destination);
-            return true;
-            #else
-            return CreateSymbolicLink(destination, source, SymbolicLink.File | SymbolicLink.AllowUnprivilegedCreate);
-            #endif
+            var result = CreateSymbolicLink(destination, source, SymbolicLink.File | SymbolicLink.AllowUnprivilegedCreate);
+            return result ? 0 : Marshal.GetLastWin32Error();
         }
     }
 }

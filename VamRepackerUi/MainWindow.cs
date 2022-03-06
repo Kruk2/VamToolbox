@@ -70,12 +70,20 @@ namespace VamRepackerUi
         private async void copyMissingDepsFromRepoBtn_Click(object sender, EventArgs e)
         {
             var ctx = GetContext();
+            RemoveOldLinks();
             await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
             await scope.Resolve<IScanJsonFilesOperation>()
                 .ExecuteAsync(ctx, _freeFiles, _vars);
             scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
-                .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked);
+                .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
+
+            if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
+                    MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                await scope.Resolve<IDownloadMissingVars>()
+                    .ExecuteAsync(ctx, _vars, _freeFiles);
+            }
         }
 
         private async void softLinkVarsBtn_Click(object sender, EventArgs e)
@@ -113,7 +121,7 @@ namespace VamRepackerUi
             var addonDir = Path.Combine(vamDirTxt.Text, "AddonPackages");
 
             Directory
-                .EnumerateFiles(addonDir, "*.var", SearchOption.AllDirectories)
+                .EnumerateFiles(vamDirTxt.Text, "*.*", SearchOption.AllDirectories)
                 .Where(t => linker.IsSoftLink(t))
                 .ForEach(File.Delete);
 

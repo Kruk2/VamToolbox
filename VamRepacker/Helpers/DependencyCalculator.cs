@@ -9,7 +9,7 @@ namespace VamRepacker.Helpers
 {
     public static class DependencyCalculator
     {
-        public static (List<VarPackage>, List<FreeFile>) CalculateVarRecursiveDeps(IEnumerable<JsonFile> jsonFiles)
+        public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(IEnumerable<JsonFile> jsonFiles)
         {
             var queue = jsonFiles.SelectMany(t => t.References).Distinct().ToList();
             var queued = new HashSet<JsonReference>(queue);
@@ -22,16 +22,15 @@ namespace VamRepacker.Helpers
                 queue.RemoveAt(queue.Count - 1);
 
                 var ext = item.IsVarReference ? item.VarFile.ExtLower : item.File.ExtLower;
-                if (!KnownNames.ExtReferencesToPresets.Contains(ext))
-                    continue;
-
-                IEnumerable<JsonReference> references = item.IsVarReference ? item.VarFile.JsonReferences : item.File.JsonReferences;
-
                 if (item.IsVarReference)
                     varDeps.Add(item.VarFile.ParentVar);
                 else
                     freeFileDeps.Add(item.File);
 
+                if (!KnownNames.ExtReferencesToPresets.Contains(ext))
+                    continue;
+
+                IEnumerable<JsonReference> references = item.IsVarReference ? item.VarFile.JsonReferences : item.File.JsonReferences;
                 foreach (var reference in references)
                 {
                     if (queued.Contains(reference))
@@ -57,12 +56,14 @@ namespace VamRepacker.Helpers
                 var item = queue[^1];
                 queue.RemoveAt(queue.Count - 1);
 
-                var jsonFilesToScan = item.VarReferences
+                var jsonFilesToScan = item.VarReferences.Where(t => !t.AlreadyCalculatedDeps)
                     .SelectMany(t => t.JsonFiles)
-                    .Concat(item.FreeReferences.SelectMany(t => t.JsonFiles));
+                    .Concat(item.FreeReferences.Where(t => !t.AlreadyCalculatedDeps).SelectMany(t => t.JsonFiles));
 
                 item.VarReferences.ForEach(t => varDeps.Add(t));
                 item.FreeReferences.ForEach(t => freeFileDeps.Add(t));
+                item.VarReferences.Where(t => t.AlreadyCalculatedDeps).SelectMany(t => t.AllResolvedVarDependencies).ForEach(t => varDeps.Add(t));
+                item.FreeReferences.Where(t => t.AlreadyCalculatedDeps).SelectMany(t => t.AllResolvedFreeDependencies).ForEach(t => freeFileDeps.Add(t));
 
                 foreach (var jsonFile in jsonFilesToScan)
                 {

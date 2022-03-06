@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace VamRepacker.Models
 {
-    public class VarPackageName //: IEquatable<VarPackageName>
+    public class VarPackageName : IEquatable<VarPackageName>
     {
         public static readonly Regex ExtractRegex = new(@"^(?<Author>([^\.]+)|(\*))\.(?<Name>([^\.]+|\*))\.(?<Min>min)?(?<Version>([0-9]+|\*|latest))\.var$", RegexOptions.Compiled, TimeSpan.FromSeconds(0.5));
 
@@ -46,21 +46,21 @@ namespace VamRepacker.Models
             return Name != null ? $"{Name} v{Version} by {Author} ({Filename})" : Filename;
         }
 
-        //public bool Equals(VarPackageName other)
-        //{
-        //    if (ReferenceEquals(null, other)) return false;
-        //    if (ReferenceEquals(this, other)) return true;
-        //    return string.Equals(Filename, other.Filename, StringComparison.OrdinalIgnoreCase);
-        //}
+        public bool Equals(VarPackageName other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return string.Equals(Filename, other.Filename, StringComparison.OrdinalIgnoreCase);
+        }
 
-        //public override bool Equals(object obj)
-        //{
-        //    if (ReferenceEquals(null, obj)) return false;
-        //    if (ReferenceEquals(this, obj)) return true;
-        //    if (obj.GetType() != this.GetType()) return false;
-        //    return Equals((VarPackageName) obj);
-        //}
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((VarPackageName)obj);
+        }
 
-        //public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Filename);
+        public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Filename);
     }
 }

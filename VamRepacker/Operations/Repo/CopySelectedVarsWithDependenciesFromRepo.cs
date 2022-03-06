@@ -37,10 +37,10 @@ namespace VamRepacker.Operations.Repo
                 {
                     var destination = Path.Combine(addonPackages, Path.GetRelativePath(context.RepoDir, var.FullPath));
 
-                    bool result = _linker.SoftLink(destination, var.FullPath, context.DryRun);
-                    if (!result)
+                    var result = _linker.SoftLink(destination, var.FullPath, context.DryRun);
+                    if (result != 0)
                     {
-                        _reporter.Complete("Failed. Unable to create symlink. Probably missing admin privilege.");
+                        _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
                         return;
                     }
 
@@ -61,7 +61,7 @@ namespace VamRepacker.Operations.Repo
             var toCopy = repoVars.Where(t => varFilters.Matches(t.FullPath)).ToList();
 
             // optimize? if there is already free file with the same uuid we could skip this var
-            var dependencies = toCopy.SelectMany(t => t.TrimmedResolvedVarDependencies);
+            var dependencies = toCopy.SelectMany(t => t.AllResolvedVarDependencies);
             return toCopy
                 .Concat(dependencies)
                 .DistinctBy(t => t.FullPath)

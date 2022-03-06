@@ -60,7 +60,7 @@ namespace VamRepacker.Operations.NotDestructive
             var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
             _favMorphs = freeFiles
                 .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
-                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: KnownNames.MorphDirs.Single(x => t.LocalPath.StartsWith(x)), file: (FileReferenceBase)t));
+                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
 
             var scanPackageBlock = CreateBlock();
             foreach (var packageFile in packageFiles)
