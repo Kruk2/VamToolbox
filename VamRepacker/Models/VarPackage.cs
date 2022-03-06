@@ -5,7 +5,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models
 {
-    public class VarPackage : IVamObjectWithDependencies //: IEquatable<VarPackage>
+    public class VarPackage : IVamObjectWithDependencies
     {
         public VarPackageName Name { get; }
         public long Size { get; set; }
@@ -24,12 +24,24 @@ namespace VamRepacker.Models
             .Distinct();
 
         private Dictionary<string, VarPackageFile> _filesDict;
+
         public Dictionary<string, VarPackageFile> FilesDict => _filesDict ??= Files
             .SelectMany(t => t.SelfAndChildren())
             .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
             .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
         public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
+
+        private bool _dirty;
+        public bool Dirty
+        {
+            get => _dirty;
+            set
+            {
+                _dirty = value;
+                Files.ForEach(t => t.Dirty = value);
+            }
+        }
 
         public VarPackage(
             VarPackageName name, 
@@ -66,23 +78,5 @@ namespace VamRepacker.Models
             TrimmedResolvedFreeDependencies = null;
             TrimmedResolvedVarDependencies = null;
         }
-
-        //public bool Equals(VarPackage other)
-        //{
-        //    if (ReferenceEquals(null, other)) return false;
-        //    if (ReferenceEquals(this, other)) return true;
-        //    return Name.Equals(other.Name);
-        //}
-
-        //public override bool Equals(object obj)
-        //{
-        //    if (ReferenceEquals(null, obj)) return false;
-        //    if (ReferenceEquals(this, obj)) return true;
-        //    if (obj.GetType() != this.GetType()) return false;
-        //    return Equals((VarPackage) obj);
-        //}
-
-        //public override int GetHashCode() => Name.GetHashCode();
-
     }
 }

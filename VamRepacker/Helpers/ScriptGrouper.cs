@@ -31,7 +31,6 @@ namespace VamRepacker.Helpers
             var filesIndex = files
                 .Where(f => f.ExtLower == ".cs")
                 .ToDictionary(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
-
             foreach (var cslist in files.Where(f => f.ExtLower == ".cslist"))
             {
                 var cslistFolder = _fs.Path.GetDirectoryName(cslist.LocalPath);

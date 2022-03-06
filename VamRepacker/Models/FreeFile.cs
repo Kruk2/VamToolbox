@@ -5,10 +5,9 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models
 {
-    public class FreeFile : FileReferenceBase, IVamObjectWithDependencies//, IEquatable<FreeFile>
+    public class FreeFile : FileReferenceBase, IVamObjectWithDependencies
     {
         public string FullPath { get; }
-        public FreeFile ParentFile { get; private set; }
         public List<JsonFile> JsonFiles { get; } = new();
 
         private readonly List<FreeFile> _children = new();
@@ -43,7 +42,7 @@ namespace VamRepacker.Models
         public override void AddChildren(FileReferenceBase children)
         {
             _children.Add((FreeFile) children);
-            ((FreeFile) children).ParentFile = this;
+            children.ParentFile = this;
         }
 
         public void CalculateDeps()
@@ -65,22 +64,5 @@ namespace VamRepacker.Models
             TrimmedResolvedFreeDependencies = null;
             TrimmedResolvedVarDependencies = null;
         }
-
-        //public bool Equals(FreeFile other)
-        //{
-        //    if (ReferenceEquals(null, other)) return false;
-        //    if (ReferenceEquals(this, other)) return true;
-        //    return FullPath == other.FullPath;
-        //}
-
-        //public override bool Equals(object obj)
-        //{
-        //    if (ReferenceEquals(null, obj)) return false;
-        //    if (ReferenceEquals(this, obj)) return true;
-        //    if (obj.GetType() != this.GetType()) return false;
-        //    return Equals((FreeFile) obj);
-        //}
-
-        //public override int GetHashCode() => FullPath.GetHashCode();
     }
 }

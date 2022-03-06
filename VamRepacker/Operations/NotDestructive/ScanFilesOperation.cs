@@ -8,6 +8,7 @@ using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
+using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive
 {
@@ -17,14 +18,16 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly IFileSystem _fs;
         private readonly ILogger _logger;
         private readonly ILifetimeScope _scope;
+        private readonly IDatabase _database;
         private OperationContext _context;
 
-        public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope)
+        public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope, IDatabase database)
         {
             _reporter = reporter;
             _fs = fs;
             _logger = logger;
             _scope = scope;
+            _database = database;
         }
 
         public async Task<List<FreeFile>> ExecuteAsync(OperationContext context)
@@ -71,6 +74,10 @@ namespace VamRepacker.Operations.NotDestructive
                 await _scope.Resolve<IPresetGrouper>().GroupPresets(files, varName: null, OpenFileStream);
                 _reporter.Report("Grouping previews");
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
+
+                _reporter.Report("Updating local database");
+                await UpdateDatabase(files);
+
             });
 
             return files;
@@ -90,6 +97,20 @@ namespace VamRepacker.Operations.NotDestructive
                 .ToList();
 
             return files;
+        }
+
+        private async Task UpdateDatabase(List<FreeFile> files)
+        {
+            if (_context.DryRun) return;
+
+            foreach (var freeFile in files)
+            {
+                var size = await _database.GetFileSize(freeFile.FullPath);
+                if (size == null || freeFile.Size != size.Value)
+                {
+                    freeFile.Dirty = true;
+                }
+            }
         }
     }
 

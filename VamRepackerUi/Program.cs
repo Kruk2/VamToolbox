@@ -8,6 +8,7 @@ using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Operations.Abstract;
 using VamRepacker.Operations.NotDestructive;
+using VamRepacker.Sqlite;
 
 namespace VamRepackerUi
 {
@@ -51,7 +52,7 @@ namespace VamRepackerUi
             builder.RegisterType<MainWindow>().As<IProgressTracker>().AsSelf().SingleInstance();
 
             builder.RegisterType<Logger>().As<ILogger>().InstancePerLifetimeScope();
-            builder.RegisterType<Database>().As<IDatabase>().InstancePerLifetimeScope();
+            builder.RegisterType<Database>().As<IDatabase>().OnActivating(t => t.Instance.Open()).InstancePerLifetimeScope();
             builder.RegisterType<MD5Helper>().As<IHashingAlgo>().SingleInstance();
 
             builder.RegisterType<PresetGrouper>().As<IPresetGrouper>();

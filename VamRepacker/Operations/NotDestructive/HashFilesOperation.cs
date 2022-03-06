@@ -13,6 +13,7 @@ using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
+using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive
 {
@@ -24,8 +25,8 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly ILogger _logger;
         private readonly IDatabase _database;
 
-        private ConcurrentDictionary<Database.HashesTable, string> _hashes;
-        private readonly ConcurrentBag<Database.HashesTable> _newHashes = new();
+        private ConcurrentDictionary<HashesTable, string> _hashes;
+        private readonly ConcurrentBag<HashesTable> _newHashes = new();
 
         public HashFilesOperation(IProgressTracker progressTracker, IHashingAlgo hasher, IFileSystem fs, ILogger logger, IDatabase database)
         {
@@ -44,7 +45,6 @@ namespace VamRepacker.Operations.NotDestructive
         public async Task ExecuteAsync(OperationContext context, IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
         {
             _context = context;
-            _database.Open(context.VamDir);
             _progressTracker.InitProgress("Hashing files");
             _logger.Init("hash_files.log");
 
@@ -88,7 +88,7 @@ namespace VamRepacker.Operations.NotDestructive
 
         private async Task ExecuteFreeFileOneAsync(FreeFile freeFile)
         {
-            var lookup = new Database.HashesTable { LocalAssetPath = freeFile.FullPath, VarFileName = "" };
+            var lookup = new HashesTable { LocalAssetPath = freeFile.FullPath, VarFileName = "" };
             if (_hashes.TryGetValue(lookup, out var hash))
             {
                 freeFile.Hash = hash;
@@ -138,7 +138,7 @@ namespace VamRepacker.Operations.NotDestructive
 
         private async Task<string> HashFileAsync(VarPackageFile file, ZipArchiveEntry entry)
         {
-            var lookup = new Database.HashesTable { LocalAssetPath = file.LocalPath, VarFileName = file.ParentVar.Name.Filename };
+            var lookup = new HashesTable { LocalAssetPath = file.LocalPath, VarFileName = file.ParentVar.Name.Filename };
             if (_hashes.TryGetValue(lookup, out var hash))
             {
                 return hash;

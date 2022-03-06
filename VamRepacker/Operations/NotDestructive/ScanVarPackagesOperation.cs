@@ -16,6 +16,7 @@ using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
+using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive
 {
@@ -25,6 +26,7 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly IProgressTracker _reporter;
         private readonly ILogger _logger;
         private readonly ILifetimeScope _scope;
+        private readonly IDatabase _database;
         private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs;
         private readonly ConcurrentBag<VarPackage> _packages = new();
         private readonly VarScanResults _result = new ();
@@ -33,12 +35,13 @@ namespace VamRepacker.Operations.NotDestructive
         private int _totalVarsCount;
         private OperationContext _context;
 
-        public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope)
+        public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, IDatabase database)
         {
             _fs = fs;
             _reporter = progressTracker;
             _logger = logger;
             _scope = scope;
+            _database = database;
         }
 
         public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles)
@@ -74,6 +77,9 @@ namespace VamRepacker.Operations.NotDestructive
                     return fromVamDir ?? t.First();
                 })
                 .ToList();
+
+            _reporter.Report("Updating local database");
+            await Task.Run(() => UpdateDatabase(_result.Vars));
 
             var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
             _reporter.Complete(endingMessage);
@@ -168,6 +174,19 @@ namespace VamRepacker.Operations.NotDestructive
             }
 
             _reporter.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalVarsCount, name.Filename));
+        }
+
+        private async Task UpdateDatabase(List<VarPackage> varPackages)
+        {
+            if (_context.DryRun) return;
+            foreach (var varPackage in varPackages)
+            {
+                var size = await _database.GetFileSize(varPackage.FullPath);
+                if (size == null || varPackage.Size != size.Value)
+                {
+                    varPackage.Dirty = true;
+                }
+            }
         }
 
         private static async Task<MetaFileJson> ReadMetaFile(ZipArchiveEntry metaEntry)

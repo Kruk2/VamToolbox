@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using MoreLinq;
 using VamRepacker.Hashing;
 using VamRepacker.Helpers;
 
@@ -20,7 +21,20 @@ namespace VamRepacker.Models
 
         public List<JsonReference> JsonReferences { get; } = new();
 
+        private bool _dirty;
+        public bool Dirty
+        {
+            get => _dirty;
+            set
+            {
+                _dirty = value;
+                Children.ForEach(t => t.Dirty = value);
+                if (ParentFile != null && ParentFile.Dirty != value) ParentFile.Dirty = value;
+            }
+        }
+
         public long Size { get; }
+        public FileReferenceBase ParentFile { get; protected internal set; }
         public abstract IReadOnlyCollection<FileReferenceBase> Children { get; }
         public List<string> MissingChildren { get; } = new();
 
