@@ -26,7 +26,7 @@ namespace VamRepacker.Operations.Destructive
         {
             _context = context;
 
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Removing soft-links");
             int softLinksRemoved = 0;
             var addonDir = Path.Combine(context.VamDir, "AddonPackages");
 
@@ -41,7 +41,7 @@ namespace VamRepacker.Operations.Destructive
                     if (!_context.DryRun) File.Delete(softLink);
 
                     Interlocked.Increment(ref softLinksRemoved);
-                    _progressTracker.Report(new(softLinksRemoved, 0, Path.GetFileName(softLink)));
+                    _progressTracker.Report(Path.GetFileName(softLink));
                 }
 
                 RemoveEmptyDirs(addonDir);

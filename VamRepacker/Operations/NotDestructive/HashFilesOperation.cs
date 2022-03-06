@@ -45,7 +45,7 @@ namespace VamRepacker.Operations.NotDestructive
         {
             _context = context;
             _database.Open(context.VamDir);
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Hashing files");
             _logger.Init("hash_files.log");
 
             _totalFiles = (varFiles?.Count ?? 0) + freeFiles.Count;

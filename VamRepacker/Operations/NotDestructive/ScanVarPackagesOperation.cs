@@ -44,7 +44,7 @@ namespace VamRepacker.Operations.NotDestructive
         public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles)
         {
             _context = context;
-            _reporter.InitProgress();
+            _reporter.InitProgress("Scanning var files");
             _logger.Init("var_scan.log");
 
             var stopWatch = new Stopwatch();

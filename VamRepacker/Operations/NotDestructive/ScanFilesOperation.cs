@@ -29,7 +29,7 @@ namespace VamRepacker.Operations.NotDestructive
 
         public async Task<List<FreeFile>> ExecuteAsync(OperationContext context)
         {
-            _reporter.InitProgress();
+            _reporter.InitProgress("Scanning files");
             _logger.Init("scan_files.log");
             _context = context;
 
@@ -50,19 +50,26 @@ namespace VamRepacker.Operations.NotDestructive
 
             await Task.Run(async () =>
             {
+                _reporter.Report("Scanning Custom folder");
                 files.AddRange(ScanFolder(rootDir, "Custom"));
+                _reporter.Report("Scanning Saves folder");
                 files.AddRange(ScanFolder(rootDir, "Saves"));
 
+                _reporter.Report("Analyzing fav files");
                 var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
                 var favMorphs = files
                     .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
                     .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
-
+                    
                 Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
+                _reporter.Report("Grouping scripts");
                 await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
+                _reporter.Report("Grouping morphs");
                 await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, varName: null, openFileStream: OpenFileStream, favMorphs);
+                _reporter.Report("Grouping presets");
                 await _scope.Resolve<IPresetGrouper>().GroupPresets(files, varName: null, OpenFileStream);
+                _reporter.Report("Grouping previews");
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
             });
 

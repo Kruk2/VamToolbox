@@ -50,7 +50,7 @@ namespace VamRepacker.Operations.Destructive
             _vars = vars;
             _freeFiles = freeFiles;
             _jsonUpdater.DryRun = context.DryRun;
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Deduplicating");
 
             await Task.Run(CalculateDuplicates);
             await RewriteJsonFiles();

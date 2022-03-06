@@ -40,7 +40,7 @@ namespace VamRepacker.Operations.Destructive
             if (!context.DryRun)
                 Directory.CreateDirectory(_vamPrefsDir);
 
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Trusting all vars");
             _total = vars.Count;
             var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions
             {

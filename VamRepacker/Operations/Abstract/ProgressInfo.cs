@@ -6,10 +6,17 @@ namespace VamRepacker.Operations.Abstract
         public int Total { get; }
         public string Current { get; }
 
-        public ProgressInfo(int scenesProcessed, int totalScenes, string current)
+        public ProgressInfo(int processed, int total, string current)
         {
-            Processed = scenesProcessed;
-            Total = totalScenes;
+            Processed = processed;
+            Total = total;
+            Current = current;
+        }
+
+        public ProgressInfo(string current)
+        {
+            Processed = 0;
+            Total = 0;
             Current = current;
         }
     }

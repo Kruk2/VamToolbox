@@ -26,7 +26,7 @@ namespace VamRepacker.Operations.Repo
         public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles,
             bool moveVars, bool shallow)
         {
-            _reporter.InitProgress();
+            _reporter.InitProgress("Copying missing dependencies from REPO to VAM");
             _logger.Init("copy_missing_deps_from_repo.log");
 
             var (exitingVars, existingFiles) = await Task.Run(() => FindFilesToLink(vars, freeFiles, shallow));

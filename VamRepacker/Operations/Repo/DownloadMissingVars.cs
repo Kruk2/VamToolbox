@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RestEase;
-using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
@@ -18,18 +17,16 @@ namespace VamRepacker.Operations.Repo
     {
         private readonly IProgressTracker _reporter;
         private readonly ILogger _logger;
-        private readonly IFileLinker _linker;
 
-        public DownloadMissingVars(IProgressTracker progressTracker, ILogger logger, IFileLinker linker)
+        public DownloadMissingVars(IProgressTracker progressTracker, ILogger logger)
         {
             _reporter = progressTracker;
             _logger = logger;
-            _linker = linker;
         }
 
         public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles)
         {
-            _reporter.InitProgress();
+            _reporter.InitProgress("Downloading missing vars from vam hub");
             _logger.Init("download_missing_from_vam.log");
             int processed = 0;
             var unresolvedVars = await Task.Run(() => FindMissingReferences(vars, freeFiles));

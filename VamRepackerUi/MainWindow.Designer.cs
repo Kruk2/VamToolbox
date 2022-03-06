@@ -48,17 +48,20 @@ namespace VamRepackerUi
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.trustAllVarsBtn = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.removeAllSoftLinkBeforeChk = new System.Windows.Forms.CheckBox();
             this.profilesListBox = new System.Windows.Forms.CheckedListBox();
             this.manageProfilesBtn = new System.Windows.Forms.Button();
+            this.removeAllSoftLinkBeforeChk = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
             this.comboThreads = new System.Windows.Forms.ComboBox();
             this.clearRepoDirBtn = new System.Windows.Forms.Button();
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
             this.shallowChk = new System.Windows.Forms.CheckBox();
+            this.stageTxt = new System.Windows.Forms.Label();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBox4.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -117,7 +120,7 @@ namespace VamRepackerUi
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(3, 453);
+            this.progressBar.Location = new System.Drawing.Point(3, 497);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(531, 42);
             this.progressBar.TabIndex = 7;
@@ -128,7 +131,7 @@ namespace VamRepackerUi
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.operationStatusLabel.AutoSize = true;
-            this.operationStatusLabel.Location = new System.Drawing.Point(3, 420);
+            this.operationStatusLabel.Location = new System.Drawing.Point(3, 464);
             this.operationStatusLabel.Name = "operationStatusLabel";
             this.operationStatusLabel.Size = new System.Drawing.Size(38, 30);
             this.operationStatusLabel.TabIndex = 8;
@@ -148,16 +151,16 @@ namespace VamRepackerUi
             // dryRunCheckbox
             // 
             this.dryRunCheckbox.AutoSize = true;
-            this.dryRunCheckbox.Location = new System.Drawing.Point(9, 67);
+            this.dryRunCheckbox.Location = new System.Drawing.Point(12, 47);
             this.dryRunCheckbox.Name = "dryRunCheckbox";
-            this.dryRunCheckbox.Size = new System.Drawing.Size(340, 19);
+            this.dryRunCheckbox.Size = new System.Drawing.Size(65, 19);
             this.dryRunCheckbox.TabIndex = 12;
-            this.dryRunCheckbox.Text = "Dry run (only print actions but don\'t delete/move anything)";
+            this.dryRunCheckbox.Text = "Dry run";
             this.dryRunCheckbox.UseVisualStyleBackColor = true;
             // 
             // copyMissingDepsFromRepoBtn
             // 
-            this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(365, 281);
+            this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(363, 280);
             this.copyMissingDepsFromRepoBtn.Name = "copyMissingDepsFromRepoBtn";
             this.copyMissingDepsFromRepoBtn.Size = new System.Drawing.Size(136, 74);
             this.copyMissingDepsFromRepoBtn.TabIndex = 13;
@@ -169,7 +172,7 @@ namespace VamRepackerUi
             // 
             this.scanInvalidVars_Btn.Location = new System.Drawing.Point(6, 22);
             this.scanInvalidVars_Btn.Name = "scanInvalidVars_Btn";
-            this.scanInvalidVars_Btn.Size = new System.Drawing.Size(85, 96);
+            this.scanInvalidVars_Btn.Size = new System.Drawing.Size(85, 65);
             this.scanInvalidVars_Btn.TabIndex = 14;
             this.scanInvalidVars_Btn.Text = "Scan for invalid vars";
             this.scanInvalidVars_Btn.UseVisualStyleBackColor = true;
@@ -179,7 +182,7 @@ namespace VamRepackerUi
             // 
             this.scanJsonFilesBtn.Location = new System.Drawing.Point(98, 22);
             this.scanJsonFilesBtn.Name = "scanJsonFilesBtn";
-            this.scanJsonFilesBtn.Size = new System.Drawing.Size(86, 96);
+            this.scanJsonFilesBtn.Size = new System.Drawing.Size(86, 65);
             this.scanJsonFilesBtn.TabIndex = 15;
             this.scanJsonFilesBtn.Text = "Scan for missing or invalid assets";
             this.scanJsonFilesBtn.UseVisualStyleBackColor = true;
@@ -189,7 +192,7 @@ namespace VamRepackerUi
             // 
             this.deduplicateAssetsBtn.Location = new System.Drawing.Point(14, 22);
             this.deduplicateAssetsBtn.Name = "deduplicateAssetsBtn";
-            this.deduplicateAssetsBtn.Size = new System.Drawing.Size(94, 99);
+            this.deduplicateAssetsBtn.Size = new System.Drawing.Size(94, 65);
             this.deduplicateAssetsBtn.TabIndex = 16;
             this.deduplicateAssetsBtn.Text = "Estimate how many GB duplicates are taking";
             this.deduplicateAssetsBtn.UseVisualStyleBackColor = true;
@@ -199,9 +202,9 @@ namespace VamRepackerUi
             // 
             this.fixReferencesJsonBtn.Location = new System.Drawing.Point(121, 21);
             this.fixReferencesJsonBtn.Name = "fixReferencesJsonBtn";
-            this.fixReferencesJsonBtn.Size = new System.Drawing.Size(102, 99);
+            this.fixReferencesJsonBtn.Size = new System.Drawing.Size(102, 66);
             this.fixReferencesJsonBtn.TabIndex = 17;
-            this.fixReferencesJsonBtn.Text = "NOT IMPLEMENTED Try to fix broken references in scenes/presets";
+            this.fixReferencesJsonBtn.Text = "Try to fix broken references in scenes/presets";
             this.fixReferencesJsonBtn.UseVisualStyleBackColor = true;
             this.fixReferencesJsonBtn.Click += new System.EventHandler(this.fixReferencesJsonBtn_Click);
             // 
@@ -209,9 +212,9 @@ namespace VamRepackerUi
             // 
             this.groupBox1.Controls.Add(this.scanInvalidVars_Btn);
             this.groupBox1.Controls.Add(this.scanJsonFilesBtn);
-            this.groupBox1.Location = new System.Drawing.Point(9, 125);
+            this.groupBox1.Location = new System.Drawing.Point(3, 169);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(202, 131);
+            this.groupBox1.Size = new System.Drawing.Size(208, 101);
             this.groupBox1.TabIndex = 18;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Non-destructive - scans both dirs";
@@ -221,9 +224,9 @@ namespace VamRepackerUi
             this.groupBox2.Controls.Add(this.trustAllVarsBtn);
             this.groupBox2.Controls.Add(this.deduplicateAssetsBtn);
             this.groupBox2.Controls.Add(this.fixReferencesJsonBtn);
-            this.groupBox2.Location = new System.Drawing.Point(217, 125);
+            this.groupBox2.Location = new System.Drawing.Point(217, 169);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(308, 131);
+            this.groupBox2.Size = new System.Drawing.Size(308, 101);
             this.groupBox2.TabIndex = 19;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Destructive - works only in VAM dir";
@@ -232,7 +235,7 @@ namespace VamRepackerUi
             // 
             this.trustAllVarsBtn.Location = new System.Drawing.Point(229, 22);
             this.trustAllVarsBtn.Name = "trustAllVarsBtn";
-            this.trustAllVarsBtn.Size = new System.Drawing.Size(73, 99);
+            this.trustAllVarsBtn.Size = new System.Drawing.Size(73, 65);
             this.trustAllVarsBtn.TabIndex = 18;
             this.trustAllVarsBtn.Text = "Trust all Vars";
             this.trustAllVarsBtn.UseVisualStyleBackColor = true;
@@ -243,22 +246,12 @@ namespace VamRepackerUi
             this.groupBox3.Controls.Add(this.profilesListBox);
             this.groupBox3.Controls.Add(this.manageProfilesBtn);
             this.groupBox3.Controls.Add(this.copyVarsFromRepoBtn);
-            this.groupBox3.Location = new System.Drawing.Point(3, 262);
+            this.groupBox3.Location = new System.Drawing.Point(3, 276);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(337, 155);
             this.groupBox3.TabIndex = 20;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Profiles";
-            // 
-            // removeAllSoftLinkBeforeChk
-            // 
-            this.removeAllSoftLinkBeforeChk.AutoSize = true;
-            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(365, 386);
-            this.removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
-            this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(136, 19);
-            this.removeAllSoftLinkBeforeChk.TabIndex = 18;
-            this.removeAllSoftLinkBeforeChk.Text = "Remove all soft-links";
-            this.removeAllSoftLinkBeforeChk.UseVisualStyleBackColor = true;
             // 
             // profilesListBox
             // 
@@ -278,10 +271,20 @@ namespace VamRepackerUi
             this.manageProfilesBtn.UseVisualStyleBackColor = true;
             this.manageProfilesBtn.Click += new System.EventHandler(this.manageProfilesBtn_Click);
             // 
+            // removeAllSoftLinkBeforeChk
+            // 
+            this.removeAllSoftLinkBeforeChk.AutoSize = true;
+            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(237, 47);
+            this.removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
+            this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(259, 19);
+            this.removeAllSoftLinkBeforeChk.TabIndex = 18;
+            this.removeAllSoftLinkBeforeChk.Text = "Remove all soft-links before applying profile";
+            this.removeAllSoftLinkBeforeChk.UseVisualStyleBackColor = true;
+            // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(9, 95);
+            this.label4.Location = new System.Drawing.Point(10, 72);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(110, 15);
             this.label4.TabIndex = 21;
@@ -291,7 +294,7 @@ namespace VamRepackerUi
             // 
             this.comboThreads.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboThreads.FormattingEnabled = true;
-            this.comboThreads.Location = new System.Drawing.Point(125, 92);
+            this.comboThreads.Location = new System.Drawing.Point(126, 69);
             this.comboThreads.Name = "comboThreads";
             this.comboThreads.Size = new System.Drawing.Size(68, 23);
             this.comboThreads.TabIndex = 22;
@@ -309,39 +312,64 @@ namespace VamRepackerUi
             // moveMissingDepsChk
             // 
             this.moveMissingDepsChk.AutoSize = true;
-            this.moveMissingDepsChk.Location = new System.Drawing.Point(365, 361);
+            this.moveMissingDepsChk.Location = new System.Drawing.Point(12, 22);
             this.moveMissingDepsChk.Name = "moveMissingDepsChk";
-            this.moveMissingDepsChk.Size = new System.Drawing.Size(80, 19);
+            this.moveMissingDepsChk.Size = new System.Drawing.Size(216, 19);
             this.moveMissingDepsChk.TabIndex = 24;
-            this.moveMissingDepsChk.Text = "Move files";
+            this.moveMissingDepsChk.Text = "Move files instead of doing soft-link";
             this.moveMissingDepsChk.UseVisualStyleBackColor = true;
             // 
             // shallowChk
             // 
             this.shallowChk.AutoSize = true;
-            this.shallowChk.Location = new System.Drawing.Point(446, 361);
+            this.shallowChk.Location = new System.Drawing.Point(237, 22);
             this.shallowChk.Name = "shallowChk";
-            this.shallowChk.Size = new System.Drawing.Size(67, 19);
+            this.shallowChk.Size = new System.Drawing.Size(200, 19);
             this.shallowChk.TabIndex = 25;
-            this.shallowChk.Text = "Shallow";
+            this.shallowChk.Text = "Use shallow dependency resolver";
             this.shallowChk.UseVisualStyleBackColor = true;
+            // 
+            // stageTxt
+            // 
+            this.stageTxt.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.stageTxt.AutoSize = true;
+            this.stageTxt.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.stageTxt.Location = new System.Drawing.Point(3, 434);
+            this.stageTxt.Name = "stageTxt";
+            this.stageTxt.Size = new System.Drawing.Size(28, 15);
+            this.stageTxt.TabIndex = 26;
+            this.stageTxt.Text = "Idle";
+            this.stageTxt.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.moveMissingDepsChk);
+            this.groupBox4.Controls.Add(this.shallowChk);
+            this.groupBox4.Controls.Add(this.removeAllSoftLinkBeforeChk);
+            this.groupBox4.Controls.Add(this.dryRunCheckbox);
+            this.groupBox4.Controls.Add(this.label4);
+            this.groupBox4.Controls.Add(this.comboThreads);
+            this.groupBox4.Location = new System.Drawing.Point(3, 65);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(522, 98);
+            this.groupBox4.TabIndex = 27;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "General Options";
             // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(537, 507);
-            this.Controls.Add(this.removeAllSoftLinkBeforeChk);
-            this.Controls.Add(this.shallowChk);
-            this.Controls.Add(this.moveMissingDepsChk);
+            this.ClientSize = new System.Drawing.Size(537, 548);
+            this.Controls.Add(this.groupBox4);
+            this.Controls.Add(this.stageTxt);
             this.Controls.Add(this.clearRepoDirBtn);
-            this.Controls.Add(this.comboThreads);
-            this.Controls.Add(this.label4);
             this.Controls.Add(this.copyMissingDepsFromRepoBtn);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.dryRunCheckbox);
             this.Controls.Add(this.additionalVarsDir);
             this.Controls.Add(this.operationStatusLabel);
             this.Controls.Add(this.label2);
@@ -358,6 +386,8 @@ namespace VamRepackerUi
             this.groupBox1.ResumeLayout(false);
             this.groupBox2.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -392,6 +422,8 @@ namespace VamRepackerUi
         private System.Windows.Forms.CheckBox moveMissingDepsChk;
         private System.Windows.Forms.Button trustAllVarsBtn;
         private System.Windows.Forms.CheckBox shallowChk;
+        private System.Windows.Forms.Label stageTxt;
+        private System.Windows.Forms.GroupBox groupBox4;
     }
 }
 

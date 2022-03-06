@@ -59,7 +59,7 @@ namespace VamRepacker.Operations.NotDestructive
 
             _context = context;
             _logger.Init("scan_json_files.log");
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Scanning scenes/presets references");
 
             var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
 

@@ -24,7 +24,7 @@ namespace VamRepacker.Operations.Repo
 
         public Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IVarFilters varFilter)
         {
-            _reporter.InitProgress();
+            _reporter.InitProgress("Applying profile");
             _logger.Init("copy_vars_from_repo.log");
 
             return Task.Run(() =>

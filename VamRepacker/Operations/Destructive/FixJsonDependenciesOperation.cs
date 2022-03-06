@@ -37,7 +37,7 @@ namespace VamRepacker.Operations.Destructive
         public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, IList<JsonFile> jsonFiles, bool makeBackup)
         {
             _context = context;
-            _progressTracker.InitProgress();
+            _progressTracker.InitProgress("Fixing json dependencies");
             InitLookups(vars, freeFiles);
 
             var jsonWithMissingReferences = jsonFiles
