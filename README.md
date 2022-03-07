@@ -33,11 +33,11 @@ Trust scripts from all vars that are located in ```VAM```.
 Scan ```VAM``` and ```REPO``` directories for errors/missing vars or assets. Check logs in exe directory for details.  
 You can fix some of them manually like invalid var filename or missing meta.json
 
-4. ![image](https://user-images.githubusercontent.com/59397941/156947430-d014f2a5-e478-4499-978a-8f8e323dd098.png)
+4. ![image](https://user-images.githubusercontent.com/59397941/156947430-d014f2a5-e478-4499-978a-8f8e323dd098.png)  
 This will check what vars are missing in your ```VAM``` directory and download them from HUB. They will be downloaded to ```VAM/AddonPackages/other``` directory.
 
 ## Profiles
-![image](https://user-images.githubusercontent.com/59397941/156947461-51a9093d-c82c-4a95-8b6b-793a8c347fde.png) 
+![image](https://user-images.githubusercontent.com/59397941/156947461-51a9093d-c82c-4a95-8b6b-793a8c347fde.png)  
 Applying a profile(s) will soft-link all matched vars to your ```VAM``` (preserving folder hierarchy).
 Then dependencies will be resolved and soft-linked to ```VAM/AddonPackages/other``` directory.
 
