@@ -15,6 +15,7 @@ namespace VamRepacker.Sqlite
         Task AddHashes(IEnumerable<HashesTable> hashes);
         (long? id, long? size) GetFileSize(string path);
         IEnumerable<ReferenceEntry> ReadReferenceCache();
+        IEnumerable<string> ReadScannedFilesCache();
         void SaveFiles(Dictionary<string, (long size, long id)> files);
         void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles, Dictionary<string, (long size, long id)> files);
         void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> references, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles);

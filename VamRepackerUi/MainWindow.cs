@@ -77,8 +77,8 @@ namespace VamRepackerUi
             var ctx = GetContext(stages: 5);
 
             await using var scope = _ctx.BeginLifetimeScope();
-            await ScanJsonFiles(scope, ctx);
             await RemoveOldLinks(scope, ctx);
+            await ScanJsonFiles(scope, ctx);
             await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
 
@@ -108,8 +108,8 @@ namespace VamRepackerUi
 
             var ctx = GetContext(stages: 5);
             await using var scope = _ctx.BeginLifetimeScope();
-            await ScanJsonFiles(scope, ctx, BuildFilters());
             await RemoveOldLinks(scope, ctx);
+            await ScanJsonFiles(scope, ctx, BuildFilters());
             await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, BuildFilters());
 

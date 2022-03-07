@@ -46,6 +46,7 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
         private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
         private ILookup<string, ReferenceEntry> _globalReferenceCache;
+        private HashSet<string> _globalCacheScannedFiles;
 
         public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IDatabase database)
         {
@@ -92,6 +93,7 @@ namespace VamRepacker.Operations.NotDestructive
         {
             int progress = 0;
             _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database"));
+            _globalCacheScannedFiles = Enumerable.ToHashSet(_database.ReadScannedFilesCache(), StringComparer.OrdinalIgnoreCase);
             _globalReferenceCache = _database.ReadReferenceCache().ToLookup(t => t.FilePath, StringComparer.OrdinalIgnoreCase);
 
             foreach (var json in potentialScenes)
@@ -119,9 +121,9 @@ namespace VamRepacker.Operations.NotDestructive
                 .ToList();
 
             var progress = 0;
-            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).Where(t => t.Dirty).ToList();
+            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).ToList();
             var dirtyVarFiles = varFiles.Where(t => t.Dirty).ToList();
-            var total = jsonFiles.Count + dirtyFreeFiles.Count + dirtyVarFiles.Count;
+            var total = jsonFiles.Count + dirtyFreeFiles.Count + varFiles.Count;
 
             var bulkInsertFiles = new Dictionary<string, (long size, long id)>();
             var bulkInsertJsonFiles = new Dictionary<(string filePath, string jsonLocalPath), long>();
@@ -166,13 +168,21 @@ namespace VamRepacker.Operations.NotDestructive
             if (jsonFile.IsVar && !jsonFile.Var.Dirty)
             {
                 var var = jsonFile.Var;
-                var filesToCheck = var.Files.Where(t => t.FilenameLower != "meta.json" && IsPotentialJsonFile(t.ExtLower)).Where(t => !t.Dirty);
+                //if (var.FullPath ==
+                //    "D:/Gry/other/vam_small/AddonPackages/looks/Alter3go/other/Alter3go.BOB_+_bangs.1.var")
+                //{
+                //    Console.WriteLine(1);
+                //}
+                if (!_globalCacheScannedFiles.Contains(var.FullPath)) return;
+
+                var filesToCheck = var.Files
+                    .SelectMany(t => t.SelfAndChildren())
+                    .Where(t => t.FilenameLower != "meta.json" && IsPotentialJsonFile(t.ExtLower))
+                    .Where(t => !t.Dirty);
                 foreach (var file in filesToCheck)
                 {
                     var references = _globalReferenceCache[var.FullPath].Where(t => t.LocalJsonPath == file.LocalPath);
                     var mappedReferences = references.Select(t => new Reference(t)).ToList();
-
-                    if (!mappedReferences.Any()) continue;
 
                     jsonFile.AddCachedReferences(file.LocalPath, mappedReferences);
                 }
@@ -180,9 +190,12 @@ namespace VamRepacker.Operations.NotDestructive
             else if(!jsonFile.IsVar && !jsonFile.Free.Dirty)
             {
                 var free = jsonFile.Free;
+                if (!_globalCacheScannedFiles.Contains(free.FullPath)) return;
+
                 var references = _globalReferenceCache[free.FullPath];
                 var mappedReferences = references.Select(t => new Reference(t)).ToList();
                 jsonFile.AddCachedReferences(mappedReferences);
+  
             }
         }
 

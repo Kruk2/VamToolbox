@@ -140,6 +140,11 @@ public class Database : IDatabase
             $"inner join {FilesTable} file on file.Id = json.ParentFileId ");
     }
 
+    public IEnumerable<string> ReadScannedFilesCache()
+    {
+        return _connection.Query<string>($"select Path from {FilesTable}");
+    }
+
     public void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> refs, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles)
     {
         using var transaction = _connection.BeginTransaction();
