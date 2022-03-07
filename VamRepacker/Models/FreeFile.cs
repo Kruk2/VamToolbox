@@ -22,6 +22,7 @@ namespace VamRepacker.Models
             .SelectMany(t => t.Missing.Select(x => x.Value + " from " + t))
             .Distinct();
 
+        public bool Dirty { get; set; }
         public bool IsInVaMDir { get; }
         public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
 

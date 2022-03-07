@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,18 +21,6 @@ namespace VamRepacker.Models
         public string VamAuthor { get; internal set; }
 
         public List<JsonReference> JsonReferences { get; } = new();
-
-        private bool _dirty;
-        public bool Dirty
-        {
-            get => _dirty;
-            set
-            {
-                _dirty = value;
-                Children.ForEach(t => t.Dirty = value);
-                if (ParentFile != null && ParentFile.Dirty != value) ParentFile.Dirty = value;
-            }
-        }
 
         public long Size { get; }
         public FileReferenceBase ParentFile { get; protected internal set; }

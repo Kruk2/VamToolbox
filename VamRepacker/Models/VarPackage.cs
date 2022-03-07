@@ -31,17 +31,7 @@ namespace VamRepacker.Models
             .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
         public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
-
-        private bool _dirty;
-        public bool Dirty
-        {
-            get => _dirty;
-            set
-            {
-                _dirty = value;
-                Files.ForEach(t => t.Dirty = value);
-            }
-        }
+        public bool Dirty { get; set; }
 
         public VarPackage(
             VarPackageName name, 

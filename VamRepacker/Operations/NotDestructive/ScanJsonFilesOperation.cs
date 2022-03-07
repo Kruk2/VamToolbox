@@ -115,14 +115,20 @@ namespace VamRepacker.Operations.NotDestructive
         {
             var jsonFiles = varFiles
                 .SelectMany(t => t.JsonFiles)
-                .Concat(freeFiles.SelectMany(t => t.JsonFiles))
+                .Concat(freeFiles.SelectMany(t => t.SelfAndChildren()).SelectMany(t => t.JsonFiles))
                 .Where(t => t != null)
                 .Where(t => t.IsVar ? t.Var.Dirty : t.Free.Dirty)
                 .ToList();
 
             var progress = 0;
-            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).Where(t => IsPotentialJsonFile(t.ExtLower) && t.Dirty && !t.JsonFiles.Any()).ToList();
-            var dirtyVarFiles = varFiles.Where(t => t.Dirty).SelectMany(t => t.Files.SelectMany(x => x.SelfAndChildren())).Where(t => IsPotentialJsonFile(t.ExtLower) && !t.JsonFiles.Any()).ToList();
+            var dirtyFreeFiles = freeFiles
+                .SelectMany(t => t.SelfAndChildren())
+                .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower) && t.Dirty && !t.JsonFiles.Any())
+                .ToList();
+            var dirtyVarFiles = varFiles.Where(t => t.Dirty)
+                .SelectMany(t => t.Files.SelectMany(x => x.SelfAndChildren()))
+                .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower) && !t.JsonFiles.Any())
+                .ToList();
             var total = jsonFiles.Count + dirtyFreeFiles.Count + varFiles.Count;
 
             var bulkInsertFiles = new Dictionary<string, (long size, long id)>();
@@ -170,17 +176,12 @@ namespace VamRepacker.Operations.NotDestructive
             if (jsonFile.IsVar && !jsonFile.Var.Dirty)
             {
                 var var = jsonFile.Var;
-                //if (var.FullPath ==
-                //    "D:/Gry/other/vam_small/AddonPackages/looks/Alter3go/other/Alter3go.BOB_+_bangs.1.var")
-                //{
-                //    Console.WriteLine(1);
-                //}
                 if (!_globalCacheScannedFiles.Contains(var.FullPath)) return;
 
                 var filesToCheck = var.Files
                     .SelectMany(t => t.SelfAndChildren())
-                    .Where(t => t.FilenameLower != "meta.json" && IsPotentialJsonFile(t.ExtLower))
-                    .Where(t => !t.Dirty);
+                    .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
+                    .Where(t => !t.ParentVar.Dirty);
                 foreach (var file in filesToCheck)
                 {
                     var references = _globalReferenceCache[var.FullPath].Where(t => t.LocalJsonPath == file.LocalPath);
@@ -208,7 +209,7 @@ namespace VamRepacker.Operations.NotDestructive
                 var varFilesWithScene = varFiles
                     .Where(t => (varFilters != null && varFilters.Matches(t.FullPath)) || varFilters is null)
                     .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
-                        .Any(x => x.FilenameLower != "meta.json" && IsPotentialJsonFile(x.ExtLower)));
+                        .Any(x => x.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(x.ExtLower)));
 
                 _freeFilesIndex = freeFiles
                     .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
@@ -219,14 +220,14 @@ namespace VamRepacker.Operations.NotDestructive
                 return freeFiles
                     .Where(_ => varFilters is null)
                     .SelectMany(x => x.SelfAndChildren())
-                    .Where(t => IsPotentialJsonFile(t.ExtLower))
+                    .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower))
                     .Select(t => new PotentialJsonFile(t))
                     .Concat(varFilesWithScene.Select(t => new PotentialJsonFile(t)))
                     .ToList();
             });
         }
 
-        private static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
+        
 
         private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
         {
@@ -674,11 +675,15 @@ namespace VamRepacker.Operations.NotDestructive
         private void QueueReferences(IReadOnlyCollection<JsonReference> references)
         {
             var referencedVars = references
-                .Where(t => t.IsVarReference && KnownNames.ExtReferencesToPresets.Contains(t.VarFile.ExtLower))
-                .Select(t => t.VarFile.ParentVar);
+                .Where(t => t.IsVarReference)
+                .SelectMany(t => t.VarFile.SelfAndChildren())
+                .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower))
+                .Select(t => t.ParentVar);
+
             var referencedFreeFiles = references
-                .Where(t => !t.IsVarReference && KnownNames.ExtReferencesToPresets.Contains(t.File.ExtLower))
-                .Select(t => t.File);
+                .Where(t => !t.IsVarReference)
+                .SelectMany(t => t.File.SelfAndChildren())
+                .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower));
 
             foreach (var referencedVar in referencedVars)
             {

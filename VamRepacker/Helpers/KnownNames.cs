@@ -47,5 +47,6 @@
 
         public static string[] HairClothDirs = {FemaleHairDir, MaleHairDir, FemaleClothDir, MaleClothDir};
 
+        public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
     }
 }

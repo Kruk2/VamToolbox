@@ -34,9 +34,7 @@ namespace VamRepacker.Models
                 yield break;
             }
 
-            var extensions = new[] {".json", ".vap", ".vaj"};
-
-            if (Free != null && extensions.Contains(Free?.ExtLower))
+            if (Free != null && KnownNames.IsPotentialJsonFile(Free.ExtLower))
             {
                 yield return new OpenedPotentialJson { Stream = File.OpenRead(Free.FullPath), LocalJsonPath = Free.LocalPath };
             }
@@ -46,7 +44,7 @@ namespace VamRepacker.Models
                 _varArchive = new ZipArchive(_varFileStream);
 
                 foreach (var entry in _varArchive.Entries.Where(t =>
-                             t.Name != "meta.json" && extensions.Contains(Path.GetExtension(t.Name).ToLower())))
+                             t.Name != "meta.json" && KnownNames.IsPotentialJsonFile(Path.GetExtension(t.Name).ToLower())))
                 {
                     var localJsonPath = entry.FullName.NormalizePathSeparators();
                     yield return new OpenedPotentialJson { LocalJsonPath = localJsonPath, Stream = entry.Open() };
