@@ -9,10 +9,10 @@ namespace VamRepacker.Helpers
 {
     public static class DependencyCalculator
     {
-        public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(IEnumerable<JsonFile> jsonFiles)
+        public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(List<JsonFile> jsonFiles)
         {
             var queue = jsonFiles.SelectMany(t => t.References).Distinct().ToList();
-            var queued = new HashSet<JsonReference>(queue);
+            var processedFiles = new HashSet<FileReferenceBase>(jsonFiles.Select(t => (FileReferenceBase)t.VarFile ?? t.Free));
             var varDeps = new HashSet<VarPackage>();
             var freeFileDeps = new HashSet<FreeFile>();
 
@@ -30,15 +30,11 @@ namespace VamRepacker.Helpers
                 if (!KnownNames.ExtReferencesToPresets.Contains(ext))
                     continue;
 
-                IEnumerable<JsonReference> references = item.IsVarReference ? item.VarFile.JsonReferences : item.File.JsonReferences;
-                foreach (var reference in references)
-                {
-                    if (queued.Contains(reference))
-                        continue;
+                if (processedFiles.Contains((FileReferenceBase)item.VarFile ?? item.File))
+                    continue;
 
-                    queued.Add(reference);
-                    queue.Add(reference);
-                }
+                queue.AddRange(item.VarFile?.JsonReferences ?? item.File.JsonReferences);
+                processedFiles.Add((FileReferenceBase)item.VarFile ?? item.File);
             }
 
             return (varDeps.ToList(), freeFileDeps.ToList());

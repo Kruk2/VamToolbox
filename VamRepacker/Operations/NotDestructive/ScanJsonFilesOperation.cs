@@ -232,12 +232,12 @@ namespace VamRepacker.Operations.NotDestructive
         {
             var dependencies = varFiles.Cast<IVamObjectWithDependencies>().Concat(freeFiles).ToList();
             dependencies.ForEach(t => t.ClearDependencies());
-            var progress = 0;
+            _progressTracker.Report("Calculating dependencies");
+
             var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
                 {
                     if(_context.ShallowDeps) t.CalculateShallowDeps();
                     else t.CalculateDeps();
-                    _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), dependencies.Count, $"Calculating dependencies for {t}"));
                 },
                 new ExecutionDataflowBlockOptions
                 {

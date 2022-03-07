@@ -8,6 +8,7 @@ namespace VamRepacker.Models
     {
         public bool IsVar => Var != null;
         public VarPackage Var { get; }
+        public VarPackageFile VarFile { get; }
         public FreeFile Free { get; }
 
         public string Name => IsVar ? (JsonPathInVar + " in " + Var.Name.Filename) : Free.LocalPath;
@@ -33,7 +34,8 @@ namespace VamRepacker.Models
             if (file.IsVar)
             {
                 Var.JsonFiles.Add(this);
-                Var.FilesDict[jsonPathInVar].JsonFiles.Add(this);
+                VarFile = Var.FilesDict[jsonPathInVar];
+                VarFile.JsonFiles.Add(this);
             }
             else
             {
