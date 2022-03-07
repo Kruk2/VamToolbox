@@ -10,7 +10,7 @@ namespace VamRepacker.Models
         public VarPackage Var { get; }
         public FreeFile Free { get; }
 
-        public string Name => IsVar ? Var.Name.Filename : Free.LocalPath;
+        public string Name => IsVar ? (JsonPathInVar + " in " + Var.Name.Filename) : Free.LocalPath;
 
         public List<JsonReference> References { get; }
         public HashSet<VarPackage> VarReferences { get; }

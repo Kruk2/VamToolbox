@@ -32,7 +32,6 @@ namespace VamRepackerUi
 
         private List<VarPackage> _vars;
         private IList<FreeFile> _freeFiles;
-        private bool _scannedJsonFiles = false;
         private bool _working;
         private readonly Stopwatch _sw = new();
 
@@ -61,7 +60,6 @@ namespace VamRepackerUi
             else
             {
                 vamDirTxt.Text = vamDir;
-                ClearScanState();
             }
         }
 
@@ -70,16 +68,8 @@ namespace VamRepackerUi
             var (selected, dir) = AskFirDirectory();
             if (selected)
             {
-                ClearScanState();
                 additionalVarsDir.Text = dir;
             }
-        }
-
-        private void ClearScanState()
-        {
-            _freeFiles = null;
-            _vars = null;
-            _scannedJsonFiles = false;
         }
 
         private async void copyMissingDepsFromRepoBtn_Click(object sender, EventArgs e)
@@ -272,12 +262,6 @@ namespace VamRepackerUi
 
         private async Task RunIndexing(ILifetimeScope scope, OperationContext operationContext)
         {
-            if (_freeFiles is not null && _vars is not null)
-            {
-                _stage += 2;
-                return;
-            }
-
             _freeFiles = await scope.Resolve<IScanFilesOperation>()
                 .ExecuteAsync(operationContext);
             _vars = await scope.Resolve<IScanVarPackagesOperation>()
@@ -287,7 +271,6 @@ namespace VamRepackerUi
         private async void scanInvalidVars_Btn_Click(object sender, EventArgs e)
         {
             await using var scope = _ctx.BeginLifetimeScope();
-            ClearScanState();
             await RunIndexing(scope, GetContext(stages: 2));
             SwitchUI(false);
         }
@@ -296,7 +279,6 @@ namespace VamRepackerUi
         {
             await using var scope = _ctx.BeginLifetimeScope();
             var ctx = GetContext(stages: 3);
-            ClearScanState();
             await ScanJsonFiles(scope, ctx);
             SwitchUI(false);
         }
@@ -382,15 +364,7 @@ namespace VamRepackerUi
         private async Task ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
         {
             await RunIndexing(scope, ctx);
-            if (!_scannedJsonFiles)
-            {
-                await scope.Resolve<IScanJsonFilesOperation>() .ExecuteAsync(ctx, _freeFiles, _vars, filters);
-                _scannedJsonFiles = true;
-            }
-            else
-            {
-                _stage++;
-            }
+            await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, _freeFiles, _vars, filters);
         }
 
         private void MoveToStage(string text) => stageTxt.Text = $"{(_stage++) + 1}/{_totalStages} {text}";
