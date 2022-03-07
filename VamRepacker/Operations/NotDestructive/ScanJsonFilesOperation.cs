@@ -121,8 +121,8 @@ namespace VamRepacker.Operations.NotDestructive
                 .ToList();
 
             var progress = 0;
-            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).ToList();
-            var dirtyVarFiles = varFiles.Where(t => t.Dirty).ToList();
+            var dirtyFreeFiles = freeFiles.SelectMany(t => t.SelfAndChildren()).Where(t => IsPotentialJsonFile(t.ExtLower) && t.Dirty && !t.JsonFiles.Any()).ToList();
+            var dirtyVarFiles = varFiles.Where(t => t.Dirty).SelectMany(t => t.Files.SelectMany(x => x.SelfAndChildren())).Where(t => IsPotentialJsonFile(t.ExtLower) && !t.JsonFiles.Any()).ToList();
             var total = jsonFiles.Count + dirtyFreeFiles.Count + varFiles.Count;
 
             var bulkInsertFiles = new Dictionary<string, (long size, long id)>();
@@ -143,15 +143,17 @@ namespace VamRepacker.Operations.NotDestructive
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {jsonFile.Free?.ToString() ?? jsonFile.Var.ToString()}"));
             }
 
-            foreach (var varPackage in dirtyVarFiles)
+            foreach (var varFile in dirtyVarFiles)
             {
-                bulkInsertFiles[varPackage.FullPath] = (varPackage.Size, 0);
-                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {varPackage}"));
+                bulkInsertFiles[varFile.ParentVar.FullPath] = (varFile.ParentVar.Size, 0);
+                bulkInsertJsonFiles.Add((varFile.ParentVar.FullPath, varFile.LocalPath), 0);
+                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {varFile.LocalPath}"));
             }
 
             foreach (var freeFile in dirtyFreeFiles)
             {
                 bulkInsertFiles[freeFile.FullPath] = (freeFile.Size, 0);
+                bulkInsertJsonFiles.Add((freeFile.FullPath, null), 0);
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {freeFile}"));
             }
 

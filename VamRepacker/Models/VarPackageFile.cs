@@ -10,6 +10,7 @@ namespace VamRepacker.Models
 
         private readonly List<VarPackageFile> _children = new();
         public override IReadOnlyCollection<VarPackageFile> Children => _children.AsReadOnly();
+        public List<JsonFile> JsonFiles { get; } = new();
 
         public VarPackageFile(string localPath, long size)
             : base(localPath, size)

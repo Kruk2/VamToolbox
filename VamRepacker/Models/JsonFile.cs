@@ -31,9 +31,14 @@ namespace VamRepacker.Models
             FreeReferences = new HashSet<FreeFile>(References.Where(t => !t.IsVarReference).Select(t => t.File));
 
             if (file.IsVar)
+            {
                 Var.JsonFiles.Add(this);
+                Var.FilesDict[jsonPathInVar].JsonFiles.Add(this);
+            }
             else
+            {
                 Free.JsonFiles.Add(this);
+            }
         }
 
         public override string ToString()

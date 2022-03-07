@@ -73,8 +73,13 @@ namespace VamRepacker.Operations.NotDestructive
                 .GroupBy(t => t.Name.Filename)
                 .Select(t =>
                 {
-                    var fromVamDir = t.FirstOrDefault(x => x.IsInVaMDir);
-                    return fromVamDir ?? t.First();
+                    var sortedVars = t.OrderBy(t => t.FullPath).ToList();
+                    if (sortedVars.Count == 1) return sortedVars[0];
+
+                    _result.DuplicatedVars.Add(sortedVars.Select(t => t.FullPath).ToList());
+
+                    var fromVamDir = sortedVars.FirstOrDefault(t => t.IsInVaMDir);
+                    return fromVamDir ?? sortedVars.First();
                 })
                 .ToList();
 
@@ -90,7 +95,8 @@ namespace VamRepacker.Operations.NotDestructive
                 _logger.Log($"[MISSING-META-JSON] {err}");
             foreach (var err in _result.InvalidVars.OrderBy(t => t))
                 _logger.Log($"[INVALID-VAR] {err}");
-
+            foreach (var err in _result.DuplicatedVars)
+                _logger.Log($"[DUPLICATED-VARS] {Environment.NewLine} {string.Join(Environment.NewLine, err)}");
             return _result.Vars;
         }
 
@@ -215,5 +221,6 @@ namespace VamRepacker.Operations.NotDestructive
         public ConcurrentBag<string> MissingMorphsFiles { get; } = new();
         public ConcurrentBag<string> MissingPresetsFiles { get; } = new();
         public ConcurrentBag<string> MissingScriptFiles { get; } = new();
+        public List<List<string>> DuplicatedVars { get; set; } = new();
     }
 }
