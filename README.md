@@ -16,7 +16,7 @@ To make the soft-links working you have to run VamRepacker as admin.
 
 VamRepacker will create local sqlite database to store some information between runs.
 
-Program ignores meta.json file inside vars as they are often incorrect. Instead it will read each individual json/preset file inside var to determine it's dependencies.
+Program ignores meta.json file inside vars as they are often incorrect or superfluous. Instead it will read each individual json/preset file inside var to determine it's dependencies.
 
 ## Operations
 
