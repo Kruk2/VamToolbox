@@ -49,7 +49,11 @@ namespace VamRepacker.Operations.Repo
             {
                 var varDestination = Path.Combine(varFolderDestination, Path.GetFileName(existingVar.FullPath));
                 if (File.Exists(varDestination))
+                {
+                    _logger.Log($"Skipping {varDestination} source: {existingVar.FullPath}. Already exists.");
+                    _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
                     continue;
+                }
                 if (moveVars && !context.DryRun)
                     File.Move(existingVar.FullPath, varDestination);
                 else
@@ -72,7 +76,11 @@ namespace VamRepacker.Operations.Repo
                 var relativeToRoot = file.FullPath.RelativeTo(context.RepoDir);
                 var destinationPath = Path.Combine(context.VamDir, relativeToRoot);
                 if (File.Exists(destinationPath))
+                {
+                    _logger.Log($"SkippingDest: {destinationPath} source: {file.FullPath}. Already exists.");
+                    _reporter.Report(new ProgressInfo(++processed, count, file.FilenameWithoutExt));
                     continue;
+                }
                 if (!context.DryRun)
                     Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
 

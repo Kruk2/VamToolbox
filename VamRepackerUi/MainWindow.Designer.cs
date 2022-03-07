@@ -58,6 +58,7 @@ namespace VamRepackerUi
             this.shallowChk = new System.Windows.Forms.CheckBox();
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.downloadFromHubBtn = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -358,11 +359,22 @@ namespace VamRepackerUi
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "General Options";
             // 
+            // downloadFromHubBtn
+            // 
+            this.downloadFromHubBtn.Location = new System.Drawing.Point(363, 357);
+            this.downloadFromHubBtn.Name = "downloadFromHubBtn";
+            this.downloadFromHubBtn.Size = new System.Drawing.Size(136, 74);
+            this.downloadFromHubBtn.TabIndex = 28;
+            this.downloadFromHubBtn.Text = "Download missing dependencies from Virt-a HUB";
+            this.downloadFromHubBtn.UseVisualStyleBackColor = true;
+            this.downloadFromHubBtn.Click += new System.EventHandler(this.downloadFromHubBtn_Click);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(537, 548);
+            this.Controls.Add(this.downloadFromHubBtn);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.stageTxt);
             this.Controls.Add(this.clearRepoDirBtn);
@@ -424,6 +436,7 @@ namespace VamRepackerUi
         private System.Windows.Forms.CheckBox shallowChk;
         private System.Windows.Forms.Label stageTxt;
         private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.Button downloadFromHubBtn;
     }
 }
 

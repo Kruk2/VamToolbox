@@ -69,9 +69,9 @@ namespace VamRepacker.Operations.NotDestructive
             var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
             await Task.Run(() => ReadCache(potentialScenes));
 
-                _total = potentialScenes.Count;
+            _total = potentialScenes.Count;
             await RunScenesScan(potentialScenes);
-            await RunDeepScan();
+            await Task.Run(async () => await RunDeepScan());
 
             _total = varFiles.Count + freeFiles.Count;
             await CalculateDeps(varFiles, freeFiles);
@@ -222,7 +222,7 @@ namespace VamRepacker.Operations.NotDestructive
                 {
                     if(_context.ShallowDeps) t.CalculateShallowDeps();
                     else t.CalculateDeps();
-                    _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), _total, $"Calculating dependencies for {t}"));
+                    _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), dependencies.Count, $"Calculating dependencies for {t}"));
                 },
                 new ExecutionDataflowBlockOptions
                 {

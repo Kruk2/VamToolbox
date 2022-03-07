@@ -32,8 +32,9 @@ namespace VamRepackerUi
 
         private List<VarPackage> _vars;
         private IList<FreeFile> _freeFiles;
+        private bool _scannedJsonFiles = false;
         private bool _working;
-        private Stopwatch _sw = new();
+        private readonly Stopwatch _sw = new();
 
         public MainWindow(ILifetimeScope ctx)
         {
@@ -60,6 +61,7 @@ namespace VamRepackerUi
             else
             {
                 vamDirTxt.Text = vamDir;
+                ClearScanState();
             }
         }
 
@@ -67,17 +69,25 @@ namespace VamRepackerUi
         {
             var (selected, dir) = AskFirDirectory();
             if (selected)
+            {
+                ClearScanState();
                 additionalVarsDir.Text = dir;
+            }
+        }
+
+        private void ClearScanState()
+        {
+            _freeFiles = null;
+            _vars = null;
+            _scannedJsonFiles = false;
         }
 
         private async void copyMissingDepsFromRepoBtn_Click(object sender, EventArgs e)
         {
             var ctx = GetContext(stages: 5);
 
-            await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
-            await scope.Resolve<IScanJsonFilesOperation>()
-                .ExecuteAsync(ctx, _freeFiles, _vars);
+            await ScanJsonFiles(scope, ctx);
             await RemoveOldLinks(scope, ctx);
             await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
@@ -86,8 +96,7 @@ namespace VamRepackerUi
                     MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 _totalStages++;
-                await scope.Resolve<IDownloadMissingVars>()
-                    .ExecuteAsync(ctx, _vars, _freeFiles);
+                await scope.Resolve<IDownloadMissingVars>().ExecuteAsync(ctx, _vars, _freeFiles);
             }
 
             SwitchUI(false);
@@ -108,10 +117,8 @@ namespace VamRepackerUi
             }
 
             var ctx = GetContext(stages: 5);
-            await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
-            await scope.Resolve<IScanJsonFilesOperation>()
-                .ExecuteAsync(ctx, _freeFiles, _vars, BuildFilters());
+            await ScanJsonFiles(scope, ctx, BuildFilters());
             await RemoveOldLinks(scope, ctx);
             await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
                 .ExecuteAsync(ctx, _vars, BuildFilters());
@@ -177,7 +184,11 @@ namespace VamRepackerUi
         void SwitchUI(bool working)
         {
             if (_working == working) return;
-            if(working) _sw.Restart();
+            if (working)
+            {
+                operationStatusLabel.Text = string.Empty;
+                _sw.Restart();
+            }
 
             _working = working;
             var controls = Controls
@@ -204,7 +215,6 @@ namespace VamRepackerUi
             {
                 _sw.Stop();
                 stageTxt.Text = $"Finished in {_sw.Elapsed.Minutes}min and {_sw.Elapsed.Seconds}s";
-                operationStatusLabel.Text = string.Empty;
             }
         }
 
@@ -260,9 +270,14 @@ namespace VamRepackerUi
             ReloadProfiles();
         }
 
-        private async Task RunIndexing(OperationContext operationContext)
+        private async Task RunIndexing(ILifetimeScope scope, OperationContext operationContext)
         {
-            await using var scope = _ctx.BeginLifetimeScope();
+            if (_freeFiles is not null && _vars is not null)
+            {
+                _stage += 2;
+                return;
+            }
+
             _freeFiles = await scope.Resolve<IScanFilesOperation>()
                 .ExecuteAsync(operationContext);
             _vars = await scope.Resolve<IScanVarPackagesOperation>()
@@ -271,7 +286,9 @@ namespace VamRepackerUi
 
         private async void scanInvalidVars_Btn_Click(object sender, EventArgs e)
         {
-            await RunIndexing(GetContext(stages: 2));
+            await using var scope = _ctx.BeginLifetimeScope();
+            ClearScanState();
+            await RunIndexing(scope, GetContext(stages: 2));
             SwitchUI(false);
         }
 
@@ -279,9 +296,8 @@ namespace VamRepackerUi
         {
             await using var scope = _ctx.BeginLifetimeScope();
             var ctx = GetContext(stages: 3);
-            await RunIndexing(ctx);
-            await scope.Resolve<IScanJsonFilesOperation>()
-                .ExecuteAsync(ctx, _freeFiles, _vars);
+            ClearScanState();
+            await ScanJsonFiles(scope, ctx);
             SwitchUI(false);
         }
 
@@ -320,14 +336,10 @@ namespace VamRepackerUi
         private async void deduplicateAssetsBtn_Click(object sender, EventArgs e)
         {
             var ctx = GetContext(stages: 5);
-            await RunIndexing(ctx);
             await using var scope = _ctx.BeginLifetimeScope();
-            await scope.Resolve<IScanJsonFilesOperation>()
-                .ExecuteAsync(ctx, _freeFiles, _vars);
-            await scope.Resolve<IHashFilesOperation>()
-                .ExecuteAsync(ctx, _vars, _freeFiles);
-            await scope.Resolve<IDeduplicateOperation>()
-                .ExecuteAsync(ctx, _vars, _freeFiles);
+            await ScanJsonFiles(scope, ctx);
+            await scope.Resolve<IHashFilesOperation>().ExecuteAsync(ctx, _vars, _freeFiles);
+            await scope.Resolve<IDeduplicateOperation>().ExecuteAsync(ctx, _vars, _freeFiles);
 
             SwitchUI(false);
         }
@@ -341,9 +353,8 @@ namespace VamRepackerUi
             await using var scope = _ctx.BeginLifetimeScope();
             var ctx = GetContext(stages: 3);
 
-            await RunIndexing(ctx);
-            await scope.Resolve<ITrustAllVarsOperation>()
-                .ExecuteAsync(ctx, _vars);
+            await RunIndexing(scope, ctx);
+            await scope.Resolve<ITrustAllVarsOperation>().ExecuteAsync(ctx, _vars);
 
             SwitchUI(false);
         }
@@ -355,8 +366,31 @@ namespace VamRepackerUi
                 _stage++;
                 return Task.CompletedTask;
             }
-            return scope.Resolve<IRemoveSoftLinks>()
-                .ExecuteAsync(ctx);
+            return scope.Resolve<IRemoveSoftLinks>().ExecuteAsync(ctx);
+        }
+
+        private async void downloadFromHubBtn_Click(object sender, EventArgs e)
+        {
+            var ctx = GetContext(stages: 4);
+
+            await using var scope = _ctx.BeginLifetimeScope();
+            await ScanJsonFiles(scope, ctx);
+            await scope.Resolve<IDownloadMissingVars>() .ExecuteAsync(ctx, _vars, _freeFiles);
+            SwitchUI(false);
+        }
+
+        private async Task ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
+        {
+            await RunIndexing(scope, ctx);
+            if (!_scannedJsonFiles)
+            {
+                await scope.Resolve<IScanJsonFilesOperation>() .ExecuteAsync(ctx, _freeFiles, _vars, filters);
+                _scannedJsonFiles = true;
+            }
+            else
+            {
+                _stage++;
+            }
         }
 
         private void MoveToStage(string text) => stageTxt.Text = $"{(_stage++) + 1}/{_totalStages} {text}";
