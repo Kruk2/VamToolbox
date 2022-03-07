@@ -11,6 +11,9 @@ Then you can define profile called ```Kitty mocaps``` and define it as all vars 
 You can create as many profiles as you wan (they will be saved in VamRepacker settings).
 Then in UI just select profiles you want to soft-link and hit ```Apply profiles``` button.
 
+## Soft-links
+To make the soft-links working you have to run VamRepacker as admin.
+
 ## Operations
 
 1. ![image](https://user-images.githubusercontent.com/59397941/156947078-065fd8a4-4402-4190-99af-74b5904b37fb.png)  
