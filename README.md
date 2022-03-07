@@ -6,9 +6,9 @@ The first way is to manually copy some vars/scenes to AddonPackages/Scenes direc
 It will lookup up what files are need to correctly load files you've copied and then soft-link them from ```REPO``` to ```VAM```.
 
 Second way (more roboust) is to define various profiles.  
-For example you can create profile called "Fav looks" and define it as list of files: ```Niko3dx.Someone.1.var```, ```A1X.Person.2.var``` etc 
-Then you can define profile called ```Kitty mocaps``` and define it as all vars inside ```REPO/KittyMocaps``` directory. 
-You can create as many profiles as you wan (they will be saved in VamRepacker settings). 
+For example you can create profile called "Fav looks" and define it as list of files: ```Niko3dx.Someone.1.var```, ```A1X.Person.2.var``` etc  
+Then you can define profile called ```Kitty mocaps``` and define it as all vars inside ```REPO/KittyMocaps``` directory.  
+You can create as many profiles as you wan (they will be saved in VamRepacker settings).  
 Then in UI just select profiles you want to soft-link and hit ```Apply profiles``` button. 
 
 ## Technical info
