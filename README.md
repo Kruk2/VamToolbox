@@ -11,12 +11,15 @@ Then you can define profile called ```Kitty mocaps``` and define it as all vars 
 You can create as many profiles as you wan (they will be saved in VamRepacker settings).
 Then in UI just select profiles you want to soft-link and hit ```Apply profiles``` button.
 
-## technical info
+## Technical info
 To make the soft-links working you have to run VamRepacker as admin.
 
 VamRepacker will create local sqlite database to store some information between runs.
 
 Program ignores meta.json file inside vars as they are often incorrect or superfluous. Instead it will read each individual json/preset file inside var to determine it's dependencies.
+
+Program will read both: var files and assets from Custom directory.
+If there is a Custom directory inside ```REPO``` dir then it will be read as well so you can just have Fat Vam installation and treat is as ```REPO``` and then have a clean VAM installation where stuff will be soft-linked.
 
 ## Operations
 
