@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.IO.Abstractions;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using Autofac;
@@ -52,7 +54,7 @@ namespace VamRepackerUi
             builder.RegisterType<MainWindow>().As<IProgressTracker>().AsSelf().SingleInstance();
 
             builder.RegisterType<Logger>().As<ILogger>().InstancePerLifetimeScope();
-            builder.RegisterType<Database>().As<IDatabase>().OnActivating(t => t.Instance.Open()).InstancePerLifetimeScope();
+            builder.RegisterType<Database>().As<IDatabase>().OnActivating(t => t.Instance.Open(System.AppContext.BaseDirectory)).InstancePerLifetimeScope();
             builder.RegisterType<MD5Helper>().As<IHashingAlgo>().SingleInstance();
 
             builder.RegisterType<PresetGrouper>().As<IPresetGrouper>();

@@ -18,11 +18,11 @@ public class Database : IDatabase
     private const string RefTable= "JsonReferences";
     private SqliteConnection _connection;
 
-    public void Open()
+    public void Open(string rootDir)
     {
         if (_connection != null) return;
 
-        var currentDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "vamRepacker.sqlite");
+        var currentDir = Path.Combine(rootDir, "vamRepacker.sqlite");
         _connection = new SqliteConnection($@"data source={currentDir}");
         _connection.Open();
         _connection.Query("PRAGMA journal_mode=WAL");
