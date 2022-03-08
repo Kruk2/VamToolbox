@@ -25,6 +25,7 @@ public class Database : IDatabase
         var currentDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "vamRepacker.sqlite");
         _connection = new SqliteConnection($@"data source={currentDir}");
         _connection.Open();
+        _connection.Query("PRAGMA journal_mode=WAL");
 
         CreateHashTable();
         CreateFilesTable();
