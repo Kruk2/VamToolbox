@@ -84,7 +84,7 @@ namespace VamRepacker.Operations.NotDestructive
                 .ToList();
 
             _reporter.Report("Updating local database");
-            await Task.Run(() => UpdateDatabase(_result.Vars));
+            await Task.Run(() => LookupDirtyPackages(_result.Vars));
 
             var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
             _reporter.Complete(endingMessage);
@@ -168,8 +168,8 @@ namespace VamRepacker.Operations.NotDestructive
                 await _scope.Resolve<IPresetGrouper>().GroupPresets(files, name, OpenFileStream);
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
 
-
-                var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir), _fs.FileInfo.FromFileName(varFullPath).Length);
+                var fileInfo = _fs.FileInfo.FromFileName(varFullPath);
+                var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir), fileInfo.Length, fileInfo.LastWriteTimeUtc);
                 files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
                 _packages.Add(varPackage);
             }
@@ -182,12 +182,12 @@ namespace VamRepacker.Operations.NotDestructive
             _reporter.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalVarsCount, name.Filename));
         }
 
-        private void UpdateDatabase(List<VarPackage> varPackages)
+        private void LookupDirtyPackages(List<VarPackage> varPackages)
         {
             foreach (var varPackage in varPackages)
             {
-                var (_, size) = _database.GetFileSize(varPackage.FullPath);
-                if (size == null || varPackage.Size != size.Value)
+                var (size, timeStamp) = _database.GetFileInfo(varPackage.FullPath);
+                if (size == null || varPackage.Size != size.Value || timeStamp != varPackage.ModifiedTimestamp)
                 {
                     varPackage.Dirty = true;
                 }

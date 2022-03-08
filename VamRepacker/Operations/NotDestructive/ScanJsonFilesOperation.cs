@@ -8,7 +8,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using System.Transactions;
 using MoreLinq;
 using VamRepacker.Helpers;
 using VamRepacker.Logging;
@@ -131,7 +130,7 @@ namespace VamRepacker.Operations.NotDestructive
                 .ToList();
             var total = jsonFiles.Count + dirtyFreeFiles.Count + varFiles.Count;
 
-            var bulkInsertFiles = new Dictionary<string, (long size, long id)>();
+            var bulkInsertFiles = new Dictionary<string, (long size, DateTime timestamp, long id)>();
             var bulkInsertJsonFiles = new Dictionary<(string filePath, string jsonLocalPath), long>();
             var bulkInsertReferences = new List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)>();
 
@@ -139,10 +138,11 @@ namespace VamRepacker.Operations.NotDestructive
             {
                 var fullPath = jsonFile.Free?.FullPath ?? jsonFile.Var.FullPath;
                 var size = jsonFile.Free?.Size ?? jsonFile.Var.Size;
+                var timestamp = jsonFile.Free?.ModifiedTimestamp ?? jsonFile.Var.ModifiedTimestamp;
                 var localJsonPath = jsonFile.IsVar ? jsonFile.JsonPathInVar : null;
                 var references = jsonFile.References.Select(t => t.Reference).Concat(jsonFile.Missing);
                 
-                bulkInsertFiles[fullPath] = (size, 0);
+                bulkInsertFiles[fullPath] = (size, timestamp, 0);
                 bulkInsertJsonFiles.Add((fullPath, localJsonPath), 0);
                 bulkInsertReferences.Add((fullPath, localJsonPath, references));
 
@@ -151,14 +151,14 @@ namespace VamRepacker.Operations.NotDestructive
 
             foreach (var varFile in dirtyVarFiles)
             {
-                bulkInsertFiles[varFile.ParentVar.FullPath] = (varFile.ParentVar.Size, 0);
+                bulkInsertFiles[varFile.ParentVar.FullPath] = (varFile.ParentVar.Size, varFile.ParentVar.ModifiedTimestamp, 0);
                 bulkInsertJsonFiles.Add((varFile.ParentVar.FullPath, varFile.LocalPath), 0);
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {varFile.LocalPath}"));
             }
 
             foreach (var freeFile in dirtyFreeFiles)
             {
-                bulkInsertFiles[freeFile.FullPath] = (freeFile.Size, 0);
+                bulkInsertFiles[freeFile.FullPath] = (freeFile.Size, freeFile.ModifiedTimestamp, 0);
                 bulkInsertJsonFiles.Add((freeFile.FullPath, null), 0);
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {freeFile}"));
             }
@@ -166,7 +166,7 @@ namespace VamRepacker.Operations.NotDestructive
             _progressTracker.Report("Saving file cache");
             _database.SaveFiles(bulkInsertFiles);
             _progressTracker.Report("Saving json cache");
-            _database.UpdateJson(bulkInsertJsonFiles, bulkInsertFiles);
+            _database.UpdateJson(bulkInsertJsonFiles, bulkInsertFiles.ToDictionary(t => t.Key, t => t.Value.id));
             _progressTracker.Report("Saving references cache");
             _database.UpdateReferences(bulkInsertReferences, bulkInsertJsonFiles);
         }

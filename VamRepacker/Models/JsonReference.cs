@@ -1,4 +1,3 @@
-using System;
 using VamRepacker.Helpers;
 
 namespace VamRepacker.Models

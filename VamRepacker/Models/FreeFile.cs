@@ -25,12 +25,14 @@ namespace VamRepacker.Models
         public bool Dirty { get; set; }
         public bool IsInVaMDir { get; }
         public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
+        public DateTime ModifiedTimestamp { get; }
 
-        public FreeFile(string path, string localPath, long size, bool isInVamDir)
+        public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
             : base(localPath, size)
         {
             FullPath = path.NormalizePathSeparators();
             IsInVaMDir = isInVamDir;
+            ModifiedTimestamp = modifiedTimestamp;
         }
 
         public IEnumerable<FreeFile> SelfAndChildren()

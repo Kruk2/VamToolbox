@@ -32,19 +32,22 @@ namespace VamRepacker.Models
 
         public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
         public bool Dirty { get; set; }
+        public DateTime ModifiedTimestamp { get; }
 
         public VarPackage(
             VarPackageName name, 
             string fullPath, 
             List<VarPackageFile> files,
             bool isInVamDir,
-            long size)
+            long size,
+            DateTime modifiedTimestamp)
         {
             Name = name;
             FullPath = fullPath.NormalizePathSeparators();
             Files = files;
             IsInVaMDir = isInVamDir;
             Size = size;
+            ModifiedTimestamp = modifiedTimestamp;
         }
 
         public override string ToString() => Name.ToString();

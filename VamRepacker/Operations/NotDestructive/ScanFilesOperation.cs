@@ -76,7 +76,7 @@ namespace VamRepacker.Operations.NotDestructive
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
 
                 _reporter.Report("Updating local database");
-                UpdateDatabase(files);
+                LookupDirtyFiles(files);
 
             });
 
@@ -93,18 +93,19 @@ namespace VamRepacker.Operations.NotDestructive
             var files = _fs.Directory
                 .EnumerateFiles(searchDir, "*.*", SearchOption.AllDirectories)
                 .Where(f => !f.Contains(@"\."))
-                .Select(f => new FreeFile(f, f.RelativeTo(rootDir), _fs.FileInfo.FromFileName(f).Length, isVamDir))
+                .Select(f => (path: f, fileInfo: _fs.FileInfo.FromFileName(f)))
+                .Select(f => new FreeFile(f.path, f.path.RelativeTo(rootDir), f.fileInfo.Length, isVamDir, f.fileInfo.LastWriteTimeUtc))
                 .ToList();
 
             return files;
         }
 
-        private void UpdateDatabase(List<FreeFile> files)
+        private void LookupDirtyFiles(List<FreeFile> files)
         {
-            foreach (var freeFile in files)
+            foreach (var freeFile in files.SelectMany(t => t.SelfAndChildren()))
             {
-                var (_, size) = _database.GetFileSize(freeFile.FullPath);
-                if (size == null || freeFile.Size != size.Value)
+                var (size, modifiedTime) = _database.GetFileInfo(freeFile.FullPath);
+                if (size == null || freeFile.Size != size.Value || modifiedTime != freeFile.ModifiedTimestamp)
                 {
                     freeFile.Dirty = true;
                 }

@@ -2,10 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Transactions;
-using Microsoft.Data.Sqlite;
 using VamRepacker.Helpers;
-using VamRepacker.Models;
 
 namespace VamRepacker.Sqlite
 {
@@ -13,11 +10,11 @@ namespace VamRepacker.Sqlite
     {
         Task<ConcurrentDictionary<HashesTable, string>> GetHashes();
         Task AddHashes(IEnumerable<HashesTable> hashes);
-        (long? id, long? size) GetFileSize(string path);
+        (long? size, DateTime? modifiedTime) GetFileInfo(string path);
         IEnumerable<ReferenceEntry> ReadReferenceCache();
         IEnumerable<string> ReadScannedFilesCache();
-        void SaveFiles(Dictionary<string, (long size, long id)> files);
-        void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles, Dictionary<string, (long size, long id)> files);
+        public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files);
+        void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles, Dictionary<string, long> files);
         void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> references, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles);
     }
 }

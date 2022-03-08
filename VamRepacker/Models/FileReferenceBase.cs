@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using MoreLinq;
 using VamRepacker.Hashing;
 using VamRepacker.Helpers;
 

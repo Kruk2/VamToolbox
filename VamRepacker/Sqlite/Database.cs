@@ -66,7 +66,8 @@ public class Database : IDatabase
         _connection.Execute($"Create Table {FilesTable} (" +
                             "Id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
                             "Path TEXT collate nocase NOT NULL," +
-                            "FileSize integer NOT NULL);");
+                            "FileSize integer NOT NULL," +
+                            "ModifiedTime integer NOT NULL);");
 
         _connection.Execute($"CREATE UNIQUE INDEX IX_Files ON {FilesTable}(Path);");
     }
@@ -127,9 +128,9 @@ public class Database : IDatabase
         await transaction.CommitAsync();
     }
 
-    public (long? id, long? size) GetFileSize(string path)
+    public (long? size, DateTime? modifiedTime) GetFileInfo(string path)
     {
-        return _connection.QueryFirstOrDefault<(int?, long?)>($"select Id, FileSize from {FilesTable} where Path = @path", new { path });
+        return _connection.QueryFirstOrDefault<(long?, DateTime?)>($"select FileSize, ModifiedTime from {FilesTable} where Path = @path", new { path });
     }
 
     public IEnumerable<ReferenceEntry> ReadReferenceCache()
@@ -189,12 +190,11 @@ public class Database : IDatabase
         transaction.Commit();
     }
 
-    public void SaveFiles(Dictionary<string, (long size, long id)> files)
+    public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files)
     {
         using var transaction = _connection.BeginTransaction();
         var commandInsert = _connection.CreateCommand();
-        //commandInsert.CommandText = $"insert or replace into {FilesTable} (Path, FileSize) select $fullPath as Path, $size as FileSize where not exists (select * from {FilesTable} f where f.Path = $fullPath and f.FileSize = $size); SELECT Id from {FilesTable} where Path = $fullPath;";
-        commandInsert.CommandText = $"insert or replace into {FilesTable} (Path, FileSize) VALUES ($fullPath, $size); SELECT last_insert_rowid();";
+        commandInsert.CommandText = $"insert or replace into {FilesTable} (Path, FileSize, ModifiedTime) VALUES ($fullPath, $size, $timestamp); SELECT last_insert_rowid();";
 
         var paramPath = commandInsert.CreateParameter();
         paramPath.ParameterName = "$fullPath";
@@ -202,19 +202,22 @@ public class Database : IDatabase
         var paramSize = commandInsert.CreateParameter();
         paramSize.ParameterName = "$size";
         commandInsert.Parameters.Add(paramSize);
-        
+        var paramTimestamp = commandInsert.CreateParameter();
+        paramTimestamp.ParameterName = "$timestamp";
+        commandInsert.Parameters.Add(paramTimestamp);
 
-        foreach (var (filePath, (size, _)) in files.ToList())
+        foreach (var (filePath, (size, timestamp, _)) in files.ToList())
         {
             paramPath.Value = filePath;
             paramSize.Value = size;
-            files[filePath] = (size, (long)commandInsert.ExecuteScalar());
+            paramTimestamp.Value = timestamp;
+            files[filePath] = (size, timestamp, (long)commandInsert.ExecuteScalar());
         }
 
         transaction.Commit();
     }
 
-    public void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles, Dictionary<string, (long size, long id)> files)
+    public void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles,  Dictionary<string, long> files)
     {
         using var transaction = _connection.BeginTransaction();
         var commandInsert = _connection.CreateCommand();
@@ -231,7 +234,7 @@ public class Database : IDatabase
         foreach (var ((filePath, jsonLocalPath), _) in jsonFiles.ToList())
         {
             paramPath.Value = (object)jsonLocalPath ?? DBNull.Value;
-            paramFileId.Value = files[filePath].id;
+            paramFileId.Value = files[filePath];
             jsonFiles[(filePath, jsonLocalPath)] = (long)commandInsert.ExecuteScalar();
         }
 
