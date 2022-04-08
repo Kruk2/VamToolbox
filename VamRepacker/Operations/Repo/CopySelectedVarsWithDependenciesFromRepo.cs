@@ -29,7 +29,7 @@ namespace VamRepacker.Operations.Repo
 
             return Task.Run(() =>
             {
-                var varsToCopy = FindVarsToCopy(vars, varFilter);
+                var varsToCopy = FindVarsToCopy(vars, varFilter, context.ShallowDeps);
                 var missingDependencies = varsToCopy.SelectMany(t => t.UnresolvedDependencies).Distinct().ToList();
                 var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
 
@@ -55,13 +55,13 @@ namespace VamRepacker.Operations.Repo
             });
         }
 
-        private static List<VarPackage> FindVarsToCopy(IEnumerable<VarPackage> vars, IVarFilters varFilters)
+        private static List<VarPackage> FindVarsToCopy(IEnumerable<VarPackage> vars, IVarFilters varFilters, bool useShallowDependencies)
         {
             var repoVars = vars.Where(t => !t.IsInVaMDir);
             var toCopy = repoVars.Where(t => varFilters.Matches(t.FullPath)).ToList();
 
             // optimize? if there is already free file with the same uuid we could skip this var
-            var dependencies = toCopy.SelectMany(t => t.AllResolvedVarDependencies);
+            var dependencies = toCopy.SelectMany(t => useShallowDependencies ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies);
             return toCopy
                 .Concat(dependencies)
                 .DistinctBy(t => t.FullPath)
