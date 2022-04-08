@@ -319,16 +319,12 @@ namespace VamRepacker.Operations.NotDestructive
 
         private void PrintWarnings(List<JsonFile> scenes)
         {
-            var uniqueMissingVars = scenes.SelectMany(t => t.IsVar
-                    ? t.Var.JsonFiles.SelectMany(x => x.Missing).Select(x => (JsonFile: t, x.EstimatedVarName))
-                        .Where(x => x.EstimatedVarName != null)
-                    : t.Free.JsonFiles.SelectMany(x => x.Missing).Select(x => (JsonFile: t, x.EstimatedVarName))
-                        .Where(x => x.EstimatedVarName != null))
+            var uniqueMissingVars = scenes.SelectMany(t => t.Missing)
                 .GroupBy(t => t.EstimatedVarName)
                 .Select(t =>
                 {
                     VarPackageName.TryGet(t.Key + ".var", out var x);
-                    return (t.Select(y => y.JsonFile.Name).Distinct().ToList(), VarName: x, t.Key);
+                    return (t.Select(y => y.FromJson.Name).Distinct().ToList(), VarName: x, t.Key);
                 });
 
             _logger.Log("Missing vars:");

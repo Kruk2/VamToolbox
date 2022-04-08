@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using VamRepacker.Models;
 using VamRepacker.Sqlite;
 
 namespace VamRepacker.Helpers
@@ -54,6 +55,7 @@ namespace VamRepacker.Helpers
 
         public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
         public string EstimatedVarName => Value.StartsWith("SELF:") || !Value.Contains(':') ? null : Value.Split(':').First();
+        public JsonFile FromJson { get; internal set; }
 
         private string GetEstimatedReference()
         {

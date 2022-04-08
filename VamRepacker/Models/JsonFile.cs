@@ -28,6 +28,7 @@ namespace VamRepacker.Models
             JsonPathInVar = jsonPathInVar;
 
             References.ForEach(t => t.FromJson = this);
+            References.Select(t => t.Reference).Concat(missing).ToList().ForEach(t => t.FromJson = this);
             VarReferences = new HashSet<VarPackage>(References.Where(t => t.IsVarReference).Select(t => t.VarFile.ParentVar));
             FreeReferences = new HashSet<FreeFile>(References.Where(t => !t.IsVarReference).Select(t => t.File));
 
