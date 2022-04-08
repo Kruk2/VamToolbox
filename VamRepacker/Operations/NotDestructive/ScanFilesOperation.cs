@@ -33,7 +33,7 @@ namespace VamRepacker.Operations.NotDestructive
         public async Task<List<FreeFile>> ExecuteAsync(OperationContext context)
         {
             _reporter.InitProgress("Scanning files");
-            _logger.Init("scan_files.log");
+            await _logger.Init("scan_files.log");
             _context = context;
 
             var files = await ScanFolder(_context.VamDir);

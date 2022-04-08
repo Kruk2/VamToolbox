@@ -26,7 +26,7 @@ namespace VamRepacker.Operations.Repo
         public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles)
         {
             _reporter.InitProgress("Downloading missing vars from vam hub");
-            _logger.Init("download_missing_from_vam.log");
+            await _logger.Init("download_missing_from_vam.log");
             int processed = 0;
             var unresolvedVars = await Task.Run(() => FindMissingReferences(vars, freeFiles));
 

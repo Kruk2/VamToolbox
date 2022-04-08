@@ -30,8 +30,6 @@ namespace VamRepackerUi
         private Dictionary<string, bool> _buttonsState = new();
         private List<ProfileModel> _profiles = new();
 
-        private List<VarPackage> _vars;
-        private IList<FreeFile> _freeFiles;
         private bool _working;
         private readonly Stopwatch _sw = new();
 
@@ -78,15 +76,15 @@ namespace VamRepackerUi
 
             await using var scope = _ctx.BeginLifetimeScope();
             await RemoveOldLinks(scope, ctx);
-            await ScanJsonFiles(scope, ctx);
+            var (vars, freeFiles) = await ScanJsonFiles(scope, ctx);
             await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
-                .ExecuteAsync(ctx, _vars, _freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
+                .ExecuteAsync(ctx, vars, freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
 
             if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
                     MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 _totalStages++;
-                await scope.Resolve<IDownloadMissingVars>().ExecuteAsync(ctx, _vars, _freeFiles);
+                await scope.Resolve<IDownloadMissingVars>().ExecuteAsync(ctx, vars, freeFiles);
             }
 
             SwitchUI(false);
@@ -109,9 +107,9 @@ namespace VamRepackerUi
             var ctx = GetContext(stages: 5);
             await using var scope = _ctx.BeginLifetimeScope();
             await RemoveOldLinks(scope, ctx);
-            await ScanJsonFiles(scope, ctx, BuildFilters());
+            var (vars, _) = await ScanJsonFiles(scope, ctx, BuildFilters());
             await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
-                .ExecuteAsync(ctx, _vars, BuildFilters());
+                .ExecuteAsync(ctx, vars, BuildFilters());
 
             SwitchUI(false);
         }
@@ -260,12 +258,14 @@ namespace VamRepackerUi
             ReloadProfiles();
         }
 
-        private async Task RunIndexing(ILifetimeScope scope, OperationContext operationContext)
+        private async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> RunIndexing(ILifetimeScope scope, OperationContext operationContext)
         {
-            _freeFiles = await scope.Resolve<IScanFilesOperation>()
+            var freeFiles = await scope.Resolve<IScanFilesOperation>()
                 .ExecuteAsync(operationContext);
-            _vars = await scope.Resolve<IScanVarPackagesOperation>()
-                .ExecuteAsync(operationContext, _freeFiles);
+            var vars = await scope.Resolve<IScanVarPackagesOperation>()
+                .ExecuteAsync(operationContext, freeFiles);
+
+            return (vars, freeFiles);
         }
 
         private async void scanInvalidVars_Btn_Click(object sender, EventArgs e)
@@ -319,9 +319,9 @@ namespace VamRepackerUi
         {
             var ctx = GetContext(stages: 5);
             await using var scope = _ctx.BeginLifetimeScope();
-            await ScanJsonFiles(scope, ctx);
-            await scope.Resolve<IHashFilesOperation>().ExecuteAsync(ctx, _vars, _freeFiles);
-            await scope.Resolve<IDeduplicateOperation>().ExecuteAsync(ctx, _vars, _freeFiles);
+            var (vars, freeFiles) = await ScanJsonFiles(scope, ctx);
+            await scope.Resolve<IHashFilesOperation>().ExecuteAsync(ctx, vars, freeFiles);
+            await scope.Resolve<IDeduplicateOperation>().ExecuteAsync(ctx, vars, freeFiles);
 
             SwitchUI(false);
         }
@@ -335,8 +335,8 @@ namespace VamRepackerUi
             await using var scope = _ctx.BeginLifetimeScope();
             var ctx = GetContext(stages: 3);
 
-            await RunIndexing(scope, ctx);
-            await scope.Resolve<ITrustAllVarsOperation>().ExecuteAsync(ctx, _vars);
+            var (vars, _) = await RunIndexing(scope, ctx);
+            await scope.Resolve<ITrustAllVarsOperation>().ExecuteAsync(ctx, vars);
 
             SwitchUI(false);
         }
@@ -356,15 +356,17 @@ namespace VamRepackerUi
             var ctx = GetContext(stages: 4);
 
             await using var scope = _ctx.BeginLifetimeScope();
-            await ScanJsonFiles(scope, ctx);
-            await scope.Resolve<IDownloadMissingVars>() .ExecuteAsync(ctx, _vars, _freeFiles);
+            var (vars, freeFiles) =  await ScanJsonFiles(scope, ctx);
+            await scope.Resolve<IDownloadMissingVars>() .ExecuteAsync(ctx, vars, freeFiles);
             SwitchUI(false);
         }
 
-        private async Task ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
+        private async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
         {
-            await RunIndexing(scope, ctx);
-            await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, _freeFiles, _vars, filters);
+            var (vars, freeFiles) = await RunIndexing(scope, ctx);
+            await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);
+
+            return (vars, freeFiles);
         }
 
         private void MoveToStage(string text) => stageTxt.Text = $"{(_stage++) + 1}/{_totalStages} {text}";

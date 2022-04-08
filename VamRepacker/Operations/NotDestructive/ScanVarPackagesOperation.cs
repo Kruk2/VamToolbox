@@ -48,7 +48,7 @@ namespace VamRepacker.Operations.NotDestructive
         {
             _context = context;
             _reporter.InitProgress("Scanning var files");
-            _logger.Init("var_scan.log");
+            await _logger.Init("var_scan.log");
 
             var stopWatch = new Stopwatch();
             stopWatch.Start();

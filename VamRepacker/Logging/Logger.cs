@@ -2,35 +2,39 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace VamRepacker.Logging
 {
-    public class Logger : ILogger
+    public sealed class Logger : ILogger
     {
         private ThreadSafeFileBuffer _writer;
 
         public void Log(string message) => _writer?.Write(message);
-        public void Init(string filename)
+        public async ValueTask Init(string filename)
         {
-            _writer?.Dispose();
+            if(_writer != null)
+                await _writer.DisposeAsync();
+
             _writer = new ThreadSafeFileBuffer(Path.Combine(Environment.CurrentDirectory, filename));
         }
 
-        public void Dispose() => _writer?.Dispose();
+        public ValueTask DisposeAsync() => _writer?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
 
-    public class ThreadSafeFileBuffer : IDisposable
+    public sealed class ThreadSafeFileBuffer : IAsyncDisposable
     {
-        private const int FlushPeriodInMs = 500;
+        private const int FlushPeriodInMs = 100;
         private readonly StreamWriter _writer;
         private readonly ConcurrentQueue<string> _buffer = new();
         private readonly Timer _timer;
+        private volatile bool _disposed, _requestStop;
+        private readonly ManualResetEvent _stopped = new(false);
 
         public ThreadSafeFileBuffer(string filePath)
         {
             _writer = new StreamWriter(filePath, append: false);
-            var flushPeriod = TimeSpan.FromMilliseconds(FlushPeriodInMs);
-            _timer = new Timer(FlushBuffer, null, flushPeriod, flushPeriod);
+            _timer = new Timer(TimerCallback, null, FlushPeriodInMs, Timeout.Infinite);
         }
 
         public void Write(string line)
@@ -38,21 +42,38 @@ namespace VamRepacker.Logging
             _buffer.Enqueue(line);
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            _timer.Dispose();
+            if (_disposed) return;
+
+            _requestStop = true;
+            _stopped.WaitOne();
+            await _timer.DisposeAsync();
+
             FlushBuffer();
-            _writer.Dispose();
+            await _writer.DisposeAsync();
+            _disposed = true;
         }
 
-        private void FlushBuffer(object unused = null)
+        private void TimerCallback(object unused = null)
+        {
+            if (_requestStop)
+            {
+                _stopped.Set();
+                return;
+            }
+
+            FlushBuffer();
+
+            _timer.Change(FlushPeriodInMs, Timeout.Infinite);
+        }
+
+        private void FlushBuffer()
         {
             while (_buffer.TryDequeue(out var current))
             {
                 _writer.WriteLine(current);
             }
-
-            _writer.Flush();
         }
     }
 }

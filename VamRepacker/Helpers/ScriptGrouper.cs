@@ -30,7 +30,7 @@ namespace VamRepacker.Helpers
             var filesMovedAsChildren = new HashSet<T>();
             var filesIndex = files
                 .Where(f => f.ExtLower == ".cs")
-                .ToDictionary(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
+                .ToDictionary(f => f.LocalPath);
             foreach (var cslist in files.Where(f => f.ExtLower == ".cslist"))
             {
                 var cslistFolder = _fs.Path.GetDirectoryName(cslist.LocalPath);

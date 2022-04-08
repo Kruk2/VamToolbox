@@ -1,10 +1,11 @@
 using System;
+using System.Threading.Tasks;
 
 namespace VamRepacker.Logging
 {
-    public interface ILogger : IDisposable
+    public interface ILogger : IAsyncDisposable
     {
         void Log(string message);
-        void Init(string filename);
+        ValueTask Init(string filename);
     }
 }
