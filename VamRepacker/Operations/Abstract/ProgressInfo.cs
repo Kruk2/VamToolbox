@@ -5,6 +5,7 @@ namespace VamRepacker.Operations.Abstract
         public int Processed { get; }
         public int Total { get; }
         public string Current { get; }
+        public bool ForceShow { get; }
 
         public ProgressInfo(int processed, int total, string current)
         {
@@ -18,6 +19,11 @@ namespace VamRepacker.Operations.Abstract
             Processed = 0;
             Total = 0;
             Current = current;
+        }
+
+        public ProgressInfo(string current, bool forceShow) : this(current)
+        {
+            ForceShow = forceShow;
         }
     }
 }

@@ -134,7 +134,7 @@ namespace VamRepackerUi
 
         public void Report(ProgressInfo progress)
         {
-            if (_stopwatch.ElapsedTicks <= _nextReport)
+            if (_stopwatch.ElapsedTicks <= _nextReport && !progress.ForceShow)
             {
                 return;
             }
@@ -159,7 +159,7 @@ namespace VamRepackerUi
             });
         }
 
-        public void Report(string message) => Report(new ProgressInfo(message));
+        public void Report(string message, bool forceShow) => Report(new ProgressInfo(message, forceShow));
 
         public void Complete(string resultMessage) => RunInvokedInvoke(() =>
         {

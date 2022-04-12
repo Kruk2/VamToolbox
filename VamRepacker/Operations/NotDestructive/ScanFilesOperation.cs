@@ -20,14 +20,16 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly ILifetimeScope _scope;
         private readonly IDatabase _database;
         private OperationContext _context;
+        private readonly ISoftLinker _softLinker;
 
-        public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope, IDatabase database)
+        public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
         {
             _reporter = reporter;
             _fs = fs;
             _logger = logger;
             _scope = scope;
             _database = database;
+            _softLinker = softLinker;
         }
 
         public async Task<List<FreeFile>> ExecuteAsync(OperationContext context)
@@ -53,12 +55,12 @@ namespace VamRepacker.Operations.NotDestructive
 
             await Task.Run(async () =>
             {
-                _reporter.Report("Scanning Custom folder");
+                _reporter.Report("Scanning Custom folder", forceShow: true);
                 files.AddRange(ScanFolder(rootDir, "Custom"));
-                _reporter.Report("Scanning Saves folder");
+                _reporter.Report("Scanning Saves folder", forceShow: true);
                 files.AddRange(ScanFolder(rootDir, "Saves"));
 
-                _reporter.Report("Analyzing fav files");
+                _reporter.Report("Analyzing fav files", forceShow: true);
                 var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
                 var favMorphs = files
                     .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
@@ -66,16 +68,16 @@ namespace VamRepacker.Operations.NotDestructive
                     
                 Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
-                _reporter.Report("Grouping scripts");
+                _reporter.Report("Grouping scripts", forceShow: true);
                 await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
-                _reporter.Report("Grouping morphs");
+                _reporter.Report("Grouping morphs", forceShow: true);
                 await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, varName: null, openFileStream: OpenFileStream, favMorphs);
-                _reporter.Report("Grouping presets");
+                _reporter.Report("Grouping presets", forceShow: true);
                 await _scope.Resolve<IPresetGrouper>().GroupPresets(files, varName: null, OpenFileStream);
-                _reporter.Report("Grouping previews");
+                _reporter.Report("Grouping previews", forceShow: true);
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
 
-                _reporter.Report("Updating local database");
+                _reporter.Report("Updating local database", forceShow: true);
                 LookupDirtyFiles(files);
 
             });
@@ -93,7 +95,7 @@ namespace VamRepacker.Operations.NotDestructive
             var files = _fs.Directory
                 .EnumerateFiles(searchDir, "*.*", SearchOption.AllDirectories)
                 .Where(f => !f.Contains(@"\."))
-                .Select(f => (path: f, fileInfo: _fs.FileInfo.FromFileName(f)))
+                .Select(f => (path: f, fileInfo: _fs.FileInfo.FromFileName(_softLinker.GetSoftLink(f) ?? f)))
                 .Select(f => new FreeFile(f.path, f.path.RelativeTo(rootDir), f.fileInfo.Length, isVamDir, f.fileInfo.LastWriteTimeUtc))
                 .ToList();
 

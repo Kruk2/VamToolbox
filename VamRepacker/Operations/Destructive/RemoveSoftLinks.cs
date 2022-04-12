@@ -11,14 +11,14 @@ namespace VamRepacker.Operations.Destructive
     public class RemoveSoftLinks : IRemoveSoftLinks
     {
         private readonly IProgressTracker _progressTracker;
-        private readonly IFileLinker _fileLinker;
+        private readonly ISoftLinker _softLinker;
         private readonly ILogger _logger;
         private OperationContext _context;
 
-        public RemoveSoftLinks(IProgressTracker progressTracker, IFileLinker fileLinker, ILogger logger)
+        public RemoveSoftLinks(IProgressTracker progressTracker, ISoftLinker softLinker, ILogger logger)
         {
             _progressTracker = progressTracker;
-            _fileLinker = fileLinker;
+            _softLinker = softLinker;
             _logger = logger;
         }
 
@@ -34,7 +34,7 @@ namespace VamRepacker.Operations.Destructive
             {
                 var softLinks = Directory
                     .EnumerateFiles(context.VamDir, "*.*", SearchOption.AllDirectories)
-                    .Where(t => _fileLinker.IsSoftLink(t));
+                    .Where(t => _softLinker.IsSoftLink(t));
 
                 foreach (var softLink in softLinks)
                 {

@@ -1,17 +1,19 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 
 namespace VamRepacker.Helpers
 {
-    public interface IFileLinker
+    public interface ISoftLinker
     {
         int SoftLink(string destination, string source, bool dryRun);
         bool IsSoftLink(string file);
+        string GetSoftLink(string file);
     }
 
-    public class FileLinker : IFileLinker
+    public class SoftLinker : ISoftLinker
     {
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool CreateSymbolicLink(
@@ -127,6 +129,59 @@ namespace VamRepacker.Helpers
             }
 
             return reparseDataBuffer.ReparseTag == symLinkTag;
+        }
+
+        public string GetSoftLink(string file)
+        {
+            SymbolicLinkReparseData reparseDataBuffer;
+
+            using (SafeFileHandle fileHandle = GetFileHandle(file))
+            {
+                if (fileHandle.IsInvalid)
+                {
+                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                }
+
+                int outBufferSize = Marshal.SizeOf(typeof(SymbolicLinkReparseData));
+                IntPtr outBuffer = IntPtr.Zero;
+                try
+                {
+                    outBuffer = Marshal.AllocHGlobal(outBufferSize);
+                    int bytesReturned;
+                    bool success = DeviceIoControl(
+                        fileHandle.DangerousGetHandle(), ioctlCommandGetReparsePoint, IntPtr.Zero, 0,
+                        outBuffer, outBufferSize, out bytesReturned, IntPtr.Zero);
+
+                    fileHandle.Close();
+
+                    if (!success)
+                    {
+                        if (((uint)Marshal.GetHRForLastWin32Error()) == pathNotAReparsePointError)
+                        {
+                            return null;
+                        }
+
+                        Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    }
+
+                    reparseDataBuffer = (SymbolicLinkReparseData)Marshal.PtrToStructure(
+                        outBuffer, typeof(SymbolicLinkReparseData));
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(outBuffer);
+                }
+            }
+
+            if (reparseDataBuffer.ReparseTag != symLinkTag)
+            {
+                return null;
+            }
+
+            string target = Encoding.Unicode.GetString(reparseDataBuffer.PathBuffer,
+                reparseDataBuffer.PrintNameOffset, reparseDataBuffer.PrintNameLength);
+
+            return target;
         }
 
 

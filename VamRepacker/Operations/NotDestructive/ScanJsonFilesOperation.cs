@@ -163,11 +163,11 @@ namespace VamRepacker.Operations.NotDestructive
                 _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {freeFile}"));
             }
 
-            _progressTracker.Report("Saving file cache");
+            _progressTracker.Report("Saving file cache", forceShow: true);
             _database.SaveFiles(bulkInsertFiles);
-            _progressTracker.Report("Saving json cache");
+            _progressTracker.Report("Saving json cache", forceShow: true);
             _database.UpdateJson(bulkInsertJsonFiles, bulkInsertFiles.ToDictionary(t => t.Key, t => t.Value.id));
-            _progressTracker.Report("Saving references cache");
+            _progressTracker.Report("Saving references cache", forceShow: true);
             _database.UpdateReferences(bulkInsertReferences, bulkInsertJsonFiles);
         }
 
@@ -233,7 +233,7 @@ namespace VamRepacker.Operations.NotDestructive
         {
             var dependencies = varFiles.Cast<IVamObjectWithDependencies>().Concat(freeFiles).ToList();
             dependencies.ForEach(t => t.ClearDependencies());
-            _progressTracker.Report("Calculating dependencies");
+            _progressTracker.Report("Calculating dependencies", forceShow: true);
 
             var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
                 {

@@ -13,9 +13,9 @@ namespace VamRepacker.Operations.Repo
     {
         private readonly IProgressTracker _reporter;
         private readonly ILogger _logger;
-        private readonly IFileLinker _linker;
+        private readonly ISoftLinker _linker;
 
-        public CopyMissingVarDependenciesFromRepo(IProgressTracker progressTracker, ILogger logger, IFileLinker linker)
+        public CopyMissingVarDependenciesFromRepo(IProgressTracker progressTracker, ILogger logger, ISoftLinker linker)
         {
             _reporter = progressTracker;
             _logger = logger;

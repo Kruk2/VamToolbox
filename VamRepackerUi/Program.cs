@@ -49,7 +49,7 @@ namespace VamRepackerUi
             var builder = new ContainerBuilder();
 
             builder.RegisterType<FileSystem>().As<IFileSystem>().SingleInstance();
-            builder.RegisterType<FileLinker>().As<IFileLinker>().SingleInstance();
+            builder.RegisterType<SoftLinker>().As<ISoftLinker>().SingleInstance();
             builder.RegisterType<JsonScannerHelper>().As<IJsonFileParser>().SingleInstance();
             builder.RegisterType<MainWindow>().As<IProgressTracker>().AsSelf().SingleInstance();
 

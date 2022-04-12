@@ -27,6 +27,7 @@ namespace VamRepacker.Operations.NotDestructive
         private readonly ILogger _logger;
         private readonly ILifetimeScope _scope;
         private readonly IDatabase _database;
+        private readonly ISoftLinker _softLinker;
         private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs;
         private readonly ConcurrentBag<VarPackage> _packages = new();
         private readonly VarScanResults _result = new ();
@@ -35,13 +36,14 @@ namespace VamRepacker.Operations.NotDestructive
         private int _totalVarsCount;
         private OperationContext _context;
 
-        public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, IDatabase database)
+        public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
         {
             _fs = fs;
             _reporter = progressTracker;
             _logger = logger;
             _scope = scope;
             _database = database;
+            _softLinker = softLinker;
         }
 
         public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles)
@@ -83,7 +85,7 @@ namespace VamRepacker.Operations.NotDestructive
                 })
                 .ToList();
 
-            _reporter.Report("Updating local database");
+            _reporter.Report("Updating local database", forceShow: true);
             await Task.Run(() => LookupDirtyPackages(_result.Vars));
 
             var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
@@ -168,7 +170,8 @@ namespace VamRepacker.Operations.NotDestructive
                 await _scope.Resolve<IPresetGrouper>().GroupPresets(files, name, OpenFileStream);
                 _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
 
-                var fileInfo = _fs.FileInfo.FromFileName(varFullPath);
+                var softLinkPath = _softLinker.GetSoftLink(varFullPath);
+                var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
                 var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir), fileInfo.Length, fileInfo.LastWriteTimeUtc);
                 files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
                 _packages.Add(varPackage);

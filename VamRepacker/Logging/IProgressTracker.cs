@@ -6,7 +6,7 @@ namespace VamRepacker.Logging
     {
         void InitProgress(string startingMessage);
         void Report(ProgressInfo progress);
-        void Report(string message);
+        void Report(string message, bool forceShow = false);
         void Complete(string endingMessage);
     }
 }
