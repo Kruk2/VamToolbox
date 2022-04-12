@@ -1,6 +1,5 @@
-namespace VamRepacker.Operations.Abstract
+namespace VamRepacker.Operations.Abstract;
+
+public interface IOperation
 {
-    public interface IOperation
-    {
-    }
 }

@@ -1,10 +1,9 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 
-namespace VamRepacker.Hashing
+namespace VamRepacker.Hashing;
+
+public interface IHashingAlgo
 {
-    public interface IHashingAlgo
-    {
-        Task<string> GetHash(Stream stream);
-    }
+    Task<string> GetHash(Stream stream);
 }

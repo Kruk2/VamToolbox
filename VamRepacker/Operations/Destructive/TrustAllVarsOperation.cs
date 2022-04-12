@@ -11,79 +11,78 @@ using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
 
-namespace VamRepacker.Operations.Destructive
+namespace VamRepacker.Operations.Destructive;
+
+public class TrustAllVarsOperation : ITrustAllVarsOperation
 {
-    public class TrustAllVarsOperation : ITrustAllVarsOperation
+    private readonly IProgressTracker _progressTracker;
+    private readonly IFileSystem _fs;
+    private readonly ILogger _logger;
+    private int _total;
+    private int _progress;
+    private int _trusted;
+    private string _vamPrefsDir;
+    private OperationContext _context;
+
+    public TrustAllVarsOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger)
     {
-        private readonly IProgressTracker _progressTracker;
-        private readonly IFileSystem _fs;
-        private readonly ILogger _logger;
-        private int _total;
-        private int _progress;
-        private int _trusted;
-        private string _vamPrefsDir;
-        private OperationContext _context;
+        _progressTracker = progressTracker;
+        _fs = fs;
+        _logger = logger;
+    }
 
-        public TrustAllVarsOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger)
+    public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars)
+    {
+        _context = context;
+        _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
+        if (!context.DryRun)
+            Directory.CreateDirectory(_vamPrefsDir);
+
+        _progressTracker.InitProgress("Trusting all vars");
+        _total = vars.Count;
+        var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions
         {
-            _progressTracker = progressTracker;
-            _fs = fs;
-            _logger = logger;
-        }
+            MaxDegreeOfParallelism = context.Threads
+        });
 
-        public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars)
+        foreach (var var in vars.Where(t => t.IsInVaMDir))
+            depScanBlock.Post(var);
+
+        depScanBlock.Complete();
+        await depScanBlock.Completion;
+
+        _progressTracker.Complete($"Trusted {_trusted} vars");
+    }
+
+    private void TrustVar(VarPackage var)
+    {
+        var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
+        dynamic json;
+
+        json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile)) : new ExpandoObject();
+
+        var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
+        var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");
+        if (!hasPropertyDisabled || (hasPropertyDisabled && json.pluginsAlwaysDisabled != "true"))
         {
-            _context = context;
-            _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
-            if (!context.DryRun)
-                Directory.CreateDirectory(_vamPrefsDir);
-
-            _progressTracker.InitProgress("Trusting all vars");
-            _total = vars.Count;
-            var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions
+            if (!hasPropertyEnabled || (hasPropertyEnabled && json.pluginsAlwaysEnabled != "true"))
             {
-                MaxDegreeOfParallelism = context.Threads
-            });
+                json.pluginsAlwaysEnabled = "true";
+                json.pluginsAlwaysDisabled = "false";
 
-            foreach (var var in vars.Where(t => t.IsInVaMDir))
-                depScanBlock.Post(var);
+                var serialized = JsonConvert.SerializeObject(json, Formatting.Indented);
+                if (!_context.DryRun)
+                    _fs.File.WriteAllText(prefFile, serialized);
 
-            depScanBlock.Complete();
-            await depScanBlock.Completion;
-
-            _progressTracker.Complete($"Trusted {_trusted} vars");
-        }
-
-        private void TrustVar(VarPackage var)
-        {
-            var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
-            dynamic json;
-
-            json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile)) : new ExpandoObject();
-
-            var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
-            var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");
-            if (!hasPropertyDisabled || (hasPropertyDisabled && json.pluginsAlwaysDisabled != "true"))
-            {
-                if (!hasPropertyEnabled || (hasPropertyEnabled && json.pluginsAlwaysEnabled != "true"))
-                {
-                    json.pluginsAlwaysEnabled = "true";
-                    json.pluginsAlwaysDisabled = "false";
-
-                    var serialized = JsonConvert.SerializeObject(json, Formatting.Indented);
-                    if (!_context.DryRun)
-                        _fs.File.WriteAllText(prefFile, serialized);
-
-                    Interlocked.Increment(ref _trusted);
-                }
+                Interlocked.Increment(ref _trusted);
             }
-
-            _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _progress), _total, $"Trusting {var}"));
         }
-    }
 
-    public interface ITrustAllVarsOperation : IOperation
-    {
-        Task ExecuteAsync(OperationContext context, IList<VarPackage> vars);
+        _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _progress), _total, $"Trusting {var}"));
     }
+}
+
+public interface ITrustAllVarsOperation : IOperation
+{
+    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars);
 }

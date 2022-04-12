@@ -42,7 +42,7 @@ namespace VamRepackerUi
             this.copyMissingDepsFromRepoBtn = new System.Windows.Forms.Button();
             this.scanInvalidVars_Btn = new System.Windows.Forms.Button();
             this.scanJsonFilesBtn = new System.Windows.Forms.Button();
-            this.deduplicateAssetsBtn = new System.Windows.Forms.Button();
+            this.fixMissingMorphsBtn = new System.Windows.Forms.Button();
             this.fixReferencesJsonBtn = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -189,15 +189,15 @@ namespace VamRepackerUi
             this.scanJsonFilesBtn.UseVisualStyleBackColor = true;
             this.scanJsonFilesBtn.Click += new System.EventHandler(this.scanJsonFilesBtn_Click);
             // 
-            // deduplicateAssetsBtn
+            // fixMissingMorphsBtn
             // 
-            this.deduplicateAssetsBtn.Location = new System.Drawing.Point(14, 22);
-            this.deduplicateAssetsBtn.Name = "deduplicateAssetsBtn";
-            this.deduplicateAssetsBtn.Size = new System.Drawing.Size(94, 65);
-            this.deduplicateAssetsBtn.TabIndex = 16;
-            this.deduplicateAssetsBtn.Text = "Estimate how many GB duplicates are taking";
-            this.deduplicateAssetsBtn.UseVisualStyleBackColor = true;
-            this.deduplicateAssetsBtn.Click += new System.EventHandler(this.deduplicateAssetsBtn_Click);
+            this.fixMissingMorphsBtn.Location = new System.Drawing.Point(14, 22);
+            this.fixMissingMorphsBtn.Name = "fixMissingMorphsBtn";
+            this.fixMissingMorphsBtn.Size = new System.Drawing.Size(94, 65);
+            this.fixMissingMorphsBtn.TabIndex = 16;
+            this.fixMissingMorphsBtn.Text = "Fix missing morphs";
+            this.fixMissingMorphsBtn.UseVisualStyleBackColor = true;
+            this.fixMissingMorphsBtn.Click += new System.EventHandler(this.fixMissingMorphsBtn_Click);
             // 
             // fixReferencesJsonBtn
             // 
@@ -223,7 +223,7 @@ namespace VamRepackerUi
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.trustAllVarsBtn);
-            this.groupBox2.Controls.Add(this.deduplicateAssetsBtn);
+            this.groupBox2.Controls.Add(this.fixMissingMorphsBtn);
             this.groupBox2.Controls.Add(this.fixReferencesJsonBtn);
             this.groupBox2.Location = new System.Drawing.Point(217, 169);
             this.groupBox2.Name = "groupBox2";
@@ -420,7 +420,7 @@ namespace VamRepackerUi
         private System.Windows.Forms.Button copyMissingDepsFromRepoBtn;
         private System.Windows.Forms.Button scanInvalidVars_Btn;
         private System.Windows.Forms.Button scanJsonFilesBtn;
-        private System.Windows.Forms.Button deduplicateAssetsBtn;
+        private System.Windows.Forms.Button fixMissingMorphsBtn;
         private System.Windows.Forms.Button fixReferencesJsonBtn;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;

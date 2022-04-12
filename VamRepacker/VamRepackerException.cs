@@ -1,28 +1,27 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace VamRepacker
+namespace VamRepacker;
+
+[Serializable]
+internal class VamRepackerException : Exception
 {
-    [Serializable]
-    internal class VamRepackerException : Exception
+    public VamRepackerException()
     {
-        public VamRepackerException()
-        {
-        }
+    }
 
-        public VamRepackerException(string message)
-            : base(message)
-        {
-        }
+    public VamRepackerException(string message)
+        : base(message)
+    {
+    }
 
-        public VamRepackerException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
+    public VamRepackerException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 
-        protected VamRepackerException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {
-        }
+    protected VamRepackerException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+    {
     }
 }
