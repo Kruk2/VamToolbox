@@ -320,7 +320,7 @@ public partial class MainWindow : Form, IProgressTracker
         var ctx = GetContext(stages: 3);
         await using var scope = _ctx.BeginLifetimeScope();
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
-        await scope.Resolve<IFixMissingMorphs>().ExecuteAsync(ctx, vars, freeFiles);
+        await scope.Resolve<IFixMissingMorphsOperation>().ExecuteAsync(ctx, freeFiles, vars);
 
         SwitchUI(false);
     }

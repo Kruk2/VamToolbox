@@ -14,7 +14,7 @@ public static class KnownNames
 
         "Custom/Atom",
         "Custom/Atom/Person",
-        "Custom/Atom/Person/Morphs",
+        MorphsDir,
         FemaleMorphsDir,
         FemaleGenMorphsDir,
         MaleMorphsDir,
@@ -31,10 +31,11 @@ public static class KnownNames
         "Custom/Scripts"
     };
 
-    private const string FemaleMorphsDir = "Custom/Atom/Person/Morphs/female";
-    private const string FemaleGenMorphsDir = "Custom/Atom/Person/Morphs/female_genitalia";
-    private const string MaleMorphsDir = "Custom/Atom/Person/Morphs/male";
-    private const string MaleGenMorphsDir = "Custom/Atom/Person/Morphs/male_genitalia";
+    public const string MorphsDir = "Custom/Atom/Person/Morphs";
+    public const string FemaleMorphsDir = "Custom/Atom/Person/Morphs/female";
+    public const string FemaleGenMorphsDir = "Custom/Atom/Person/Morphs/female_genitalia";
+    public const string MaleMorphsDir = "Custom/Atom/Person/Morphs/male";
+    public const string MaleGenMorphsDir = "Custom/Atom/Person/Morphs/male_genitalia";
     public static string[] MorphDirs = {FemaleMorphsDir, FemaleGenMorphsDir, MaleMorphsDir, MaleGenMorphsDir};
 
     private const string FemaleHairDir = "Custom/Hair/Female";

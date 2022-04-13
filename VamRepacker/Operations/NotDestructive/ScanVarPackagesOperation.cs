@@ -206,7 +206,7 @@ public class ScanVarPackagesOperation : IScanVarPackagesOperation
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry) => new (entry.FullName.NormalizePathSeparators(), entry.CompressedLength);
+    private VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry) => new (entry.FullName.NormalizePathSeparators(), entry.Length);
 }
 
 public interface IScanVarPackagesOperation : IOperation

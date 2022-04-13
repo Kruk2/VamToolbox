@@ -16,8 +16,7 @@ public interface ISoftLinker
 public class SoftLinker : ISoftLinker
 {
     [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool CreateSymbolicLink(
-        string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
+    static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
 
     [Flags]
     enum SymbolicLink
@@ -27,16 +26,9 @@ public class SoftLinker : ISoftLinker
         AllowUnprivilegedCreate = 2
     }
 
-    private const uint genericReadAccess = 0x80000000;
-    private const uint symlinkReparsePointFlagRelative = 0x00000001;
-
     private const int ioctlCommandGetReparsePoint = 0x000900A8;
 
-    private const uint openExisting = 0x3;
-
     private const uint pathNotAReparsePointError = 0x80071126;
-
-    private const uint shareModeAll = 0x7; // Read, Write, Delete
 
     private const uint symLinkTag = 0xA000000C;
 
@@ -62,14 +54,14 @@ public class SoftLinker : ISoftLinker
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern SafeFileHandle CreateFile(
-        string lpFileName,
-        uint dwDesiredAccess,
-        uint dwShareMode,
-        IntPtr lpSecurityAttributes,
-        uint dwCreationDisposition,
-        uint dwFlagsAndAttributes,
-        IntPtr hTemplateFile);
+    public static extern SafeFileHandle CreateFile(
+        [MarshalAs(UnmanagedType.LPTStr)] string filename,
+        [MarshalAs(UnmanagedType.U4)] FileAccess access,
+        [MarshalAs(UnmanagedType.U4)] FileShare share,
+        IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
+        [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+        [MarshalAs(UnmanagedType.U4)] FileAttributes flagsAndAttributes,
+        IntPtr templateFile);
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool DeviceIoControl(
@@ -84,58 +76,24 @@ public class SoftLinker : ISoftLinker
 
     private static SafeFileHandle GetFileHandle(string path)
     {
-        return CreateFile(path, genericReadAccess, shareModeAll, IntPtr.Zero, openExisting,
-            fileFlagsForOpenReparsePointAndBackupSemantics, IntPtr.Zero);
+        return CreateFile(path, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, IntPtr.Zero, FileMode.Open,
+            (FileAttributes)fileFlagsForOpenReparsePointAndBackupSemantics, IntPtr.Zero);
     }
 
     public bool IsSoftLink(string path)
     {
-        SymbolicLinkReparseData reparseDataBuffer;
-
-        using (SafeFileHandle fileHandle = GetFileHandle(path))
-        {
-            if (fileHandle.IsInvalid)
-            {
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-            }
-
-            int outBufferSize = Marshal.SizeOf<SymbolicLinkReparseData>();
-            IntPtr outBuffer = IntPtr.Zero;
-            try
-            {
-                outBuffer = Marshal.AllocHGlobal(outBufferSize);
-                bool success = DeviceIoControl(
-                    fileHandle.DangerousGetHandle(), ioctlCommandGetReparsePoint, IntPtr.Zero, 0,
-                    outBuffer, outBufferSize, out int bytesReturned, IntPtr.Zero);
-
-                fileHandle.Dispose();
-
-                if (!success)
-                {
-                    if (((uint)Marshal.GetHRForLastWin32Error()) == pathNotAReparsePointError)
-                    {
-                        return false;
-                    }
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-                }
-
-                reparseDataBuffer = Marshal.PtrToStructure<SymbolicLinkReparseData>(outBuffer);
-
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(outBuffer);
-            }
-        }
-
-        return reparseDataBuffer.ReparseTag == symLinkTag;
+        return GetSoftLink(path) != null;
     }
 
     public string GetSoftLink(string file)
     {
+        var pathInfo = new FileInfo(file);
+        if (!pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+            return null;
+
         SymbolicLinkReparseData reparseDataBuffer;
 
-        using (SafeFileHandle fileHandle = GetFileHandle(file))
+        using (var fileHandle = GetFileHandle(file))
         {
             if (fileHandle.IsInvalid)
             {
@@ -143,14 +101,13 @@ public class SoftLinker : ISoftLinker
             }
 
             int outBufferSize = Marshal.SizeOf(typeof(SymbolicLinkReparseData));
-            IntPtr outBuffer = IntPtr.Zero;
+            var outBuffer = IntPtr.Zero;
             try
             {
                 outBuffer = Marshal.AllocHGlobal(outBufferSize);
-                int bytesReturned;
                 bool success = DeviceIoControl(
                     fileHandle.DangerousGetHandle(), ioctlCommandGetReparsePoint, IntPtr.Zero, 0,
-                    outBuffer, outBufferSize, out bytesReturned, IntPtr.Zero);
+                    outBuffer, outBufferSize, out _, IntPtr.Zero);
 
                 fileHandle.Close();
 
@@ -178,7 +135,7 @@ public class SoftLinker : ISoftLinker
             return null;
         }
 
-        string target = Encoding.Unicode.GetString(reparseDataBuffer.PathBuffer,
+        var target = Encoding.Unicode.GetString(reparseDataBuffer.PathBuffer,
             reparseDataBuffer.PrintNameOffset, reparseDataBuffer.PrintNameLength);
 
         return target;

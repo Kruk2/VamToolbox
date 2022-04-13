@@ -17,6 +17,7 @@ public abstract class FileReferenceBase
     public string InternalId { get; internal set; }
     public string MorphName { get; internal set; }
     public string VamAuthor { get; internal set; }
+    public AssetType Type { get; } = AssetType.Unknown;
 
     public List<JsonReference> JsonReferences { get; } = new();
 
@@ -36,6 +37,8 @@ public abstract class FileReferenceBase
         FilenameWithoutExt = Path.GetFileNameWithoutExtension(localPath);
         ExtLower = Path.GetExtension(FilenameLower);
         Size = size;
+
+        if (ExtLower is ".vmi" or ".vmb") Type = AssetType.Morph;
     }
 
     public override string ToString() => LocalPath;
