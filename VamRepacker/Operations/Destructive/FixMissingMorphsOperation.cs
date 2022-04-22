@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Dynamic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
-using Newtonsoft.Json;
-using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
 using VamRepacker.Operations.Abstract;
@@ -46,7 +38,7 @@ public class FixMissingMorphsOperation : IFixMissingMorphsOperation
 
         _files = await _fileScan.ExecuteAsync(context);
         _files = files.Where(t => t.IsInVaMDir).ToList();
-        var unableToFix = await Task.Run(() => FixMissingMorphsThatDontHaveMatch());
+        var unableToFix = await Task.Run(FixMissingMorphsThatDontHaveMatch);
 
         _progressTracker.Complete($"Fixed {fixedMorphs} morphs. Unable to fix: {unableToFix}.");
     }
