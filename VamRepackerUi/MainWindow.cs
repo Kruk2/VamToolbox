@@ -72,6 +72,8 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void copyMissingDepsFromRepoBtn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         var ctx = GetContext(stages: 5);
 
         await using var scope = _ctx.BeginLifetimeScope();
@@ -92,11 +94,7 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void softLinkVarsBtn_Click(object sender, EventArgs e)
     {
-        if (string.IsNullOrEmpty(additionalVarsDir.Text))
-        {
-            MessageBox.Show("Missing additional directory for REPO vars");
-            return;
-        }
+        if (!ValidateSettings()) return;
 
         if (profilesListBox.CheckedItems.Count == 0 &&
             MessageBox.Show("Nothing was selected, everything from repo will be linked. Continue?", "", MessageBoxButtons.YesNo) == DialogResult.No)
@@ -270,6 +268,8 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void scanInvalidVars_Btn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         await using var scope = _ctx.BeginLifetimeScope();
         await RunIndexing(scope, GetContext(stages: 2));
         SwitchUI(false);
@@ -277,10 +277,28 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void scanJsonFilesBtn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         await using var scope = _ctx.BeginLifetimeScope();
         var ctx = GetContext(stages: 3);
         await ScanJsonFiles(scope, ctx);
         SwitchUI(false);
+    }
+
+    private bool ValidateSettings()
+    {
+        if (string.IsNullOrEmpty(vamDirTxt.Text) || !Directory.Exists(vamDirTxt.Text))
+        {
+            MessageBox.Show("Select VAM dir first");
+            return false;
+        }
+        if (!string.IsNullOrEmpty(additionalVarsDir.Text) && !Directory.Exists(additionalVarsDir.Text))
+        {
+            MessageBox.Show("REPO dir doesn't exist");
+            return false;
+        }
+
+        return true;
     }
 
     private void manageProfilesBtn_Click(object sender, EventArgs e)
@@ -317,6 +335,8 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void fixMissingMorphsBtn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         var ctx = GetContext(stages: 3);
         await using var scope = _ctx.BeginLifetimeScope();
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
@@ -331,6 +351,8 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void trustAllVarsBtn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         await using var scope = _ctx.BeginLifetimeScope();
         var ctx = GetContext(stages: 3);
 
@@ -352,6 +374,8 @@ public partial class MainWindow : Form, IProgressTracker
 
     private async void downloadFromHubBtn_Click(object sender, EventArgs e)
     {
+        if (!ValidateSettings()) return;
+
         var ctx = GetContext(stages: 4);
 
         await using var scope = _ctx.BeginLifetimeScope();
