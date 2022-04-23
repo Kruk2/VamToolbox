@@ -195,6 +195,14 @@ public sealed class Database : IDatabase
         transaction.Commit();
     }
 
+    public async Task ClearCache()
+    {
+        await _connection.QueryAsync($"DELETE FROM {RefTable}");
+        await _connection.QueryAsync($"DELETE FROM {JsonTable}");
+        await _connection.QueryAsync($"DELETE FROM {FilesTable}");
+        await _connection.QueryAsync("VACUUM");
+    }
+
     public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files)
     {
         using var transaction = _connection.BeginTransaction();

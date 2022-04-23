@@ -16,6 +16,7 @@ using VamRepacker.Operations.Abstract;
 using VamRepacker.Operations.Destructive;
 using VamRepacker.Operations.NotDestructive;
 using VamRepacker.Operations.Repo;
+using VamRepacker.Sqlite;
 
 namespace VamRepackerUi;
 
@@ -345,7 +346,14 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private void fixReferencesJsonBtn_Click(object sender, EventArgs e) => MessageBox.Show("Not implemented");
+    private async void fixReferencesJsonBtn_Click(object sender, EventArgs e)
+    {
+        SwitchUI(true);
+        await using var scope = _ctx.BeginLifetimeScope();
+        var db = scope.Resolve<IDatabase>();
+        await db.ClearCache();
+        SwitchUI(false);
+    }
 
     private void clearRepoDirBtn_Click(object sender, EventArgs e) => additionalVarsDir.Text = string.Empty;
 

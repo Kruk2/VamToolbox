@@ -43,7 +43,7 @@ namespace VamRepackerUi
             this.scanInvalidVars_Btn = new System.Windows.Forms.Button();
             this.scanJsonFilesBtn = new System.Windows.Forms.Button();
             this.fixMissingMorphsBtn = new System.Windows.Forms.Button();
-            this.fixReferencesJsonBtn = new System.Windows.Forms.Button();
+            this.clearCacheBtn = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.trustAllVarsBtn = new System.Windows.Forms.Button();
@@ -199,15 +199,15 @@ namespace VamRepackerUi
             this.fixMissingMorphsBtn.UseVisualStyleBackColor = true;
             this.fixMissingMorphsBtn.Click += new System.EventHandler(this.fixMissingMorphsBtn_Click);
             // 
-            // fixReferencesJsonBtn
+            // clearCacheBtn
             // 
-            this.fixReferencesJsonBtn.Location = new System.Drawing.Point(121, 21);
-            this.fixReferencesJsonBtn.Name = "fixReferencesJsonBtn";
-            this.fixReferencesJsonBtn.Size = new System.Drawing.Size(102, 66);
-            this.fixReferencesJsonBtn.TabIndex = 17;
-            this.fixReferencesJsonBtn.Text = "Try to fix broken references in scenes/presets";
-            this.fixReferencesJsonBtn.UseVisualStyleBackColor = true;
-            this.fixReferencesJsonBtn.Click += new System.EventHandler(this.fixReferencesJsonBtn_Click);
+            this.clearCacheBtn.Location = new System.Drawing.Point(393, 72);
+            this.clearCacheBtn.Name = "clearCacheBtn";
+            this.clearCacheBtn.Size = new System.Drawing.Size(129, 23);
+            this.clearCacheBtn.TabIndex = 17;
+            this.clearCacheBtn.Text = "Clear internal cache";
+            this.clearCacheBtn.UseVisualStyleBackColor = true;
+            this.clearCacheBtn.Click += new System.EventHandler(this.fixReferencesJsonBtn_Click);
             // 
             // groupBox1
             // 
@@ -224,7 +224,6 @@ namespace VamRepackerUi
             // 
             this.groupBox2.Controls.Add(this.trustAllVarsBtn);
             this.groupBox2.Controls.Add(this.fixMissingMorphsBtn);
-            this.groupBox2.Controls.Add(this.fixReferencesJsonBtn);
             this.groupBox2.Location = new System.Drawing.Point(217, 169);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(308, 101);
@@ -348,6 +347,7 @@ namespace VamRepackerUi
             // 
             this.groupBox4.Controls.Add(this.moveMissingDepsChk);
             this.groupBox4.Controls.Add(this.shallowChk);
+            this.groupBox4.Controls.Add(this.clearCacheBtn);
             this.groupBox4.Controls.Add(this.removeAllSoftLinkBeforeChk);
             this.groupBox4.Controls.Add(this.dryRunCheckbox);
             this.groupBox4.Controls.Add(this.label4);
@@ -421,7 +421,7 @@ namespace VamRepackerUi
         private System.Windows.Forms.Button scanInvalidVars_Btn;
         private System.Windows.Forms.Button scanJsonFilesBtn;
         private System.Windows.Forms.Button fixMissingMorphsBtn;
-        private System.Windows.Forms.Button fixReferencesJsonBtn;
+        private System.Windows.Forms.Button clearCacheBtn;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.GroupBox groupBox3;

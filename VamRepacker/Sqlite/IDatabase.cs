@@ -16,4 +16,5 @@ public interface IDatabase : IDisposable
     public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files);
     void UpdateJson(Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles, Dictionary<string, long> files);
     void UpdateReferences(List<(string filePath, string? jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles);
+    Task ClearCache();
 }
