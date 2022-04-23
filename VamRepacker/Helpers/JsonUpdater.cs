@@ -12,6 +12,12 @@ namespace VamRepacker.Helpers;
 
 public class JsonUpdateDto
 {
+    public JsonUpdateDto(Reference referenceToUpdate, FileReferenceBase newReference)
+    {
+        ReferenceToUpdate = referenceToUpdate;
+        NewReference = newReference;
+    }
+
     public Reference ReferenceToUpdate { get; init; }
     public FileReferenceBase NewReference { get; set; }
 }
@@ -46,6 +52,7 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData, ZipArchive varArchive, Dictionary<string, ZipArchiveEntry> entries)
     {
+        if(!json.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
         var jsonEntry = entries[json.JsonPathInVar];
         var date = jsonEntry.LastWriteTime;
         jsonEntry.Delete();
@@ -67,6 +74,8 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
+        if (json.IsVar) throw new ArgumentException($"Json file expected to be free file {json}", nameof(json));
+
         await using var writer = new StreamWriter(json.Free.FullPath, false, Encoding.UTF8);
         foreach (var s in jsonData)
         {
@@ -114,12 +123,16 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task<List<string>> ReadJson(JsonFile json)
     {
+        if (json.IsVar) throw new ArgumentException($"Json file expected to free file {json}", nameof(json));
+
         using var reader = new StreamReader(json.Free.FullPath, Encoding.UTF8);
         return await ReadJsonInternal(reader);
     }
 
     private static async Task<List<string>> ReadJson(JsonFile json,  Dictionary<string, ZipArchiveEntry> entries)
     {
+        if (!json.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
+
         var jsonEntry = entries[json.JsonPathInVar];
         var stream = jsonEntry.Open();
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -131,7 +144,8 @@ public sealed class JsonUpdater : IJsonUpdater
         var sb = new List<string>();
         while(!reader.EndOfStream)
         {
-            sb.Add(await reader.ReadLineAsync());
+            var line = await reader.ReadLineAsync();
+            if(line is not null) sb.Add(line);
         }
 
         return sb;

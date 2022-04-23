@@ -11,7 +11,7 @@ namespace VamRepacker.Helpers;
 
 public interface IPresetGrouper
 {
-    public Task GroupPresets<T>(List<T> files, VarPackageName varName, Func<string, Stream> openFileStream)
+    public Task GroupPresets<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream)
         where T : FileReferenceBase;
 }
 
@@ -26,7 +26,7 @@ public sealed class PresetGrouper :  IPresetGrouper
         _logger = logger;
     }
 
-    public async Task GroupPresets<T>(List<T> files, VarPackageName varName, Func<string, Stream> openFileStream) 
+    public async Task GroupPresets<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream) 
         where T: FileReferenceBase
     {
         var grouped = files
@@ -37,9 +37,9 @@ public sealed class PresetGrouper :  IPresetGrouper
             {
                 if (g.Count() is 1 or 2 or 3)
                 {
-                    return (vaj: g.SingleOrDefault(f => f.file.ExtLower == ".vaj").file,
-                        vam: g.SingleOrDefault(f => f.file.ExtLower == ".vam").file,
-                        vab: g.SingleOrDefault(f => f.file.ExtLower == ".vab").file);
+                    return (vaj: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vaj").file,
+                        vam: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vam").file,
+                        vab: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vab").file);
                 }
 
                 _logger.Log(
@@ -98,11 +98,11 @@ public sealed class PresetGrouper :  IPresetGrouper
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
     }
 
-    private async Task<(string, string)> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
+    private async Task<(string?, string?)> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
         using var streamReader = new StreamReader(openFileStream(vam.LocalPath));
-        string uuid = null;
-        string author = null;
+        string? uuid = null;
+        string? author = null;
 
         while (!streamReader.EndOfStream)
         {

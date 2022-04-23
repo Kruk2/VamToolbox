@@ -14,23 +14,25 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public List<VarPackageFile> Files { get; }
     public List<JsonFile> JsonFiles { get; } = new();
 
-    public List<VarPackage> TrimmedResolvedVarDependencies { get; private set; }
-    public List<VarPackage> AllResolvedVarDependencies { get; private set; }
-    public List<FreeFile> TrimmedResolvedFreeDependencies { get; private set; }
-    public List<FreeFile> AllResolvedFreeDependencies { get; private set; }
+    private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
+    private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
+    public List<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
+    public List<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
+    public List<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
+    public List<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
+    public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
 
     public IEnumerable<string> UnresolvedDependencies => JsonFiles
         .SelectMany(t => t.Missing.Select(x => x.Value + " from " + t))
         .Distinct();
 
-    private Dictionary<string, VarPackageFile> _filesDict;
+    private Dictionary<string, VarPackageFile>? _filesDict;
 
     public Dictionary<string, VarPackageFile> FilesDict => _filesDict ??= Files
         .SelectMany(t => t.SelfAndChildren())
         .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
         .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
-    public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
     public bool Dirty { get; set; }
     public DateTime ModifiedTimestamp { get; }
 
@@ -52,23 +54,25 @@ public sealed class VarPackage : IVamObjectWithDependencies
 
     public override string ToString() => Name.ToString();
 
-    public void CalculateDeps()
+    private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()
     {
-        if (AlreadyCalculatedDeps) return;
-        (AllResolvedVarDependencies, AllResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
+        if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null) 
+            return (_allResolvedVarDependencies, _allResolvedFreeDependencies);
+        return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
     }
 
-    public void CalculateShallowDeps()
+    private (List<VarPackage> Var, List<FreeFile> Free) CalculateShallowDeps()
     {
-        if(TrimmedResolvedFreeDependencies != null) return;
-        (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
+        if (_trimmedResolvedFreeDependencies is not null && _trimmedResolvedVarDependencies is not null) 
+            return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies);
+        return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
     }
 
     public void ClearDependencies()
     {
-        AllResolvedFreeDependencies = null;
-        AllResolvedVarDependencies = null;
-        TrimmedResolvedFreeDependencies = null;
-        TrimmedResolvedVarDependencies = null;
+        _allResolvedFreeDependencies = null;
+        _allResolvedVarDependencies = null;
+        _trimmedResolvedFreeDependencies = null;
+        _trimmedResolvedVarDependencies = null;
     }
 }

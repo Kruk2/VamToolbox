@@ -13,21 +13,23 @@ public abstract class FileReferenceBase
     public string FilenameWithoutExt { get; }
     public string ExtLower { get; }
 
-    public string Hash { get; internal set; }
-    public string InternalId { get; internal set; }
-    public string MorphName { get; internal set; }
-    public string VamAuthor { get; internal set; }
+    public string? Hash { get; internal set; }
+
+    public string? InternalId { get; internal set; }
+    public string? MorphName { get; internal set; }
+    public string? VamAuthor { get; internal set; }
+
     public AssetType Type { get; } = AssetType.Unknown;
 
     public List<JsonReference> JsonReferences { get; } = new();
 
     public long Size { get; }
-    public FileReferenceBase ParentFile { get; protected internal set; }
+    public FileReferenceBase ParentFile { get; protected internal set; } = null!;
     public abstract IReadOnlyCollection<FileReferenceBase> Children { get; }
     public List<string> MissingChildren { get; } = new();
 
-    private string _hashWithChildren;
-    public string HashWithChildren => _hashWithChildren ??= MD5Helper.GetHash(Hash, Children.Select(t => t.Hash));
+    private string? _hashWithChildren;
+    public string HashWithChildren => _hashWithChildren ??= MD5Helper.GetHash(Hash!, Children.Select(t => t.Hash!));
     public long SizeWithChildren => Size + Children.Sum(t => t.SizeWithChildren);
 
     protected FileReferenceBase(string localPath, long size)

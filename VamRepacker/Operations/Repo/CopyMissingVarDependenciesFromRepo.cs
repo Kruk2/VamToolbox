@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using SQLitePCL;
 using VamRepacker.Helpers;
 using VamRepacker.Logging;
 using VamRepacker.Models;
@@ -14,6 +15,7 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
     private readonly ISoftLinker _linker;
+    private OperationContext _context = null!;
 
     public CopyMissingVarDependenciesFromRepo(IProgressTracker progressTracker, ILogger logger, ISoftLinker linker)
     {
@@ -26,22 +28,27 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
         bool moveVars, bool shallow)
     {
         _reporter.InitProgress("Copying missing dependencies from REPO to VAM");
+        _context = context;
         await _logger.Init("copy_missing_deps_from_repo.log");
+        if (string.IsNullOrEmpty(_context.RepoDir))
+        {
+            _reporter.Complete("Missing repo dir. Aborting");
+            return;
+        }
 
         var (exitingVars, existingFiles) = await Task.Run(() => FindFilesToLink(vars, freeFiles, shallow));
-        await Task.Run(() => LinkFiles(context, moveVars, existingFiles, exitingVars));
+        await Task.Run(() => LinkFiles(moveVars, existingFiles, exitingVars));
     }
 
     private void LinkFiles(
-        OperationContext context, 
         bool moveVars, 
         IReadOnlyCollection<FreeFile> existingFiles, IReadOnlyCollection<VarPackage> exitingVars)
     {
         var count = existingFiles.Count + exitingVars.Count;
         var processed = 0;
 
-        var varFolderDestination = Path.Combine(context.VamDir, "AddonPackages", "other");
-        if (!context.DryRun)
+        var varFolderDestination = Path.Combine(_context.VamDir, "AddonPackages", "other");
+        if (!_context.DryRun)
             Directory.CreateDirectory(varFolderDestination);
 
         foreach (var existingVar in exitingVars.OrderBy(t => t.Name.Filename))
@@ -53,11 +60,11 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
                 _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
                 continue;
             }
-            if (moveVars && !context.DryRun)
+            if (moveVars && !_context.DryRun)
                 File.Move(existingVar.FullPath, varDestination);
             else
             {
-                var success = _linker.SoftLink(varDestination, existingVar.FullPath, context.DryRun);
+                var success = _linker.SoftLink(varDestination, existingVar.FullPath, _context.DryRun);
                 if (success != 0)
                 {
                     _logger.Log($"Error soft-link. Code {success} Dest: {varDestination} source: {existingVar.FullPath}");
@@ -72,24 +79,24 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
 
         foreach (var file in existingFiles.OrderBy(t => t.FilenameLower))
         {
-            var relativeToRoot = file.FullPath.RelativeTo(context.RepoDir);
-            var destinationPath = Path.Combine(context.VamDir, relativeToRoot);
+            var relativeToRoot = file.FullPath.RelativeTo(_context.RepoDir!);
+            var destinationPath = Path.Combine(_context.VamDir, relativeToRoot);
             if (File.Exists(destinationPath))
             {
                 _logger.Log($"SkippingDest: {destinationPath} source: {file.FullPath}. Already exists.");
                 _reporter.Report(new ProgressInfo(++processed, count, file.FilenameWithoutExt));
                 continue;
             }
-            if (!context.DryRun)
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+            if (!_context.DryRun)
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
-            if (moveVars && !context.DryRun)
+            if (moveVars && !_context.DryRun)
             {
                 File.Move(file.FullPath, destinationPath);
             }
             else
             {
-                var success = _linker.SoftLink(destinationPath, file.FullPath, context.DryRun);
+                var success = _linker.SoftLink(destinationPath, file.FullPath, _context.DryRun);
                 if (success != 0)
                 {
                     _logger.Log($"Error soft-link. Code {success} Dest: {destinationPath} source: {file.FullPath}");

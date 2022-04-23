@@ -36,7 +36,7 @@ static class Program
 
     private static void CatchUnhandledDomain(object sender, UnhandledExceptionEventArgs e)
     {
-        MessageBox.Show((e.ExceptionObject as Exception).ToString(), "Unhandled UI Exception");
+        MessageBox.Show((e.ExceptionObject as Exception)!.ToString(), "Unhandled UI Exception");
     }
 
     private static void CatchUnhandled(object sender, ThreadExceptionEventArgs e)
@@ -54,7 +54,7 @@ static class Program
         builder.RegisterType<MainWindow>().As<IProgressTracker>().AsSelf().SingleInstance();
 
         builder.RegisterType<Logger>().As<ILogger>().InstancePerLifetimeScope();
-        builder.RegisterType<Database>().As<IDatabase>().OnActivating(t => t.Instance.Open(System.AppContext.BaseDirectory)).InstancePerLifetimeScope();
+        builder.Register(_ => new Database(System.AppContext.BaseDirectory)).As<IDatabase>().InstancePerLifetimeScope();
         builder.RegisterType<MD5Helper>().As<IHashingAlgo>().SingleInstance();
 
         builder.RegisterType<PresetGrouper>().As<IPresetGrouper>();

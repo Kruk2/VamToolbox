@@ -26,6 +26,11 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
     {
         _reporter.InitProgress("Applying profile");
         await _logger.Init("copy_vars_from_repo.log");
+        if (string.IsNullOrEmpty(context.RepoDir))
+        {
+            _reporter.Complete("Unable to complete. Missing repo dir");
+            return;
+        }
 
         await Task.Run(() =>
         {

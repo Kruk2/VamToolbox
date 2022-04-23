@@ -14,6 +14,7 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<Platforms>x64</Platforms>
 		<AnalysisMode>Recommended</AnalysisMode>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>

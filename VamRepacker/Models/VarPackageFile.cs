@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace VamRepacker.Models;
 
 public sealed class VarPackageFile : FileReferenceBase
 {
-    public VarPackage ParentVar { get; internal set; }
+    public VarPackage ParentVar { get; internal set; } = null!;
 
     private readonly List<VarPackageFile> _children = new();
     public override IReadOnlyCollection<VarPackageFile> Children => _children.AsReadOnly();
@@ -22,10 +23,7 @@ public sealed class VarPackageFile : FileReferenceBase
         children.ParentFile = this;
     }
 
-    public IEnumerable<VarPackageFile> SelfAndChildren()
-    {
-        return Children == null ? new[] { this } : Children.Concat(new[] { this });
-    }
+    public IEnumerable<VarPackageFile> SelfAndChildren() => Children.Append(this);
 
     public override string ToString()
     {

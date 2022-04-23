@@ -14,7 +14,7 @@ public partial class ManageProfiles : Form
     private readonly List<ProfileModel> _originalProfiles;
     private readonly string _repoDir;
 
-    private ProfileModel SelectedProfile => profileList.SelectedItem as ProfileModel;
+    private ProfileModel SelectedProfile => (profileList.SelectedItem as ProfileModel)!;
     public List<ProfileModel> Profiles => profileList.Items.Cast<ProfileModel>().ToList();
 
     public ManageProfiles(List<ProfileModel> profileModels, string repoDir)
@@ -119,7 +119,7 @@ public partial class ManageProfiles : Form
             listBox.Items.Remove(selected);
 
             var list = ReferenceEquals(listBox, dirList) ? SelectedProfile.Dirs : SelectedProfile.Files;
-            list.Remove(selected as string);
+            list.Remove((selected as string)!);
         }
     }
 
@@ -154,7 +154,7 @@ public partial class ManageProfiles : Form
 
     }
 
-    private static string AskForName(string initialValue = "")
+    private static string? AskForName(string initialValue = "")
     {
         var size = new Size(200, 70);
         var inputBox = new Form {FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = size, Text = "Name", StartPosition = FormStartPosition.CenterScreen};

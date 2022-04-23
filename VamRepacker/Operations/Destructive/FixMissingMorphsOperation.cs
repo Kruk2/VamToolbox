@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
@@ -16,8 +17,8 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
     private readonly IScanFilesOperation _fileScan;
-    private OperationContext _context;
-    private IList<FreeFile> _files;
+    private OperationContext _context = null!;
+    private IList<FreeFile> _files = null!;
 
     public FixMissingMorphsOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IScanFilesOperation fileScan)
     {

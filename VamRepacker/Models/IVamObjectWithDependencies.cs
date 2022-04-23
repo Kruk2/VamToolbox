@@ -9,7 +9,7 @@ public interface IVamObjectWithDependencies
     List<FreeFile> TrimmedResolvedFreeDependencies { get; }
     List<FreeFile> AllResolvedFreeDependencies { get; }
     IEnumerable<string> UnresolvedDependencies { get; }
-    void CalculateDeps();
-    void CalculateShallowDeps();
+    bool AlreadyCalculatedDeps { get; }
+
     void ClearDependencies();
 }

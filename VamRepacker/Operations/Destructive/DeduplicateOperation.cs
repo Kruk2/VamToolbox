@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Abstractions;
 using System.IO.Compression;
@@ -16,12 +18,12 @@ namespace VamRepacker.Operations.Destructive;
 
 public sealed class DeduplicateOperation : IDeduplicateOperation
 {
-    private ILookup<string, FileReferenceBase> _filesByHash;
+    private ILookup<string, FileReferenceBase> _filesByHash = null!;
     private readonly Dictionary<JsonFile, List<JsonUpdateDto>> _changesQueue = new();
 
-    private IList<VarPackage> _vars;
-    private IList<FreeFile> _freeFiles;
-    private OperationContext _context;
+    private IList<VarPackage> _vars = null!;
+    private IList<FreeFile> _freeFiles = null!;
+    private OperationContext _context = null!;
     private int _total;
     private int _processed;
 
@@ -65,7 +67,7 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
 
     private async Task DeleteDuplicates()
     {
-        var removeBlock = new ActionBlock<(VarPackage varPackage, List<FileReferenceBase> toDelete)>(
+        var removeBlock = new ActionBlock<(VarPackage? varPackage, List<FileReferenceBase> toDelete)>(
             RemoveDuplicates,
             new ExecutionDataflowBlockOptions
             {
@@ -85,7 +87,7 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
         await removeBlock.Completion;
     }
 
-    private async Task RemoveDuplicates((VarPackage varPackage, List<FileReferenceBase> toDelete) arg)
+    private async Task RemoveDuplicates((VarPackage? varPackage, List<FileReferenceBase> toDelete) arg)
     {
         var (varPackage, toDelete) = arg;
         if (varPackage is null)
@@ -131,7 +133,7 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
     {
         _total = _changesQueue.Values.Sum(t => t.Count) + _freeDeleteQueue.Count + _varDeleteQueue.Sum(t => t.Value.Count);
 
-        var removeBlock = new ActionBlock<(VarPackage varPackage, List<(JsonFile jsonFile, List<JsonUpdateDto> dupes)>)>(
+        var removeBlock = new ActionBlock<(VarPackage? varPackage, List<(JsonFile jsonFile, List<JsonUpdateDto> dupes)>)>(
             RewriteJsonFiles,
             new ExecutionDataflowBlockOptions
             {
@@ -157,7 +159,7 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
         await removeBlock.Completion;
     }
 
-    private async Task RewriteJsonFiles((VarPackage varPackage, List<(JsonFile jsonFile, List<JsonUpdateDto> dupes)> jsonDupes) arg)
+    private async Task RewriteJsonFiles((VarPackage? varPackage, List<(JsonFile jsonFile, List<JsonUpdateDto> dupes)> jsonDupes) arg)
     {
         var (varPackage, jsonDupes) = arg;
         if (varPackage is null)
@@ -189,6 +191,8 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
     private async Task RewriteJsonFiles((JsonFile jsonFile, List<JsonUpdateDto> dupes) arg)
     {
         var (jsonFile, dupes) = arg;
+        if (jsonFile.IsVar) throw new ArgumentException($"Json file expected to be in var {jsonFile}", nameof(arg));
+
         var date = _fs.FileInfo.FromFileName(jsonFile.Free.FullPath).LastWriteTime;
         await _jsonUpdater.UpdateFreeJson(jsonFile, dupes);
         _progressTracker.Report(new ProgressInfo(Interlocked.Add(ref _processed, dupes.Count), _total, $"2/3 Fixing json file in {jsonFile.Free.LocalPath}"));
@@ -242,11 +246,7 @@ public sealed class DeduplicateOperation : IDeduplicateOperation
                 _changesQueue[jsonReference.FromJson] = referencesToUpdate;
             }
 
-            referencesToUpdate.Add(new JsonUpdateDto
-            {
-                ReferenceToUpdate = jsonReference.Reference,
-                NewReference = destination
-            });
+            referencesToUpdate.Add(new JsonUpdateDto(jsonReference.Reference, destination));
         }
 
         if (toDelete is VarPackageFile varFile)

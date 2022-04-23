@@ -1,28 +1,32 @@
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using VamRepacker.Helpers;
 
 namespace VamRepacker.Models;
 
 public sealed class JsonReference
 {
-    public bool IsVarReference => VarFile != null;
-    public FreeFile File { get; }
-    public VarPackageFile VarFile { get; }
-    public JsonFile FromJson { get; internal set; }
+    [MemberNotNullWhen(true, nameof(ParentVar))]
+    [MemberNotNullWhen(true, nameof(VarFile))]
+    [MemberNotNullWhen(false, nameof(FreeFile))]
+    public bool IsVarReference => File is VarPackageFile;
+    public FileReferenceBase File { get; }
+
+    public VarPackage? ParentVar => File is VarPackageFile varFile ? varFile.ParentVar : null;
+    public FreeFile? FreeFile => File as FreeFile;
+    public VarPackageFile? VarFile => File as VarPackageFile;
+    public JsonFile FromJson { get; internal set; } = null!;
     public Reference Reference { get; }
 
     public JsonReference(FileReferenceBase file, Reference reference)
     {
-        if (file is FreeFile freeFile)
-            File = freeFile;
-        if (file is VarPackageFile varFile)
-            VarFile = varFile;
-
+        File = file;
         Reference = reference;
         file.JsonReferences.Add(this);
     }
 
     public override string ToString()
     {
-        return $"{(File != null ? "SELF" : VarFile.ParentVar.Name)}: " + (File?.ToString() ?? VarFile?.ToString());
+        return $"{(ParentVar is null ? "SELF" : ParentVar.Name)}: " + File;
     }
 }

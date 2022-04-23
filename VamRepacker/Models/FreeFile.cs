@@ -13,10 +13,13 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
     private readonly List<FreeFile> _children = new();
     public override IReadOnlyCollection<FreeFile> Children => _children.AsReadOnly();
 
-    public List<VarPackage> TrimmedResolvedVarDependencies { get; private set; }
-    public List<VarPackage> AllResolvedVarDependencies { get; private set; }
-    public List<FreeFile> TrimmedResolvedFreeDependencies { get; private set; }
-    public List<FreeFile> AllResolvedFreeDependencies { get; private set; }
+    private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
+    private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
+    public List<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
+    public List<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
+    public List<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
+    public List<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
+    public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
 
     public IEnumerable<string> UnresolvedDependencies => JsonFiles
         .SelectMany(t => t.Missing.Select(x => x.Value + " from " + t))
@@ -24,7 +27,6 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 
     public bool Dirty { get; set; }
     public bool IsInVaMDir { get; }
-    public bool AlreadyCalculatedDeps => AllResolvedFreeDependencies != null;
     public DateTime ModifiedTimestamp { get; }
 
     public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
@@ -35,10 +37,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
         ModifiedTimestamp = modifiedTimestamp;
     }
 
-    public IEnumerable<FreeFile> SelfAndChildren()
-    {
-        return Children == null ? new[] { this } : Children.Concat(new[] { this });
-    }
+    public IEnumerable<FreeFile> SelfAndChildren() => Children.Append(this);
 
     public override string ToString() => LocalPath;
 
@@ -48,23 +47,25 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
         children.ParentFile = this;
     }
 
-    public void CalculateDeps()
+    private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()
     {
-        if (AlreadyCalculatedDeps) return;
-        (AllResolvedVarDependencies, AllResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
+        if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null)
+            return (_allResolvedVarDependencies, _allResolvedFreeDependencies);
+        return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
     }
 
-    public void CalculateShallowDeps()
+    private (List<VarPackage> Var, List<FreeFile> Free) CalculateShallowDeps()
     {
-        if (TrimmedResolvedVarDependencies != null) return;
-        (TrimmedResolvedVarDependencies, TrimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
+        if (_trimmedResolvedFreeDependencies is not null && _trimmedResolvedVarDependencies is not null)
+            return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies);
+        return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
     }
 
     public void ClearDependencies()
     {
-        AllResolvedFreeDependencies = null;
-        AllResolvedVarDependencies = null;
-        TrimmedResolvedFreeDependencies = null;
-        TrimmedResolvedVarDependencies = null;
+        _allResolvedFreeDependencies = null;
+        _allResolvedVarDependencies = null;
+        _trimmedResolvedFreeDependencies = null;
+        _trimmedResolvedVarDependencies = null;
     }
 }

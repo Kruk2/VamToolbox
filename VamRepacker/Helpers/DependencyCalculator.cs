@@ -10,7 +10,7 @@ public static class DependencyCalculator
     public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(List<JsonFile> jsonFiles)
     {
         var queue = jsonFiles.SelectMany(t => t.References).Distinct().ToList();
-        var processedFiles = new HashSet<FileReferenceBase>(jsonFiles.Select(t => (FileReferenceBase)t.VarFile ?? t.Free));
+        var processedFiles = new HashSet<FileReferenceBase>(jsonFiles.Select(t => t.File));
         var varDeps = new HashSet<VarPackage>();
         var freeFileDeps = new HashSet<FreeFile>();
 
@@ -19,20 +19,20 @@ public static class DependencyCalculator
             var item = queue[^1];
             queue.RemoveAt(queue.Count - 1);
 
-            var ext = item.IsVarReference ? item.VarFile.ExtLower : item.File.ExtLower;
+            var ext = item.File.ExtLower;
             if (item.IsVarReference)
-                varDeps.Add(item.VarFile.ParentVar);
+                varDeps.Add(item.ParentVar);
             else
-                freeFileDeps.Add(item.File);
+                freeFileDeps.Add(item.FreeFile);
 
             if (!KnownNames.ExtReferencesToPresets.Contains(ext))
                 continue;
 
-            if (processedFiles.Contains((FileReferenceBase)item.VarFile ?? item.File))
+            if (processedFiles.Contains(item.File))
                 continue;
 
-            queue.AddRange(item.VarFile?.JsonReferences ?? item.File.JsonReferences);
-            processedFiles.Add((FileReferenceBase)item.VarFile ?? item.File);
+            queue.AddRange(item.File.JsonReferences);
+            processedFiles.Add(item.File);
         }
 
         return (varDeps.ToList(), freeFileDeps.ToList());

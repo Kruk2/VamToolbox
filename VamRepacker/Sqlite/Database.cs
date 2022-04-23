@@ -15,12 +15,10 @@ public sealed class Database : IDatabase
     private const string FilesTable = "Files";
     private const string JsonTable = "JsonFiles";
     private const string RefTable= "JsonReferences";
-    private SqliteConnection _connection;
+    private readonly SqliteConnection _connection;
 
-    public void Open(string rootDir)
+    public Database(string rootDir)
     {
-        if (_connection != null) return;
-
         var currentDir = Path.Combine(rootDir, "vamRepacker.sqlite");
         _connection = new SqliteConnection($@"data source={currentDir}");
         _connection.Open();
@@ -84,7 +82,7 @@ public sealed class Database : IDatabase
         if (!TableExists("Hashes")) return;
 
         _connection.Execute("Create Table Hashes (" +
-                            "VarFileName TEXT collate nocase NOT NULL," +
+                            "FullPath TEXT collate nocase NOT NULL," +
                             "LocalAssetPath TEXT collate nocase NOT NULL," +
                             "Hash VARCHAR(42) collate nocase NOT NULL);");
     }
@@ -96,26 +94,26 @@ public sealed class Database : IDatabase
         return string.IsNullOrEmpty(tableName) || foundTable != tableName;
     }
 
-    public async Task<ConcurrentDictionary<HashesTable, string>> GetHashes()
+    public async Task<ConcurrentDictionary<(string fullPath, string localAssetPath), string>> GetHashes()
     {
-        var hashes = await _connection.QueryAsync<HashesTable>("SELECT * FROM hashes");
+        var hashes = await _connection.QueryAsync<(string fullPath, string localAssethPath, string hash)>("SELECT * FROM hashes");
 
         var grouped = hashes
-            .Select(t => new KeyValuePair<HashesTable, string>(t, t.Hash));
-        return new ConcurrentDictionary<HashesTable, string>(grouped);
+            .Select(t => new KeyValuePair<(string fullPath, string localAssetPath), string>((t.fullPath, t.localAssethPath), t.hash));
+        return new ConcurrentDictionary<(string fullPath, string localAssetPath), string>(grouped);
 
     }
 
-    public async Task AddHashes(IEnumerable<HashesTable> hashes)
+    public async Task AddHashes(ConcurrentDictionary<(string fullPath, string localAssetPath), string> hashes)
     {
         await using var transaction = _connection.BeginTransaction();
         var command = _connection.CreateCommand();
         command.CommandText =
-            @"INSERT INTO hashes VALUES($varFileName, $localAssetPath, $hash) ";
+            @"INSERT INTO hashes VALUES($fullPath, $localAssetPath, $hash) ";
 
-        var parameterVar = command.CreateParameter();
-        parameterVar.ParameterName = "$varFileName";
-        command.Parameters.Add(parameterVar);
+        var parameterFullPath = command.CreateParameter();
+        parameterFullPath.ParameterName = "$fullPath";
+        command.Parameters.Add(parameterFullPath);
         var parameterAsset = command.CreateParameter();
         parameterAsset.ParameterName = "$localAssetPath";
         command.Parameters.Add(parameterAsset);
@@ -126,9 +124,9 @@ public sealed class Database : IDatabase
         // Insert a lot of data
         foreach (var hash in hashes)
         {
-            parameterVar.Value = hash.VarFileName;
-            parameterAsset.Value = hash.LocalAssetPath;
-            parameterHash.Value = hash.Hash;
+            parameterFullPath.Value = hash.Key.fullPath;
+            parameterAsset.Value = hash.Key.localAssetPath;
+            parameterHash.Value = hash.Value;
             await command.ExecuteNonQueryAsync();
         }
 
@@ -153,7 +151,7 @@ public sealed class Database : IDatabase
         return _connection.Query<string>($"select Path from {FilesTable}");
     }
 
-    public void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles)
+    public void UpdateReferences(List<(string filePath, string? jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles)
     {
         using var transaction = _connection.BeginTransaction();
         var command = _connection.CreateCommand();
@@ -185,11 +183,11 @@ public sealed class Database : IDatabase
             foreach (var reference in references)
             {
                 paramJsonId.Value = jsonFiles[(filePath, jsonLocalPath)];
-                parameterValue.Value = (object)reference.Value ?? DBNull.Value;
+                parameterValue.Value = reference.Value;
                 parameterIndex.Value = reference.Index;
                 parameterLength.Value = reference.Length;
-                parameterMorph.Value = (object)reference.MorphName ?? DBNull.Value;
-                paramInternalId.Value = (object)reference.InternalId ?? DBNull.Value;
+                parameterMorph.Value = (object?)reference.MorphName ?? DBNull.Value;
+                paramInternalId.Value = (object?)reference.InternalId ?? DBNull.Value;
                 command.ExecuteNonQuery();
             }
         }
@@ -218,13 +216,13 @@ public sealed class Database : IDatabase
             paramPath.Value = filePath;
             paramSize.Value = size;
             paramTimestamp.Value = timestamp;
-            files[filePath] = (size, timestamp, (long)commandInsert.ExecuteScalar());
+            files[filePath] = (size, timestamp, (long)commandInsert.ExecuteScalar()!);
         }
 
         transaction.Commit();
     }
 
-    public void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles,  Dictionary<string, long> files)
+    public void UpdateJson(Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles,  Dictionary<string, long> files)
     {
         using var transaction = _connection.BeginTransaction();
         var commandInsert = _connection.CreateCommand();
@@ -240,9 +238,9 @@ public sealed class Database : IDatabase
 
         foreach (var ((filePath, jsonLocalPath), _) in jsonFiles.ToList())
         {
-            paramPath.Value = (object)jsonLocalPath ?? DBNull.Value;
+            paramPath.Value = (object?)jsonLocalPath ?? DBNull.Value;
             paramFileId.Value = files[filePath];
-            jsonFiles[(filePath, jsonLocalPath)] = (long)commandInsert.ExecuteScalar();
+            jsonFiles[(filePath, jsonLocalPath)] = (long)commandInsert.ExecuteScalar()!;
         }
 
         transaction.Commit();
@@ -250,7 +248,6 @@ public sealed class Database : IDatabase
 
     public void Dispose()
     {
-        _connection?.Dispose();
-        _connection = null;
+        _connection.Dispose();
     }
 }

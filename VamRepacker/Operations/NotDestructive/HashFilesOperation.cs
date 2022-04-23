@@ -25,9 +25,12 @@ public sealed class HashFilesOperation : IHashFilesOperation
     private readonly ILogger _logger;
     private readonly IDatabase _database;
 
-    private ConcurrentDictionary<HashesTable, string> _hashes;
-    private readonly ConcurrentBag<HashesTable> _newHashes = new();
-
+    private readonly ConcurrentDictionary<(string fullPath, string localAssetPath), string> _newHashes = new();
+    private readonly ConcurrentBag<string> _errors = new();
+    private ConcurrentDictionary<(string fullPath, string localAssetPath), string> _hashes = new();
+    private OperationContext _context = new();
+    private int _scanned;
+    private int _totalFiles;
     public HashFilesOperation(IProgressTracker progressTracker, IHashingAlgo hasher, IFileSystem fs, ILogger logger, IDatabase database)
     {
         _progressTracker = progressTracker;
@@ -36,11 +39,6 @@ public sealed class HashFilesOperation : IHashFilesOperation
         _logger = logger;
         _database = database;
     }
-
-    private int _scanned;
-    private int _totalFiles;
-    private readonly ConcurrentBag<string> _errors = new();
-    private OperationContext _context;
 
     public async Task ExecuteAsync(OperationContext context, IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
@@ -88,8 +86,8 @@ public sealed class HashFilesOperation : IHashFilesOperation
 
     private async Task ExecuteFreeFileOneAsync(FreeFile freeFile)
     {
-        var lookup = new HashesTable { LocalAssetPath = freeFile.FullPath, VarFileName = "" };
-        if (_hashes.TryGetValue(lookup, out var hash))
+        var key = (fullPath: freeFile.FullPath, localAssetPath: "");
+        if (_hashes.TryGetValue(key, out var hash))
         {
             freeFile.Hash = hash;
         }
@@ -97,8 +95,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
         {
             await using var stream = _fs.File.OpenRead(freeFile.FullPath);
             freeFile.Hash = await _hasher.GetHash(stream);
-            lookup.Hash = freeFile.Hash;
-            _newHashes.Add(lookup);
+            _newHashes[key] = freeFile.Hash;
         }
 
         _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalFiles, freeFile.FilenameLower));
@@ -138,17 +135,17 @@ public sealed class HashFilesOperation : IHashFilesOperation
 
     private async Task<string> HashFileAsync(VarPackageFile file, ZipArchiveEntry entry)
     {
-        var lookup = new HashesTable { LocalAssetPath = file.LocalPath, VarFileName = file.ParentVar.Name.Filename };
-        if (_hashes.TryGetValue(lookup, out var hash))
+        var key = (fullPath: file.ParentVar.FullPath, localAssetPath: file.LocalPath);
+        if (_hashes.TryGetValue(key, out var hash))
         {
             return hash;
         }
 
         await using var stream = entry.Open();
-        lookup.Hash = await _hasher.GetHash(stream);
-        _newHashes.Add(lookup);
+        hash = await _hasher.GetHash(stream);
+        _newHashes[key] = hash;
 
-        return lookup.Hash;
+        return hash;
     }
 }
 

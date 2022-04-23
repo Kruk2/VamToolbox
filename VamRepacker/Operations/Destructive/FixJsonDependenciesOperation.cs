@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Abstractions;
 using System.IO.Compression;
@@ -20,12 +21,11 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
     private readonly IProgressTracker _progressTracker;
     private readonly ILogger _logger;
     private readonly IFileSystem _fs;
-    private ILookup<string, FileReferenceBase> _filesByName;
-    private ILookup<string, FileReferenceBase> _filesByPath;
-    private IDictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor;
+    private ILookup<string, FileReferenceBase> _filesByName = null!;
+    private ILookup<string, FileReferenceBase> _filesByPath = null!;
+    private IDictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
     private readonly ConcurrentDictionary<string, string> _filesToCopy = new();
-    private OperationContext _context;
-
+    private OperationContext _context = null!;
 
     public FixJsonDependenciesOperation(IProgressTracker progressTracker, ILogger logger, IFileSystem fs)
     {
@@ -62,7 +62,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             while (true)
             {
                 destinations = bestReference.SelfAndChildren()
-                    .Select(t => Path.GetRelativePath(Path.GetDirectoryName(bestReference.LocalPath), t.LocalPath))
+                    .Select(t => Path.GetRelativePath(Path.GetDirectoryName(bestReference.LocalPath)!, t.LocalPath))
                     .Select(t => Path.Combine(destDir, t).NormalizePathSeparators());
 
                 var hasFileConflicts = destinations
@@ -70,12 +70,12 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
                 if (!hasFileConflicts)
                     break;
 
-                destDir = Path.Combine(Path.GetDirectoryName(destDir), originalDirName + $"_{index++}").NormalizePathSeparators();
+                destDir = Path.Combine(Path.GetDirectoryName(destDir)!, originalDirName + $"_{index++}").NormalizePathSeparators();
             }
 
             foreach (var dest in destinations)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 using (File.Create(dest))
                 {
                 }
@@ -89,8 +89,8 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
     {
         if (_filesToCopy.TryAdd(bestReference.HashWithChildren, string.Empty))
         {
-            var parentDir = Path.GetDirectoryName(bestReference.LocalPath).NormalizePathSeparators();
-            var destDir = Path.Combine(_context.VamDir, Path.GetDirectoryName(bestReference.LocalPath));
+            var parentDir = Path.GetDirectoryName(bestReference.LocalPath)!.NormalizePathSeparators();
+            var destDir = Path.Combine(_context.VamDir, Path.GetDirectoryName(bestReference.LocalPath)!);
             if (KnownNames.KnownVamDirs.Contains(parentDir, StringComparer.InvariantCultureIgnoreCase))
                 destDir = Path.Combine(_context.VamDir, parentDir, bestReference.ParentVar.Name.Author.RemoveInvalidChars()).NormalizePathSeparators();
 
@@ -129,7 +129,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             var localReferencePath = missing.NormalizedLocalPath;
             var localReferenceFileName = Path.GetFileName(localReferencePath);
 
-            FileReferenceBase bestReference = null;
+            FileReferenceBase? bestReference = null;
 
             if (_filesByPath.Contains(localReferencePath))
             {
@@ -197,7 +197,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         }
     }
 
-    private void ApplyFix(List<string> jsonData, Reference missing, string newReferenceLocalPath, string jsonLocalPath)
+    private void ApplyFix(List<string> jsonData, Reference missing, string newReferenceLocalPath, string? jsonLocalPath)
     {
         int sum = 0;
         for (var i = 0; i < jsonData.Count; i++)
@@ -222,7 +222,8 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         {
             while (!reader.EndOfStream)
             {
-                sb.Add(await reader.ReadLineAsync());
+                var line = await reader.ReadLineAsync();
+                if(line != null) sb.Add(line);
             }
         }
 

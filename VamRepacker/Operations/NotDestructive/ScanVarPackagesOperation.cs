@@ -28,13 +28,13 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private readonly ILifetimeScope _scope;
     private readonly IDatabase _database;
     private readonly ISoftLinker _softLinker;
-    private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs;
+    private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs = null!;
     private readonly ConcurrentBag<VarPackage> _packages = new();
     private readonly VarScanResults _result = new ();
 
     private int _scanned;
     private int _totalVarsCount;
-    private OperationContext _context;
+    private OperationContext _context = null!;
 
     public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
     {
@@ -118,7 +118,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             _favMorphs = freeFiles
                 .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
                 .ToLookup(t => t.FilenameWithoutExt,
-                    t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
+                    t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
             return packageFiles;
         });
     }
@@ -197,7 +197,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         }
     }
 
-    private static async Task<MetaFileJson> ReadMetaFile(ZipArchiveEntry metaEntry)
+    private static async Task<MetaFileJson?> ReadMetaFile(ZipArchiveEntry metaEntry)
     {
         await using var metaStream = metaEntry.Open();
         using var sr = new StreamReader(metaStream);
@@ -216,7 +216,7 @@ public interface IScanVarPackagesOperation : IOperation
 
 public class VarScanResults
 {
-    public List<VarPackage> Vars { get; set; }
+    public List<VarPackage> Vars { get; set; } = new();
     public ConcurrentBag<string> InvalidVars { get; } = new();
     public ConcurrentBag<string> InvalidVarName { get; } = new();
     public ConcurrentBag<string> MissingMetaJson { get; } = new();

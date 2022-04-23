@@ -20,8 +20,6 @@ public sealed class MD5Helper : IHashingAlgo
 
     public static string GetHash(string initial, IEnumerable<string> values)
     {
-        if (initial == null)
-            return null;
         if (!values.Any())
             return initial;
 

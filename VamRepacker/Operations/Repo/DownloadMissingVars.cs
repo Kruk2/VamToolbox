@@ -103,6 +103,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             .SelectMany(t => t.Missing)
             .Select(t => t.EstimatedVarName)
             .Where(t => t != null)
+            .Select(t => t!)
             .Distinct()
             .ToList();
         return unresolvedVars;
@@ -122,7 +123,10 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
                 return null;
             }
             return name;
-        }).Where(t => t != null).ToLookup(t => t.PackageNameWithoutVersion, StringComparer.OrdinalIgnoreCase);
+        })
+            .Where(t => t != null)
+            .Select(t => t!)
+            .ToLookup(t => t.PackageNameWithoutVersion, StringComparer.OrdinalIgnoreCase);
         var packagesToDownload = new List<PackageInfo>();
 
         foreach (var packageInfo in result.Packages.Values.Where(t => !string.IsNullOrEmpty(t.DownloadUrl) && t.DownloadUrl != "null"))
@@ -155,15 +159,15 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
 public class VamResult
 {
     [JsonProperty("packages")]
-    public Dictionary<string, PackageInfo> Packages { get; set; }
+    public Dictionary<string, PackageInfo> Packages { get; set; } = null!;
 }
 
 public class PackageInfo
 {
     [JsonProperty("filename")]
-    public string Filename { get; set; }
+    public string Filename { get; set; } = string.Empty;
     [JsonProperty("downloadUrl")]
-    public string DownloadUrl { get; set; }
+    public string DownloadUrl { get; set; } = string.Empty;
 }
 
 public class VamQuery
@@ -173,7 +177,7 @@ public class VamQuery
     [JsonProperty("action")]
     public string Action { get; set; } = "findPackages";
     [JsonProperty("packages")]
-    public string Packages { get; set; }
+    public string Packages { get; set; } = string.Empty;
 }
 
 

@@ -9,16 +9,16 @@ namespace VamRepacker.Helpers;
 
 public sealed class Reference : IEquatable<Reference>
 {
-    public bool Equals(Reference other)
+    public bool Equals(Reference? other)
     {
-        if (ReferenceEquals(null, other)) return false;
+        if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return Value == other.Value;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
-        if (ReferenceEquals(null, obj)) return false;
+        if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != this.GetType()) return false;
         return Equals((Reference) obj);
@@ -33,15 +33,18 @@ public sealed class Reference : IEquatable<Reference>
     public int Length { get; init; }
 
     // these are read from next line in JSON file
-    public string MorphName { get; set; }
-    public string InternalId { get; set; }
+    public string? MorphName { get; set; }
+    public string? InternalId { get; set; }
 
     public override string ToString() => $"{Value} at index {Index}";
 
-    private string _estimatedReferenceLocation;
+    private string? _estimatedReferenceLocation;
 
-    public Reference()
+    public Reference(string value, int index, int length)
     {
+        Value = value;
+        Index = index;
+        Length = length;
     }
 
     public Reference(ReferenceEntry referenceEntry)
@@ -54,8 +57,8 @@ public sealed class Reference : IEquatable<Reference>
     }
 
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
-    public string EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
-    public JsonFile FromJson { get; internal set; }
+    public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
+    public JsonFile FromJson { get; internal set; } = null!;
 
     private string GetEstimatedReference()
     {
@@ -67,7 +70,7 @@ public sealed class Reference : IEquatable<Reference>
 
 public interface IJsonFileParser
 {
-    public Reference GetAsset(ReadOnlySpan<char> line, int offset, out string error);
+    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, out string? error);
 }
 
 public sealed class JsonScannerHelper : IJsonFileParser
@@ -78,7 +81,7 @@ public sealed class JsonScannerHelper : IJsonFileParser
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public Reference GetAsset(ReadOnlySpan<char> line, int offset, out string error)
+    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, out string? error)
     {
         error = null;
         var lastQuoteIndex = line.LastIndexOf('"');
@@ -120,16 +123,11 @@ public sealed class JsonScannerHelper : IJsonFileParser
             return null;
 
 
-        return new Reference
-        {
-            Value = assetName.ToString(),
-            Index = offset + prevQuoteIndex + 1,
-            Length = lastQuoteIndex - prevQuoteIndex - 1
-        };
+        return new Reference(assetName.ToString(), index: offset + prevQuoteIndex + 1, length: lastQuoteIndex - prevQuoteIndex - 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static bool IsUrl(ReadOnlySpan<char> reference, ReadOnlySpan<char> line, ref string error)
+    private static bool IsUrl(ReadOnlySpan<char> reference, ReadOnlySpan<char> line, ref string? error)
     {
         const StringComparison c = StringComparison.OrdinalIgnoreCase;
 

@@ -11,7 +11,7 @@ namespace VamRepacker.Helpers;
 
 public interface IMorphGrouper
 {
-    public Task GroupMorphsVmi<T>(List<T> files, VarPackageName varName, Func<string, Stream> openFileStream, ILookup<string, (string, FileReferenceBase)> favMorphs)
+    public Task GroupMorphsVmi<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream, ILookup<string, (string, FileReferenceBase)> favMorphs)
         where T : FileReferenceBase;
 }
 
@@ -26,7 +26,7 @@ public sealed class MorphGrouper : IMorphGrouper
         _logger = logger;
     }
 
-    public async Task GroupMorphsVmi<T>(List<T> files, VarPackageName varName, Func<string, Stream> openFileStream, ILookup<string, (string, FileReferenceBase)> favMorphs)
+    public async Task GroupMorphsVmi<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream, ILookup<string, (string, FileReferenceBase)> favMorphs)
         where T : FileReferenceBase
     {
         var filesMovedAsChildren = new HashSet<T>();
@@ -56,7 +56,7 @@ public sealed class MorphGrouper : IMorphGrouper
 
             if (vmb == null)
             {
-                _logger.Log($"[MISSING-MORPH-FILE] Missing vmb file for {vmi.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-MORPH-FILE] Missing vmb file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vmb");
             }
             else if(notNullPreset != vmb)
@@ -75,7 +75,7 @@ public sealed class MorphGrouper : IMorphGrouper
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
     }
 
-    private IEnumerable<(T, T, FileReferenceBase)> GroupMorphs<T>(IEnumerable<T> files, ILookup<string, (string basePath, FileReferenceBase file)> favs) where T: FileReferenceBase
+    private IEnumerable<(T?, T?, FileReferenceBase?)> GroupMorphs<T>(IEnumerable<T> files, ILookup<string, (string basePath, FileReferenceBase file)> favs) where T: FileReferenceBase
     {
         return files
             .Where(f => f.ExtLower is ".vmi" or ".vmb")
@@ -88,9 +88,9 @@ public sealed class MorphGrouper : IMorphGrouper
                     var firstFile = g.First().file;
                     var fav = favs[firstFile.FilenameWithoutExt]
                         .FirstOrDefault(t => firstFile.LocalPath.StartsWith(t.basePath, StringComparison.Ordinal));
-                    return (vmi: g.SingleOrDefault(f => f.file.ExtLower == ".vmi").file,
-                        vmb: g.SingleOrDefault(f => f.file.ExtLower == ".vmb").file,
-                        fav: fav.file);
+                    return (vmi: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vmi").file,
+                        vmb: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vmb").file,
+                        fav: (FileReferenceBase?)fav.file);
                 }
 
                 _logger.Log($"[MISSING-MORPH-FILE] Incorrect number of morphs {g.Count()} {g.First().basePath}");
@@ -98,7 +98,7 @@ public sealed class MorphGrouper : IMorphGrouper
             });
     }
 
-    private async Task<string> ReadVmiName<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
+    private async Task<string?> ReadVmiName<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
         using var streamReader = new StreamReader(openFileStream(vam.LocalPath));
 

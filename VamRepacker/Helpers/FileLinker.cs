@@ -10,7 +10,7 @@ public interface ISoftLinker
 {
     int SoftLink(string destination, string source, bool dryRun);
     bool IsSoftLink(string file);
-    string GetSoftLink(string file);
+    string? GetSoftLink(string file);
 }
 
 public sealed class SoftLinker : ISoftLinker
@@ -85,7 +85,7 @@ public sealed class SoftLinker : ISoftLinker
         return GetSoftLink(file) != null;
     }
 
-    public string GetSoftLink(string file)
+    public string? GetSoftLink(string file)
     {
         var pathInfo = new FileInfo(file);
         if (!pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
@@ -122,7 +122,7 @@ public sealed class SoftLinker : ISoftLinker
                 }
 
                 reparseDataBuffer = (SymbolicLinkReparseData)Marshal.PtrToStructure(
-                    outBuffer, typeof(SymbolicLinkReparseData));
+                    outBuffer, typeof(SymbolicLinkReparseData))!;
             }
             finally
             {
@@ -152,7 +152,7 @@ public sealed class SoftLinker : ISoftLinker
         if (dryRun)
             return 0;
 
-        Directory.CreateDirectory(Path.GetDirectoryName(destination));
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         var result = CreateSymbolicLink(destination, source, SymbolicLink.File | SymbolicLink.AllowUnprivilegedCreate);
         return result ? 0 : Marshal.GetLastWin32Error();
     }

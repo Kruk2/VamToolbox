@@ -8,7 +8,7 @@ namespace VamRepacker.Logging;
 
 public sealed class Logger : ILogger
 {
-    private ThreadSafeFileBuffer _writer;
+    private ThreadSafeFileBuffer? _writer;
 
     public void Log(string message) => _writer?.Write(message);
     public async ValueTask Init(string filename)
@@ -55,7 +55,7 @@ public sealed class ThreadSafeFileBuffer : IAsyncDisposable
         _disposed = true;
     }
 
-    private void TimerCallback(object unused = null)
+    private void TimerCallback(object? _ = null)
     {
         if (_requestStop)
         {

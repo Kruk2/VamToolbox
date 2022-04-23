@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.IO;
 using System.IO.Abstractions;
@@ -21,8 +22,8 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
     private int _total;
     private int _progress;
     private int _trusted;
-    private string _vamPrefsDir;
-    private OperationContext _context;
+    private string _vamPrefsDir = null!;
+    private OperationContext _context = null!;
 
     public TrustAllVarsOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger)
     {
@@ -57,9 +58,7 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
     private void TrustVar(VarPackage var)
     {
         var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
-        dynamic json;
-
-        json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile)) : new ExpandoObject();
+        dynamic json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile))! : new ExpandoObject();
 
         var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
         var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");

@@ -114,13 +114,13 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private static (bool, string) AskFirDirectory(string root = null)
+    private static (bool, string) AskFirDirectory(string? root = null)
     {
         using var odf = new FolderBrowserDialog();
         if (root != null)
             odf.SelectedPath = root;
         var result = odf.ShowDialog();
-        return (result == DialogResult.OK, odf.SelectedPath?.NormalizePathSeparators());
+        return (result == DialogResult.OK, odf.SelectedPath.NormalizePathSeparators());
     }
 
     public void InitProgress(string startingMessage) => RunInvokedInvoke(() =>
@@ -252,7 +252,7 @@ public partial class MainWindow : Form, IProgressTracker
 
         if (!string.IsNullOrEmpty(Properties.Settings.Default.profiles))
         {
-            _profiles = JsonConvert.DeserializeObject<List<ProfileModel>>(Properties.Settings.Default.profiles);
+            _profiles = JsonConvert.DeserializeObject<List<ProfileModel>>(Properties.Settings.Default.profiles)!;
         }
 
         ReloadProfiles();
@@ -360,7 +360,7 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
+    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters? filters = null)
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
         await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);

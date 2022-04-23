@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -9,14 +10,16 @@ namespace VamRepacker.Models;
 
 public sealed class PotentialJsonFile : IDisposable
 {
+    [MemberNotNullWhen(true, nameof(Var))]
+    [MemberNotNullWhen(false, nameof(Free))]
     public bool IsVar => Var != null;
-    public VarPackage Var { get; }
-    public FreeFile Free { get; }
+    public VarPackage? Var { get; }
+    public FreeFile? Free { get; }
 
     public string Name => IsVar ? Var.Name.Filename : Free.LocalPath;
 
-    private FileStream _varFileStream;
-    private ZipArchive _varArchive;
+    private FileStream? _varFileStream;
+    private ZipArchive? _varArchive;
 
     private readonly Dictionary<string, List<Reference>> _referenceCache = new(StringComparer.OrdinalIgnoreCase);
     public PotentialJsonFile(VarPackage var) => Var = var;
@@ -77,7 +80,7 @@ public sealed class PotentialJsonFile : IDisposable
 
 public class OpenedPotentialJson
 {
-    public Stream Stream { get; init; }
-    public string LocalJsonPath { get; init; }
-    public List<Reference> CachedReferences { get; init; }
+    public Stream? Stream { get; init; }
+    public string? LocalJsonPath { get; init; }
+    public List<Reference>? CachedReferences { get; init; }
 }

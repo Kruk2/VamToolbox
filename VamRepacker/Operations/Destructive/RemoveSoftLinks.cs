@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ public sealed class RemoveSoftLinks : IRemoveSoftLinks
     private readonly IProgressTracker _progressTracker;
     private readonly ISoftLinker _softLinker;
     private readonly ILogger _logger;
-    private OperationContext _context;
+    private OperationContext _context = null!;
 
     public RemoveSoftLinks(IProgressTracker progressTracker, ISoftLinker softLinker, ILogger logger)
     {

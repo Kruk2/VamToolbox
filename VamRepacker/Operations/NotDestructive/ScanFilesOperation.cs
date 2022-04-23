@@ -20,7 +20,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     private readonly ILogger _logger;
     private readonly ILifetimeScope _scope;
     private readonly IDatabase _database;
-    private OperationContext _context;
+    private OperationContext _context = null!;
     private readonly ISoftLinker _softLinker;
 
     public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
@@ -40,7 +40,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
         _context = context;
 
         var files = await ScanFolder(_context.VamDir);
-        if(!string.IsNullOrEmpty(context.RepoDir))
+        if(!string.IsNullOrEmpty(_context.RepoDir))
         {
             files.AddRange(await ScanFolder(_context.RepoDir));
         }
@@ -65,7 +65,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
             var favMorphs = files
                 .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
-                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
+                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
                     
             Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
