@@ -54,12 +54,12 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             if (context.DryRun)
                 continue;
 
-            _logger.Log($"Downloading {packageInfo.DownloadUrl}");
+            _logger.Log($"Downloading {packageInfo.Filename} {packageInfo.DownloadUrl}");
             _reporter.Report(new ProgressInfo(processed, count, $"Downloading {i}/{count} " + packageInfo.Filename));
 
             if (await DownloadVar(packageInfo, client, varDestination))
             {
-                _logger.Log($"Downloaded {packageInfo.DownloadUrl}");
+                _logger.Log($"Downloaded {packageInfo.Filename} {packageInfo.DownloadUrl}");
             }
 
             _reporter.Report(new ProgressInfo(++processed, count, $"Downloaded {i}/{count} " + packageInfo.Filename));

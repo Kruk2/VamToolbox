@@ -396,7 +396,7 @@ public partial class MainWindow : Form, IProgressTracker
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
         await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);
-
+        
         return (vars, freeFiles);
     }
 

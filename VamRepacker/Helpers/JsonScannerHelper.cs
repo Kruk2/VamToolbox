@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -27,7 +28,7 @@ public sealed class Reference : IEquatable<Reference>
     public override int GetHashCode() => Value.GetHashCode();
 
 
-    public string NormalizedLocalPath => Value.Split(':').Last().NormalizePathSeparators();
+    public string NormalizedLocalPath => Value.Split(':').Last().NormalizeAssetPath();
     public string Value { get; init; }
     public int Index { get; init; }
     public int Length { get; init; }
@@ -63,8 +64,8 @@ public sealed class Reference : IEquatable<Reference>
     private string GetEstimatedReference()
     {
         if (Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':'))
-            return Value.Split(':').Last().NormalizePathSeparators();
-        return Value.Split(':')[0].NormalizePathSeparators();
+            return Value.Split(':').Last().NormalizeAssetPath();
+        return Value.Split(':')[0].NormalizeAssetPath();
     }
 }
 
@@ -79,6 +80,8 @@ public sealed class JsonScannerHelper : IJsonFileParser
         "vmi", "vam", "vaj", "vap", "jpg", "jpeg", "tif", "png", "mp3", "ogg", "wav", "assetbundle", "scene",
         "cs", "cslist", "tiff", "dll"
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
+
+    //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Reference? GetAsset(ReadOnlySpan<char> line, int offset, out string? error)
@@ -117,11 +120,12 @@ public sealed class JsonScannerHelper : IJsonFileParser
         if (lastDot == -1 || lastDot == assetName.Length - 1)
             return null;
         var assetExtension = assetName[^(assetName.Length - lastDot - 1)..];
+        //var ext = assetExtension.ToString();
+        //SeenExtensions.GetOrAdd(ext, ext);
 
         var endsWithExtension = Extensions.Contains(string.GetHashCode(assetExtension, StringComparison.OrdinalIgnoreCase));
         if (!endsWithExtension || !IsUrl(assetName, line, ref error))
             return null;
-
 
         return new Reference(assetName.ToString(), index: offset + prevQuoteIndex + 1, length: lastQuoteIndex - prevQuoteIndex - 1);
     }

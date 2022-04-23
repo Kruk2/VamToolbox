@@ -140,6 +140,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         {
             varFullPath = varFullPath.NormalizePathSeparators();
             var files = new List<VarPackageFile>();
+            var isInVamDir = varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal);
             await using var stream = _fs.File.OpenRead(varFullPath);
             using var archive = new ZipArchive(stream);
 
@@ -153,7 +154,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                     continue;
                 }
 
-                var packageFile = ReadPackageFileAsync(entry);
+                var packageFile = ReadPackageFileAsync(entry, isInVamDir);
                 files.Add(packageFile);
             }
             if (!foundMetaFile)
@@ -172,7 +173,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
             var softLinkPath = _softLinker.GetSoftLink(varFullPath);
             var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
-            var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal), fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            var varPackage = new VarPackage(name, varFullPath, files, isInVamDir, fileInfo.Length, fileInfo.LastWriteTimeUtc);
             files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
             _packages.Add(varPackage);
         }
@@ -206,7 +207,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry) => new (entry.FullName.NormalizePathSeparators(), entry.Length);
+    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry, bool isInVamDir) => new (entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir);
 }
 
 public interface IScanVarPackagesOperation : IOperation

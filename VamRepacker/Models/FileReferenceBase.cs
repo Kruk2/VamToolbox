@@ -24,6 +24,8 @@ public abstract class FileReferenceBase
     public List<JsonReference> JsonReferences { get; } = new();
 
     public long Size { get; }
+    public bool IsInVaMDir { get; }
+    public List<JsonFile> JsonFiles { get; } = new();
     public FileReferenceBase ParentFile { get; protected internal set; } = null!;
     public abstract IReadOnlyCollection<FileReferenceBase> Children { get; }
     public List<string> MissingChildren { get; } = new();
@@ -32,13 +34,14 @@ public abstract class FileReferenceBase
     public string HashWithChildren => _hashWithChildren ??= MD5Helper.GetHash(Hash!, Children.Select(t => t.Hash!));
     public long SizeWithChildren => Size + Children.Sum(t => t.SizeWithChildren);
 
-    protected FileReferenceBase(string localPath, long size)
+    protected FileReferenceBase(string localPath, long size, bool isInVamDir)
     {
         LocalPath = localPath.NormalizePathSeparators();
         FilenameLower = Path.GetFileName(localPath).ToLowerInvariant();
         FilenameWithoutExt = Path.GetFileNameWithoutExtension(localPath);
         ExtLower = Path.GetExtension(FilenameLower);
         Size = size;
+        IsInVaMDir = isInVamDir;
 
         if (ExtLower is ".vmi" or ".vmb") Type = AssetType.Morph;
     }

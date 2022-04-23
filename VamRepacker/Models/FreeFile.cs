@@ -8,8 +8,6 @@ namespace VamRepacker.Models;
 public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 {
     public string FullPath { get; }
-    public List<JsonFile> JsonFiles { get; } = new();
-
     private readonly List<FreeFile> _children = new();
     public override IReadOnlyCollection<FreeFile> Children => _children.AsReadOnly();
 
@@ -26,14 +24,12 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
         .Distinct();
 
     public bool Dirty { get; set; }
-    public bool IsInVaMDir { get; }
     public DateTime ModifiedTimestamp { get; }
 
     public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
-        : base(localPath, size)
+        : base(localPath, size, isInVamDir)
     {
         FullPath = path.NormalizePathSeparators();
-        IsInVaMDir = isInVamDir;
         ModifiedTimestamp = modifiedTimestamp;
     }
 

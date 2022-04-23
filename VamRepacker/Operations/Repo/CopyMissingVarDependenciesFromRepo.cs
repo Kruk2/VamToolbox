@@ -125,6 +125,15 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
             .Distinct()
             .ToList();
 
+        #if DEBUG
+        var because = vars
+            .Where(t => t.IsInVaMDir && t.TrimmedResolvedVarDependencies.Contains(exitingVars.First()));
+        var jsonFiles = because.First().JsonFiles
+            .Where(t => t.VarReferences.Contains(exitingVars.First())).ToList();
+        var jsonReferences = jsonFiles.SelectMany(t => t.References.Where(t => t.IsVarReference && t.ParentVar == exitingVars.First()))
+            .ToList();
+        #endif
+
         var existingFiles = vars
             .Where(t => t.IsInVaMDir)
             .SelectMany(t => shallow ? t.TrimmedResolvedFreeDependencies : t.AllResolvedFreeDependencies)

@@ -16,6 +16,11 @@ public static class Extensions
         return path.Replace('\\', '/').TrimEnd('/');
     }
 
+    public static string NormalizeAssetPath(this string path)
+    {
+        return path.Replace('\\', '/').Trim('/');
+    }
+
     public static string RemoveInvalidChars(this string filename)
     {
         return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));

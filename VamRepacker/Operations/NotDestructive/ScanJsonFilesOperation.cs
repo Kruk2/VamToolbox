@@ -393,7 +393,9 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         using var streamReader = openedJson.Stream == null ? null : new StreamReader(openedJson.Stream);
         var sceneFolder =  potentialJson.Free?.LocalPath == null ? null : _fs.Path.GetDirectoryName(potentialJson.Free.LocalPath);
-        Reference? nextScanForUuidOrMorphName = null;  
+        Reference? nextScanForUuidOrMorphName = null;
+        JsonReference? resolvedReferenceWhenUuidMatchingFails = null;
+
         var references = new List<JsonReference>();
         var missing = new HashSet<Reference>();
         var offset = 0;
@@ -404,17 +406,21 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         {
             foreach (var reference in openedJson.CachedReferences)
             {
+                #if DEBUG
+                if(openedJson.LocalJsonPath?.EndsWith("Cherry.json", StringComparison.Ordinal) == true && reference.Value.Contains("Custom/Atom/Person/Morphs/female/Ren/Nose/Nose Bridge Thin.vmi"))
+                    Debug.Write(true);
+                #endif
+                (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
+
                 if (reference.InternalId != null)
                 {
+                    if(nextScanForUuidOrMorphName is null) throw new ArgumentException("Uuid reference is null but got internal id");
                     ProcessVamReference(reference);
                 }
                 else if (reference.MorphName != null)
                 {
+                    if (nextScanForUuidOrMorphName is null) throw new ArgumentException("morph reference is null but got morph name");
                     ProcessMorphReference(reference);
-                }
-                else
-                {
-                    ProcessJsonReference(reference);
                 }
             }
         }
@@ -431,9 +437,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 {
                     var internalId = line.Replace("\"internalId\"", "");
                     nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf('\"') + 1)..internalId.LastIndexOf('\"')];
-                    hasDelayedReferences = ProcessVamReference(nextScanForUuidOrMorphName);
+                    ProcessVamReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;
+                    resolvedReferenceWhenUuidMatchingFails = null;
                     offset += line.Length;
                     continue;
                 }
@@ -442,11 +449,22 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 {
                     var morphName = line.Replace("\"name\"", "");
                     nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf('\"') + 1)..morphName.LastIndexOf('\"')];
-                    hasDelayedReferences = ProcessMorphReference(nextScanForUuidOrMorphName);
+                    ProcessMorphReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;
+                    resolvedReferenceWhenUuidMatchingFails = null;
                     offset += line.Length;
                     continue;
+                }
+
+                if (resolvedReferenceWhenUuidMatchingFails != null)
+                {
+                    references.Add(resolvedReferenceWhenUuidMatchingFails);
+                    resolvedReferenceWhenUuidMatchingFails = null;
+                }
+                else
+                {
+                    missing.Add(nextScanForUuidOrMorphName);
                 }
 
                 nextScanForUuidOrMorphName = null;
@@ -475,7 +493,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 continue;
             }
 
-            nextScanForUuidOrMorphName = ProcessJsonReference(reference);
+            (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
         }
 
         var item = new JsonFile(potentialJson, openedJson.LocalJsonPath, references, missing.ToList());
@@ -487,7 +505,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         QueueReferences(references);
 
-        Reference? ProcessJsonReference(Reference reference)
+        (Reference? nextScanForUuidOrMorphName, JsonReference? jsonReference) ProcessJsonReference(Reference reference)
         {
             JsonReference? jsonReference = null;
             if (reference.Value.Contains(':'))
@@ -507,67 +525,69 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 }
             }
 
-            if (jsonReference != null)
-            {
+            if (reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase))
+                nextScanForUuidOrMorphName = reference;
+            else if (reference.Value.EndsWith(".vmi", StringComparison.OrdinalIgnoreCase))
+                nextScanForUuidOrMorphName = reference;
+            else if (jsonReference != null)
                 references.Add(jsonReference);
-            }
             else
-            {
-                if (reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase))
-                    nextScanForUuidOrMorphName = reference;
-                if (reference.Value.EndsWith(".vmi", StringComparison.OrdinalIgnoreCase))
-                    nextScanForUuidOrMorphName = reference;
-                else
-                    missing.Add(reference);
-            }
+                missing.Add(reference);
 
-            return nextScanForUuidOrMorphName;
+            return (nextScanForUuidOrMorphName, jsonReference);
         }
 
-        bool ProcessMorphReference(Reference morphReference)
+        void ProcessMorphReference(Reference morphReference)
         {
-            var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphReference);
+            var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphReference, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceByMorphName != null)
                 references.Add(jsonReferenceByMorphName);
             else if (!delayedReference)
                 missing.Add(morphReference);
             else
                 hasDelayedReferences = true;
-
-            return hasDelayedReferences;
         }
 
-        bool ProcessVamReference(Reference vamReference)
+        void ProcessVamReference(Reference vamReference)
         {
-            var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, vamReference);
+            var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, vamReference, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceById != null)
                 references.Add(jsonReferenceById);
             else if (!delayedReference)
                 missing.Add(vamReference);
             else
                 hasDelayedReferences = true;
-            return hasDelayedReferences;
         }
     }
 
-    private (JsonReference?, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, Reference reference)
+    private (JsonReference?, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, Reference reference, FileReferenceBase? fallBackResolvedAsset)
     {
-        return MatchAssetByUuidOrName(jsonReferences, reference.InternalId, reference, _vamFilesById);
+        return MatchAssetByUuidOrName(jsonReferences, reference.InternalId, reference, _vamFilesById, fallBackResolvedAsset);
     }
 
-    private (JsonReference?, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, Reference reference)
+    private (JsonReference?, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, Reference reference, FileReferenceBase? fallBackResolvedAsset)
     {
-        return MatchAssetByUuidOrName(jsonReferences, reference.MorphName, reference, _morphFilesByName);
+        return MatchAssetByUuidOrName(jsonReferences, reference.MorphName, reference, _morphFilesByName, fallBackResolvedAsset);
     }
 
-    private (JsonReference?, bool) MatchAssetByUuidOrName(List<JsonReference> jsonReferences, string? uuidOrName, Reference reference, ILookup<string, FileReferenceBase> lookup)
+    private (JsonReference?, bool) MatchAssetByUuidOrName(List<JsonReference> jsonReferences, string? uuidOrName,
+        Reference reference, ILookup<string, FileReferenceBase> lookup, FileReferenceBase? fallBackResolvedAsset)
     {
         if (string.IsNullOrWhiteSpace(uuidOrName))
             throw new VamRepackerException("Invalid displayNameOrUuid");
 
         var matchedAssets = lookup[uuidOrName];
+        if (fallBackResolvedAsset is not null) matchedAssets = Enumerable.Append(matchedAssets, fallBackResolvedAsset).Distinct();
+
         if (!matchedAssets.Any())
             return (null, false);
+
+        if (matchedAssets.Count() == 1)
+            return (new JsonReference(matchedAssets.First(), reference), false);
+
+        // prefer files inside VAM dir
+        if (matchedAssets.Any(t => t.IsInVaMDir))
+            matchedAssets = matchedAssets.Where(t => t.IsInVaMDir);
 
         if (matchedAssets.Count() == 1)
             return (new JsonReference(matchedAssets.First(), reference), false);
@@ -616,20 +636,14 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                     continue;
                 }
 
-                // prefer files that are most used
-                IEnumerable<FileReferenceBase> bestMatchesByJsonCount =
-                    MoreLinq.MoreEnumerable.MaxBy(matchedAssets, t => t.JsonReferences.Count);
+                // prefer files that are used very often
+                IEnumerable<FileReferenceBase> bestMatchesByJsonCount = MoreLinq.MoreEnumerable.MaxBy(
+                    matchedAssets, 
+                    t => t.JsonFiles.Count);
                 if (bestMatchesByJsonCount.Count() == 1)
                 {
                     AddReference(bestMatchesByJsonCount.First());
                     continue;
-                }
-
-                // prefer files that are in vam dir, if any
-                bool IsInVamDirExpression(FileReferenceBase t) => (t is VarPackageFile varFile && varFile.ParentVar.IsInVaMDir) || (t is FreeFile freeFile && freeFile.IsInVaMDir);
-                if (bestMatchesByJsonCount.Any(IsInVamDirExpression))
-                {
-                    bestMatchesByJsonCount = bestMatchesByJsonCount.Where(IsInVamDirExpression);
                 }
 
                 // prefer vars/json with least dependencies
@@ -653,7 +667,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 }
                 else
                 {
-                    var byMostUsedFile = MoreLinq.MoreEnumerable.MaxBy(bestMatches, t => t.JsonReferences.Count);
+                    var byMostUsedFile = MoreLinq.MoreEnumerable.MaxBy(bestMatches, t => t.JsonFiles.Count);
                     var bySmallestSize = MoreLinq.MoreEnumerable.MinBy(byMostUsedFile,
                         t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren);
                     bestMatch = bySmallestSize.OrderBy(t =>
@@ -712,15 +726,17 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             throw new VamRepackerException($"{sceneFolder} refers to var but processing free file reference");
 
         var refPath = reference.Value.Split(':').Last();
-        refPath = refPath.NormalizePathSeparators();
+        refPath = refPath.NormalizeAssetPath();
         refPath = MigrateLegacyPaths(refPath);
         if (sceneFolder != null && _freeFilesIndex[_fs.Path.Combine(sceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any())
         {
+            f1 = f1.OrderByDescending(t => t.JsonFiles.Count).ThenBy(t => t.FullPath);
             var x = f1.FirstOrDefault(t => t.IsInVaMDir) ?? f1.First();
             return new JsonReference(x, reference);
         }
         if (_freeFilesIndex[refPath] is var f2 && f2.Any())
         {
+            f2 = f2.OrderByDescending(t => t.JsonFiles.Count).ThenBy(t => t.FullPath);
             var x = f2.FirstOrDefault(t => t.IsInVaMDir) ?? f2.First();
             return new JsonReference(x, reference);
         }
@@ -774,7 +790,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         {
             var varAssets = varToSearch.FilesDict;
             var refInScene = Path.GetFullPath(MigrateLegacyPaths(Path.Combine(sceneJsonPath, assetName)), "C:/").Replace("C:\\", string.Empty).NormalizePathSeparators();
-            assetName = assetName.NormalizePathSeparators();
+            assetName = assetName.NormalizeAssetPath();
             assetName = MigrateLegacyPaths(assetName);
 
             if (varAssets.TryGetValue(refInScene, out var f1))
