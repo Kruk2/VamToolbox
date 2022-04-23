@@ -12,7 +12,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Repo;
 
-public class DownloadMissingVars : IDownloadMissingVars
+public sealed class DownloadMissingVars : IDownloadMissingVars
 {
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;

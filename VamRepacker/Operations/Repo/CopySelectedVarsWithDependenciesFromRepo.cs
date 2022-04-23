@@ -9,7 +9,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Repo;
 
-public class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVarsWithDependenciesFromRepo
+public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVarsWithDependenciesFromRepo
 {
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
@@ -22,14 +22,14 @@ public class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVarsWithDep
         _linker = linker;
     }
 
-    public Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IVarFilters varFilter)
+    public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IVarFilters varFilters)
     {
         _reporter.InitProgress("Applying profile");
-        _logger.Init("copy_vars_from_repo.log");
+        await _logger.Init("copy_vars_from_repo.log");
 
-        return Task.Run(() =>
+        await Task.Run(() =>
         {
-            var varsToCopy = FindVarsToCopy(vars, varFilter, context.ShallowDeps);
+            var varsToCopy = FindVarsToCopy(vars, varFilters, context.ShallowDeps);
             var missingDependencies = varsToCopy.SelectMany(t => t.UnresolvedDependencies).Distinct().ToList();
             var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
 

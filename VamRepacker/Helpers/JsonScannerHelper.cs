@@ -7,7 +7,7 @@ using VamRepacker.Sqlite;
 
 namespace VamRepacker.Helpers;
 
-public class Reference : IEquatable<Reference>
+public sealed class Reference : IEquatable<Reference>
 {
     public bool Equals(Reference other)
     {
@@ -54,12 +54,12 @@ public class Reference : IEquatable<Reference>
     }
 
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
-    public string EstimatedVarName => Value.StartsWith("SELF:") || !Value.Contains(':') ? null : Value.Split(':').First();
+    public string EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
     public JsonFile FromJson { get; internal set; }
 
     private string GetEstimatedReference()
     {
-        if (Value.StartsWith("SELF:") || !Value.Contains(':'))
+        if (Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':'))
             return Value.Split(':').Last().NormalizePathSeparators();
         return Value.Split(':')[0].NormalizePathSeparators();
     }
@@ -67,10 +67,10 @@ public class Reference : IEquatable<Reference>
 
 public interface IJsonFileParser
 {
-    public Reference GetAsset(string line, int offset, out string error);
+    public Reference GetAsset(ReadOnlySpan<char> line, int offset, out string error);
 }
 
-public class JsonScannerHelper : IJsonFileParser
+public sealed class JsonScannerHelper : IJsonFileParser
 {
     private static readonly HashSet<int> Extensions = new[]{
         "vmi", "vam", "vaj", "vap", "jpg", "jpeg", "tif", "png", "mp3", "ogg", "wav", "assetbundle", "scene",
@@ -78,10 +78,9 @@ public class JsonScannerHelper : IJsonFileParser
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public Reference GetAsset(string l, int offset, out string error)
+    public Reference GetAsset(ReadOnlySpan<char> line, int offset, out string error)
     {
         error = null;
-        var line = l.AsSpan();
         var lastQuoteIndex = line.LastIndexOf('"');
         if (lastQuoteIndex == -1)
             return null;
@@ -117,7 +116,7 @@ public class JsonScannerHelper : IJsonFileParser
         var assetExtension = assetName[^(assetName.Length - lastDot - 1)..];
 
         var endsWithExtension = Extensions.Contains(string.GetHashCode(assetExtension, StringComparison.OrdinalIgnoreCase));
-        if (!endsWithExtension || !IsUrl(ref assetName, l, ref error))
+        if (!endsWithExtension || !IsUrl(assetName, line, ref error))
             return null;
 
 
@@ -130,7 +129,7 @@ public class JsonScannerHelper : IJsonFileParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static bool IsUrl(ref ReadOnlySpan<char> reference, string line, ref string error)
+    private static bool IsUrl(ReadOnlySpan<char> reference, ReadOnlySpan<char> line, ref string error)
     {
         const StringComparison c = StringComparison.OrdinalIgnoreCase;
 
@@ -144,32 +143,32 @@ public class JsonScannerHelper : IJsonFileParser
         }
         else if (reference.EndsWith(".vam", c))
         {
-            isURL = line.Contains("\"id\"");
+            isURL = line.Contains("\"id\"", c);
         }
         else if (reference.EndsWith(".vap", c))
         {
-            isURL = line.Contains("\"presetFilePath\"");
+            isURL = line.Contains("\"presetFilePath\"", c);
         }
         else if (reference.EndsWith(".vmi", c))
         {
-            isURL = line.Contains("\"uid\"");
+            isURL = line.Contains("\"uid\"", c);
         }
         else
         {
             isURL = line.Contains("tex\"", c) || line.Contains("texture\"", c) || line.Contains("url\"", c) ||
-                    line.Contains("bumpmap\"", c) || line.Contains("\"url", c) || line.Contains("LUT\"") ||
-                    line.Contains("\"plugin#");
+                    line.Contains("bumpmap\"", c) || line.Contains("\"url", c) || line.Contains("LUT\"", c) ||
+                    line.Contains("\"plugin#", c);
         }
 
         if (!isURL)
         {
-            if (line.Contains("\"displayName\"") || line.Contains("\"audioClip\"") ||
-                line.Contains("\"selected\"") || line.Contains("\"audio\""))
+            if (line.Contains("\"displayName\"", c) || line.Contains("\"audioClip\"", c) ||
+                line.Contains("\"selected\"", c) || line.Contains("\"audio\"", c))
             {
                 return false;
             }
 
-            error = "Invalid type in json scanner: " + line;
+            error = string.Concat("Invalid type in json scanner: ", line);
             return false;
             //throw new VamRepackerException("Invalid type in json scanner: " + line);
         }

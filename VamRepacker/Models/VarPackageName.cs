@@ -1,9 +1,10 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace VamRepacker.Models;
 
-public class VarPackageName : IEquatable<VarPackageName>
+public sealed class VarPackageName : IEquatable<VarPackageName>
 {
     public static readonly Regex ExtractRegex = new(@"^(?<Author>([^\.]+)|(\*))\.(?<Name>([^\.]+|\*))\.(?<Min>min)?(?<Version>([0-9]+|\*|latest))\.var$", RegexOptions.Compiled, TimeSpan.FromSeconds(0.5));
 
@@ -25,7 +26,7 @@ public class VarPackageName : IEquatable<VarPackageName>
 
         name = new VarPackageName(filename, 
             match.Groups["Author"].Value, 
-            match.Groups["Name"].Value, match.Groups["Version"].Value is "*" or "latest" ? -1 : int.Parse(match.Groups["Version"].Value),
+            match.Groups["Name"].Value, match.Groups["Version"].Value is "*" or "latest" ? -1 : int.Parse(match.Groups["Version"].Value, CultureInfo.InvariantCulture),
             match.Groups["Min"].Success);
         return true;
     }

@@ -114,7 +114,7 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private (bool, string) AskFirDirectory(string root = null)
+    private static (bool, string) AskFirDirectory(string root = null)
     {
         using var odf = new FolderBrowserDialog();
         if (root != null)
@@ -123,12 +123,12 @@ public partial class MainWindow : Form, IProgressTracker
         return (result == DialogResult.OK, odf.SelectedPath?.NormalizePathSeparators());
     }
 
-    public void InitProgress(string message) => RunInvokedInvoke(() =>
+    public void InitProgress(string startingMessage) => RunInvokedInvoke(() =>
     {
         _stopwatch.Start();
         progressBar.Value = 0;
         progressBar.Style = ProgressBarStyle.Blocks;
-        MoveToStage(message);
+        MoveToStage(startingMessage);
         SwitchUI(true);
     });
 
@@ -161,11 +161,11 @@ public partial class MainWindow : Form, IProgressTracker
 
     public void Report(string message, bool forceShow) => Report(new ProgressInfo(message, forceShow));
 
-    public void Complete(string resultMessage) => RunInvokedInvoke(() =>
+    public void Complete(string endingMessage) => RunInvokedInvoke(() =>
     {
         progressBar.Style = ProgressBarStyle.Blocks;
         progressBar.Value = progressBar.Maximum;
-        operationStatusLabel.Text = resultMessage;
+        operationStatusLabel.Text = endingMessage;
     });
 
 
@@ -258,7 +258,7 @@ public partial class MainWindow : Form, IProgressTracker
         ReloadProfiles();
     }
 
-    private async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> RunIndexing(ILifetimeScope scope, OperationContext operationContext)
+    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> RunIndexing(ILifetimeScope scope, OperationContext operationContext)
     {
         var freeFiles = await scope.Resolve<IScanFilesOperation>()
             .ExecuteAsync(operationContext);
@@ -360,7 +360,7 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
+    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters filters = null)
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
         await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);

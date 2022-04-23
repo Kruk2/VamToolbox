@@ -1,6 +1,6 @@
 ﻿namespace VamRepacker.Operations.Abstract;
 
-public record OperationContext
+public sealed record OperationContext
 {
     public string VamDir { get; init; }
     public string RepoDir { get; init; }

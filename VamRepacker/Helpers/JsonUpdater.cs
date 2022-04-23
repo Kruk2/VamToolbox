@@ -16,7 +16,7 @@ public class JsonUpdateDto
     public FileReferenceBase NewReference { get; set; }
 }
 
-public class JsonUpdater : IJsonUpdater
+public sealed class JsonUpdater : IJsonUpdater
 {
     private readonly IFileSystem _fs;
     public bool DryRun { get; set; }
@@ -44,7 +44,7 @@ public class JsonUpdater : IJsonUpdater
             await UpdateJson(json, jsonData, archive, entries);
     }
 
-    private async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData, ZipArchive varArchive, Dictionary<string, ZipArchiveEntry> entries)
+    private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData, ZipArchive varArchive, Dictionary<string, ZipArchiveEntry> entries)
     {
         var jsonEntry = entries[json.JsonPathInVar];
         var date = jsonEntry.LastWriteTime;
@@ -65,7 +65,7 @@ public class JsonUpdater : IJsonUpdater
         jsonEntry.LastWriteTime = date;
     }
 
-    private async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
+    private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
         await using var writer = new StreamWriter(json.Free.FullPath, false, Encoding.UTF8);
         foreach (var s in jsonData)
@@ -100,7 +100,7 @@ public class JsonUpdater : IJsonUpdater
         }
     }
 
-    private string BuildReference(FileReferenceBase file)
+    private static string BuildReference(FileReferenceBase file)
     {
         if (file is VarPackageFile varFile)
         {
@@ -112,13 +112,13 @@ public class JsonUpdater : IJsonUpdater
         }
     }
 
-    private async Task<List<string>> ReadJson(JsonFile json)
+    private static async Task<List<string>> ReadJson(JsonFile json)
     {
         using var reader = new StreamReader(json.Free.FullPath, Encoding.UTF8);
         return await ReadJsonInternal(reader);
     }
 
-    private async Task<List<string>> ReadJson(JsonFile json,  Dictionary<string, ZipArchiveEntry> entries)
+    private static async Task<List<string>> ReadJson(JsonFile json,  Dictionary<string, ZipArchiveEntry> entries)
     {
         var jsonEntry = entries[json.JsonPathInVar];
         var stream = jsonEntry.Open();
@@ -126,7 +126,7 @@ public class JsonUpdater : IJsonUpdater
         return await ReadJsonInternal(reader);
     }
 
-    private async Task<List<string>> ReadJsonInternal(StreamReader reader)
+    private static async Task<List<string>> ReadJsonInternal(StreamReader reader)
     {
         var sb = new List<string>();
         while(!reader.EndOfStream)

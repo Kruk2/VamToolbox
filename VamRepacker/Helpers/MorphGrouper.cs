@@ -15,7 +15,7 @@ public interface IMorphGrouper
         where T : FileReferenceBase;
 }
 
-public class MorphGrouper : IMorphGrouper
+public sealed class MorphGrouper : IMorphGrouper
 {
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
@@ -87,7 +87,7 @@ public class MorphGrouper : IMorphGrouper
                 {
                     var firstFile = g.First().file;
                     var fav = favs[firstFile.FilenameWithoutExt]
-                        .FirstOrDefault(t => firstFile.LocalPath.StartsWith(t.basePath));
+                        .FirstOrDefault(t => firstFile.LocalPath.StartsWith(t.basePath, StringComparison.Ordinal));
                     return (vmi: g.SingleOrDefault(f => f.file.ExtLower == ".vmi").file,
                         vmb: g.SingleOrDefault(f => f.file.ExtLower == ".vmb").file,
                         fav: fav.file);
@@ -108,7 +108,7 @@ public class MorphGrouper : IMorphGrouper
             if (string.IsNullOrWhiteSpace(line) || !line.Contains("\"displayName\"")) continue;
 
             var uuid = line.Replace("\"displayName\"", "");
-            return uuid[(uuid.IndexOf("\"") + 1)..uuid.LastIndexOf("\"")];
+            return uuid[(uuid.IndexOf('\"') + 1)..uuid.LastIndexOf('\"')];
         }
 
         _logger.Log($"[MISSING-DISPLAYNAME-VMI] missing name in {vam.LocalPath} {(vam is VarPackageFile varFile ? varFile.ParentVar.Name : string.Empty)}");

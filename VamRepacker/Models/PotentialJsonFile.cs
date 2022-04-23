@@ -7,7 +7,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models;
 
-public class PotentialJsonFile : IDisposable
+public sealed class PotentialJsonFile : IDisposable
 {
     public bool IsVar => Var != null;
     public VarPackage Var { get; }

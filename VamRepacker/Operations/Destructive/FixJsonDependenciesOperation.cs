@@ -15,7 +15,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Destructive;
 
-public class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
+public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly ILogger _logger;
@@ -170,7 +170,7 @@ public class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             await UpdateJson(json, jsonData);
     }
 
-    private async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
+    private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
         if (json.IsVar)
         {
@@ -214,7 +214,7 @@ public class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         throw new InvalidOperationException($"Unable to find reference {missing.Value} in json file {jsonLocalPath}");
     }
 
-    private async Task<List<string>> ReadJson(JsonFile json)
+    private static async Task<List<string>> ReadJson(JsonFile json)
     {
         var sb = new List<string>();
 

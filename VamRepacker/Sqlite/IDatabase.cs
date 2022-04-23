@@ -15,5 +15,5 @@ public interface IDatabase : IDisposable
     IEnumerable<string> ReadScannedFilesCache();
     public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files);
     void UpdateJson(Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles, Dictionary<string, long> files);
-    void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> references, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles);
+    void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles);
 }

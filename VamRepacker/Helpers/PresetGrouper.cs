@@ -15,7 +15,7 @@ public interface IPresetGrouper
         where T : FileReferenceBase;
 }
 
-public class PresetGrouper :  IPresetGrouper
+public sealed class PresetGrouper :  IPresetGrouper
 {
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
@@ -112,13 +112,13 @@ public class PresetGrouper :  IPresetGrouper
             if (line.Contains("\"uid\""))
             {
                 uuid = line.Replace("\"uid\"", "");
-                uuid = uuid[(uuid.IndexOf("\"") + 1)..uuid.LastIndexOf("\"")];
+                uuid = uuid[(uuid.IndexOf('\"') + 1)..uuid.LastIndexOf('\"')];
             }
 
             if (line.Contains("\"creatorName\""))
             {
                 author = line.Replace("\"creatorName\"", "");
-                author = author[(author.IndexOf("\"") + 1)..author.LastIndexOf("\"")];
+                author = author[(author.IndexOf('\"') + 1)..author.LastIndexOf('\"')];
             }
 
             if (author != null && uuid != null)

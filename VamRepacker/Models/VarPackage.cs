@@ -5,7 +5,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models;
 
-public class VarPackage : IVamObjectWithDependencies
+public sealed class VarPackage : IVamObjectWithDependencies
 {
     public VarPackageName Name { get; }
     public long Size { get; set; }

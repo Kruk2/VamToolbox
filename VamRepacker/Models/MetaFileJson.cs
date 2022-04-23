@@ -3,14 +3,14 @@ using Newtonsoft.Json;
 
 namespace VamRepacker.Models;
 
-public class MetaFileJson
+public sealed class MetaFileJson
 {
     [JsonProperty("dependencies")]
     public Dictionary<string, Dependency> Dependencies { get; private set; } = new();
 
 }
 
-public class Dependency
+public sealed class Dependency
 {
     [JsonProperty("dependencies")]
     public Dictionary<string, Dependency> Dependencies { get; private set; } = new();

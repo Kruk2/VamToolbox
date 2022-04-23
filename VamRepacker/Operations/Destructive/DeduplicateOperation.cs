@@ -14,7 +14,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Destructive;
 
-public class DeduplicateOperation : IDeduplicateOperation
+public sealed class DeduplicateOperation : IDeduplicateOperation
 {
     private ILookup<string, FileReferenceBase> _filesByHash;
     private readonly Dictionary<JsonFile, List<JsonUpdateDto>> _changesQueue = new();
@@ -25,7 +25,7 @@ public class DeduplicateOperation : IDeduplicateOperation
     private int _total;
     private int _processed;
 
-    private long _removedBytes = 0L;
+    private long _removedBytes;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
     private readonly IJsonUpdater _jsonUpdater;

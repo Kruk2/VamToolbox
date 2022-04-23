@@ -4,7 +4,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models;
 
-public class JsonFile
+public sealed class JsonFile
 {
     public bool IsVar => Var != null;
     public VarPackage Var { get; }

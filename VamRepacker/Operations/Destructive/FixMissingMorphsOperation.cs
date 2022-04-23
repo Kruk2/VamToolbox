@@ -10,7 +10,7 @@ using VamRepacker.Operations.NotDestructive;
 
 namespace VamRepacker.Operations.Destructive;
 
-public class FixMissingMorphsOperation : IFixMissingMorphsOperation
+public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly IFileSystem _fs;

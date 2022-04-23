@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
@@ -12,7 +13,7 @@ using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive;
 
-public class ScanFilesOperation : IScanFilesOperation
+public sealed class ScanFilesOperation : IScanFilesOperation
 {
     private readonly IProgressTracker _reporter;
     private readonly IFileSystem _fs;
@@ -63,7 +64,7 @@ public class ScanFilesOperation : IScanFilesOperation
             _reporter.Report("Analyzing fav files", forceShow: true);
             var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
             var favMorphs = files
-                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
+                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
                 .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
                     
             Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));

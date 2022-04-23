@@ -4,9 +4,6 @@ public static class KnownNames
 {
     public static readonly string[] ExtReferencesToPresets = {".json", ".vap", ".vaj", ".vam"}; // can it even be vab or json?
 
-    /// <summary>
-    /// wtf is that
-    /// </summary>
     public static readonly string[] KnownVamDirs = {
         "Custom",
 
@@ -36,17 +33,17 @@ public static class KnownNames
     public const string FemaleGenMorphsDir = "Custom/Atom/Person/Morphs/female_genitalia";
     public const string MaleMorphsDir = "Custom/Atom/Person/Morphs/male";
     public const string MaleGenMorphsDir = "Custom/Atom/Person/Morphs/male_genitalia";
-    public static string[] MorphDirs = {FemaleMorphsDir, FemaleGenMorphsDir, MaleMorphsDir, MaleGenMorphsDir};
+    public static readonly string[] MorphDirs = {FemaleMorphsDir, FemaleGenMorphsDir, MaleMorphsDir, MaleGenMorphsDir};
 
     private const string FemaleHairDir = "Custom/Hair/Female";
     private const string MaleHairDir = "Custom/Hair/Male";
-    public static string[] HairDirs = {FemaleHairDir, MaleHairDir};
+    public static readonly string[] HairDirs = {FemaleHairDir, MaleHairDir};
 
     private const string FemaleClothDir = "Custom/Clothing/Female";
     private const string MaleClothDir = "Custom/Clothing/Male";
-    public static string[] ClothDirs = {FemaleClothDir, MaleClothDir};
+    public static readonly string[] ClothDirs = {FemaleClothDir, MaleClothDir};
 
-    public static string[] HairClothDirs = {FemaleHairDir, MaleHairDir, FemaleClothDir, MaleClothDir};
+    public static readonly string[] HairClothDirs = {FemaleHairDir, MaleHairDir, FemaleClothDir, MaleClothDir};
 
     public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
 }

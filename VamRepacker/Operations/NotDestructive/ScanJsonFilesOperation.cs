@@ -18,7 +18,7 @@ using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive;
 
-public class ScanJsonFilesOperation : IScanJsonFilesOperation
+public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly IFileSystem _fs;
@@ -272,7 +272,7 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         do
         {
-            while (_queueFree.Count > 0 || _queueVars.Count > 0)
+            while (!_queueFree.IsEmpty || !_queueVars.IsEmpty)
             {
                 var json = _queueVars.Distinct()
                     .Select(t => new PotentialJsonFile(t))
@@ -310,10 +310,10 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private static string MigrateLegacyPaths(string refPath)
     {
-        if (refPath.StartsWith(@"Saves\Scripts\", StringComparison.OrdinalIgnoreCase)) return @"Custom\Scripts\" + refPath.Substring(@"Saves\Scripts\".Length);
-        if (refPath.StartsWith(@"Saves\Assets\", StringComparison.OrdinalIgnoreCase)) return @"Custom\Assets\" + refPath.Substring(@"Saves\Assets\".Length);
-        if (refPath.StartsWith(@"Import\morphs\", StringComparison.OrdinalIgnoreCase)) return @"Custom\Atom\Person\Morphs\" + refPath.Substring(@"Import\morphs\".Length);
-        if (refPath.StartsWith(@"Textures\", StringComparison.OrdinalIgnoreCase)) return @"Custom\Atom\Person\Textures\" + refPath.Substring(@"Textures\".Length);
+        if (refPath.StartsWith(@"Saves\Scripts\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Scripts\", refPath.AsSpan(@"Saves\Scripts\".Length));
+        if (refPath.StartsWith(@"Saves\Assets\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Assets\", refPath.AsSpan(@"Saves\Assets\".Length));
+        if (refPath.StartsWith(@"Import\morphs\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Atom\Person\Morphs\", refPath.AsSpan(@"Import\morphs\".Length));
+        if (refPath.StartsWith(@"Textures\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Atom\Person\Textures\", refPath.AsSpan(@"Textures\".Length));
         return refPath;
     }
 
@@ -427,7 +427,7 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
                 if (line.Contains("\"internalId\""))
                 {
                     var internalId = line.Replace("\"internalId\"", "");
-                    nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf("\"") + 1)..internalId.LastIndexOf("\"")];
+                    nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf('\"') + 1)..internalId.LastIndexOf('\"')];
                     hasDelayedReferences = ProcessVamReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;
@@ -438,7 +438,7 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
                 if (line.Contains("\"name\""))
                 {
                     var morphName = line.Replace("\"name\"", "");
-                    nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf("\"") + 1)..morphName.LastIndexOf("\"")];
+                    nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf('\"') + 1)..morphName.LastIndexOf('\"')];
                     hasDelayedReferences = ProcessMorphReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;
@@ -484,13 +484,13 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
         Reference ProcessJsonReference(Reference reference)
         {
             JsonReference jsonReference = null;
-            if (reference.Value.Contains(":"))
+            if (reference.Value.Contains(':'))
             {
                 jsonReference = ScanPackageSceneReference(potentialJson, reference, reference.Value, jsonDirectoryPath);
             }
 
             if (jsonReference == null && (!reference.Value.Contains(':') ||
-                                          (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:"))))
+                                          (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal))))
             {
                 jsonReference = ScanFreeFileSceneReference(sceneFolder, reference);
                 // it can be inside scene in var
@@ -575,7 +575,7 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         return Task.Run(() =>
         {
-            if (_delayedReferencesToResolve.Count == 0)
+            if (_delayedReferencesToResolve.IsEmpty)
                 return false;
 
             var createdReferences = new List<JsonReference>(_delayedReferencesToResolve.Count);
@@ -702,7 +702,7 @@ public class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private JsonReference ScanFreeFileSceneReference(string sceneFolder, Reference reference)
     {
-        if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:"))
+        if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:", StringComparison.Ordinal))
             throw new VamRepackerException($"{sceneFolder} refers to var but processing free file reference");
 
         var refPath = reference.Value.Split(':').Last();

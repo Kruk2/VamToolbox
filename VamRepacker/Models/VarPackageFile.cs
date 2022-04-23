@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace VamRepacker.Models;
 
-public class VarPackageFile : FileReferenceBase
+public sealed class VarPackageFile : FileReferenceBase
 {
     public VarPackage ParentVar { get; internal set; }
 

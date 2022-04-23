@@ -17,7 +17,7 @@ using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive;
 
-public class HashFilesOperation : IHashFilesOperation
+public sealed class HashFilesOperation : IHashFilesOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly IHashingAlgo _hasher;

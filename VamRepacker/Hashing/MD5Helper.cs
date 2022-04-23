@@ -7,8 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace VamRepacker.Hashing;
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
 
-public class MD5Helper : IHashingAlgo
+public sealed class MD5Helper : IHashingAlgo
 {
     public async Task<string> GetHash(Stream stream)
     {

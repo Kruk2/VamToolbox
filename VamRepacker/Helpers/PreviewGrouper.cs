@@ -11,7 +11,7 @@ public interface IPreviewGrouper
     public void GroupsPreviews<T>(List<T> files) where T : FileReferenceBase;
 }
 
-public class PreviewGrouper : IPreviewGrouper
+public sealed class PreviewGrouper : IPreviewGrouper
 {
     private readonly IFileSystem _fs;
     public PreviewGrouper(IFileSystem fs) => _fs = fs;

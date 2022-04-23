@@ -10,7 +10,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Sqlite;
 
-public class Database : IDatabase
+public sealed class Database : IDatabase
 {
     private const string FilesTable = "Files";
     private const string JsonTable = "JsonFiles";
@@ -153,7 +153,7 @@ public class Database : IDatabase
         return _connection.Query<string>($"select Path from {FilesTable}");
     }
 
-    public void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> refs, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles)
+    public void UpdateReferences(List<(string filePath, string jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string jsonLocalPath), long> jsonFiles)
     {
         using var transaction = _connection.BeginTransaction();
         var command = _connection.CreateCommand();
@@ -180,7 +180,7 @@ public class Database : IDatabase
         paramJsonId.ParameterName = "$jsonId";
         command.Parameters.Add(paramJsonId);
 
-        foreach (var (filePath, jsonLocalPath, references) in refs)
+        foreach (var (filePath, jsonLocalPath, references) in batch)
         {
             foreach (var reference in references)
             {

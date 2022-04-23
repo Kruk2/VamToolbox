@@ -20,7 +20,7 @@ using VamRepacker.Sqlite;
 
 namespace VamRepacker.Operations.NotDestructive;
 
-public class ScanVarPackagesOperation : IScanVarPackagesOperation
+public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 {
     private readonly IFileSystem _fs;
     private readonly IProgressTracker _reporter;
@@ -116,7 +116,7 @@ public class ScanVarPackagesOperation : IScanVarPackagesOperation
             _totalVarsCount = packageFiles.Count;
             var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
             _favMorphs = freeFiles
-                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x)))
+                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
                 .ToLookup(t => t.FilenameWithoutExt,
                     t => (basePath: Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators(), file: (FileReferenceBase)t));
             return packageFiles;
@@ -146,7 +146,7 @@ public class ScanVarPackagesOperation : IScanVarPackagesOperation
             var foundMetaFile = false;
             foreach (var entry in archive.Entries)
             {
-                if (entry.FullName.EndsWith(@"/")) continue;
+                if (entry.FullName.EndsWith('/')) continue;
                 if (entry.FullName == "meta.json")
                 {
                     foundMetaFile = true;
@@ -172,7 +172,7 @@ public class ScanVarPackagesOperation : IScanVarPackagesOperation
 
             var softLinkPath = _softLinker.GetSoftLink(varFullPath);
             var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
-            var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir), fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            var varPackage = new VarPackage(name, varFullPath, files, varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal), fileInfo.Length, fileInfo.LastWriteTimeUtc);
             files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
             _packages.Add(varPackage);
         }
@@ -206,7 +206,7 @@ public class ScanVarPackagesOperation : IScanVarPackagesOperation
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry) => new (entry.FullName.NormalizePathSeparators(), entry.Length);
+    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry) => new (entry.FullName.NormalizePathSeparators(), entry.Length);
 }
 
 public interface IScanVarPackagesOperation : IOperation

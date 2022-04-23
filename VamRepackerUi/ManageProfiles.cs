@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -79,7 +80,7 @@ public partial class ManageProfiles : Form
 
     private bool ValidatePaths(params string[] paths)
     {
-        if (paths.Any(t => !t.StartsWith(_repoDir)))
+        if (paths.Any(t => !t.StartsWith(_repoDir, StringComparison.Ordinal)))
         {
             MessageBox.Show($"Invalid paths. Verify if they are located in {_repoDir}");
             return false;
@@ -153,7 +154,7 @@ public partial class ManageProfiles : Form
 
     }
 
-    private string AskForName(string initialValue = "")
+    private static string AskForName(string initialValue = "")
     {
         var size = new Size(200, 70);
         var inputBox = new Form {FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = size, Text = "Name", StartPosition = FormStartPosition.CenterScreen};

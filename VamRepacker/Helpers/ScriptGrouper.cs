@@ -14,7 +14,7 @@ public interface IScriptGrouper
     Task GroupCslistRefs<T>(List<T> files, Func<string, Stream> openFileStream) where T : FileReferenceBase;
 }
 
-public class ScriptGrouper : IScriptGrouper
+public sealed class ScriptGrouper : IScriptGrouper
 {
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;

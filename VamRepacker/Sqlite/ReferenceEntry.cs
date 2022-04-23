@@ -1,6 +1,6 @@
 ﻿namespace VamRepacker.Sqlite;
 
-public class ReferenceEntry
+public sealed class ReferenceEntry
 {
     public string Value { get; init; }
     public int Index { get; init; }

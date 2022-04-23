@@ -2,9 +2,9 @@
 
 namespace VamRepacker.Sqlite;
 
-public class HashesTable
+public sealed class HashesTable
 {
-    protected bool Equals(HashesTable other)
+    private bool Equals(HashesTable other)
     {
         return string.Equals(VarFileName, other.VarFileName, StringComparison.OrdinalIgnoreCase) &&
                string.Equals(LocalAssetPath, other.LocalAssetPath, StringComparison.OrdinalIgnoreCase);

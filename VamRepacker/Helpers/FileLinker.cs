@@ -13,7 +13,7 @@ public interface ISoftLinker
     string GetSoftLink(string file);
 }
 
-public class SoftLinker : ISoftLinker
+public sealed class SoftLinker : ISoftLinker
 {
     [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
@@ -53,9 +53,9 @@ public class SoftLinker : ISoftLinker
         public byte[] PathBuffer;
     }
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern SafeFileHandle CreateFile(
-        [MarshalAs(UnmanagedType.LPTStr)] string filename,
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFile(
+        [MarshalAs(UnmanagedType.LPWStr)] string filename,
         [MarshalAs(UnmanagedType.U4)] FileAccess access,
         [MarshalAs(UnmanagedType.U4)] FileShare share,
         IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
@@ -80,9 +80,9 @@ public class SoftLinker : ISoftLinker
             (FileAttributes)fileFlagsForOpenReparsePointAndBackupSemantics, IntPtr.Zero);
     }
 
-    public bool IsSoftLink(string path)
+    public bool IsSoftLink(string file)
     {
-        return GetSoftLink(path) != null;
+        return GetSoftLink(file) != null;
     }
 
     public string GetSoftLink(string file)

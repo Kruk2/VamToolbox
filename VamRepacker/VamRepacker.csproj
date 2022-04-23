@@ -6,6 +6,7 @@
     <RootNamespace>VamRepacker</RootNamespace>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Platforms>x64</Platforms>
+	<AnalysisMode>Recommended</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>

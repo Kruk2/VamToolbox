@@ -1,6 +1,6 @@
 namespace VamRepacker.Operations.Abstract;
 
-public class ProgressInfo
+public sealed class ProgressInfo
 {
     public int Processed { get; }
     public int Total { get; }

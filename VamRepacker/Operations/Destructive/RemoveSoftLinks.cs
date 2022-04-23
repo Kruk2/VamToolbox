@@ -8,7 +8,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Destructive;
 
-public class RemoveSoftLinks : IRemoveSoftLinks
+public sealed class RemoveSoftLinks : IRemoveSoftLinks
 {
     private readonly IProgressTracker _progressTracker;
     private readonly ISoftLinker _softLinker;

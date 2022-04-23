@@ -13,7 +13,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Destructive;
 
-public class TrustAllVarsOperation : ITrustAllVarsOperation
+public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly IFileSystem _fs;

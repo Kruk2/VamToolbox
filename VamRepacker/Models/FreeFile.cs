@@ -5,7 +5,7 @@ using VamRepacker.Helpers;
 
 namespace VamRepacker.Models;
 
-public class FreeFile : FileReferenceBase, IVamObjectWithDependencies
+public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 {
     public string FullPath { get; }
     public List<JsonFile> JsonFiles { get; } = new();

@@ -9,7 +9,7 @@ using VamRepacker.Operations.Abstract;
 
 namespace VamRepacker.Operations.Repo;
 
-public class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenciesFromRepo
+public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenciesFromRepo
 {
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
