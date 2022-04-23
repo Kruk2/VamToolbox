@@ -13,7 +13,7 @@ public static class Extensions
 
     public static string NormalizePathSeparators(this string path)
     {
-        return path.Replace('\\', '/').Trim('/');
+        return path.Replace('\\', '/').TrimEnd('/');
     }
 
     public static string RemoveInvalidChars(this string filename)
