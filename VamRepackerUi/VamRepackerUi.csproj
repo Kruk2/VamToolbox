@@ -10,7 +10,7 @@
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<PublishReadyToRun>true</PublishReadyToRun>
 		<PublishReadyToRunComposite>true</PublishReadyToRunComposite>
-		<Version>0.9.9</Version>
+		<Version>0.9.10</Version>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<Platforms>x64</Platforms>
 		<AnalysisMode>Recommended</AnalysisMode>
