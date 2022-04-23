@@ -30,6 +30,13 @@ public class Database : IDatabase
         CreateFilesTable();
         CreateJsonFilesTable();
         CreateJsonReferencesTable();
+        CreateIndexes();
+    }
+
+    private void CreateIndexes()
+    {
+        _connection.Execute($"Create Index if not exists IX_ParentJsonId on {RefTable} (ParentJsonId)");
+        _connection.Execute($"Create Index if not exists IX_ParentFileId on {JsonTable} (ParentFileId)");
     }
 
     private void CreateJsonReferencesTable()
