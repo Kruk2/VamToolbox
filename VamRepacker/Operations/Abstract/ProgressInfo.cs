@@ -7,11 +7,12 @@ public sealed class ProgressInfo
     public string Current { get; }
     public bool ForceShow { get; }
 
-    public ProgressInfo(int processed, int total, string current)
+    public ProgressInfo(int processed, int total, string current, bool forceShow = false)
     {
         Processed = processed;
         Total = total;
         Current = current;
+        ForceShow = forceShow;
     }
 
     public ProgressInfo(string current)

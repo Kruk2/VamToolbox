@@ -27,6 +27,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly IJsonFileParser _jsonFileParser;
     private readonly IDatabase _database;
     private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
+    private readonly ConcurrentDictionary<List<JsonReference>, JsonFile> _referenceToJsonMap = new();
     private readonly ConcurrentBag<string> _errors = new();
     private int _scanned;
     private int _total;
@@ -75,24 +76,22 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await Task.Run(async () => await RunDeepScan());
 
         _total = varFiles.Count + freeFiles.Count;
-        await CalculateDeps(varFiles, freeFiles);
-
+        await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
         await Task.Run(() => SaveCache(varFiles, freeFiles));
 
         var missingCount = _jsonFiles.Sum(s => s.Missing.Count);
         var resolvedCount = _jsonFiles.Sum(s => s.References.Count);
-        _progressTracker.Complete($"Scanned {_scanned} json files for references. Found {missingCount} missing and {resolvedCount} resolved references.\r\nTook {stopWatch.Elapsed:hh\\:mm\\:ss}");
-
         var scenes = _jsonFiles.OrderBy(s => s.Name).ToList();
-        PrintWarnings(scenes);
+        await Task.Run(() => PrintWarnings(scenes));
 
+        _progressTracker.Complete($"Scanned {_scanned} json files for references. Found {missingCount} missing and {resolvedCount} resolved references.\r\nTook {stopWatch.Elapsed:hh\\:mm\\:ss}");
         return scenes;
     }
 
     private void ReadCache(List<PotentialJsonFile> potentialScenes)
     {
         int progress = 0;
-        _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database"));
+        _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database", forceShow: true));
         _globalCacheScannedFiles = Enumerable.ToHashSet(_database.ReadScannedFilesCache(), StringComparer.OrdinalIgnoreCase);
         _globalReferenceCache = _database.ReadReferenceCache().ToLookup(t => t.FilePath, StringComparer.OrdinalIgnoreCase);
 
@@ -113,6 +112,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private void SaveCache(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
+        _progressTracker.Report("Generating cache", forceShow: true);
         var jsonFiles = varFiles
             .SelectMany(t => t.JsonFiles)
             .Concat(freeFiles.SelectMany(t => t.SelfAndChildren()).SelectMany(t => t.JsonFiles))
@@ -231,9 +231,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
+        _progressTracker.Report("Calculating dependencies", forceShow: true);
+
         var dependencies = varFiles.Cast<IVamObjectWithDependencies>().Concat(freeFiles).ToList();
         dependencies.ForEach(t => t.ClearDependencies());
-        _progressTracker.Report("Calculating dependencies", forceShow: true);
 
         var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
             {
@@ -318,6 +319,8 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private void PrintWarnings(List<JsonFile> scenes)
     {
+        _progressTracker.Report("Saving logs", forceShow: true);
+
         var uniqueMissingVars = scenes.SelectMany(t => t.Missing)
             .GroupBy(t => t.EstimatedVarName)
             .Select(t =>
@@ -477,7 +480,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         var item = new JsonFile(potentialJson, openedJson.LocalJsonPath, references, missing.ToList());
         if (references.Count > 0 || missing.Count > 0 || hasDelayedReferences)
+        {
             _jsonFiles.Add(item);
+            _referenceToJsonMap[references] = item;
+        }
 
         QueueReferences(references);
 
@@ -586,7 +592,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 void AddJsonReference(JsonReference referenceToAdd)
                 {
                     jsonReferences.Add(referenceToAdd);
-                    var jsonFile = _jsonFiles.First(t => ReferenceEquals(t.References, jsonReferences));
+                    var jsonFile = _referenceToJsonMap[jsonReferences];
                     referenceToAdd.FromJson = jsonFile;
                     if (referenceToAdd.IsVarReference) jsonFile.VarReferences.Add(referenceToAdd.ParentVar);
                     else jsonFile.FreeReferences.Add(referenceToAdd.FreeFile);
