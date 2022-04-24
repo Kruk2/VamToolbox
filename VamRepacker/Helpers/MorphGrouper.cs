@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
@@ -33,11 +34,13 @@ public sealed class MorphGrouper : IMorphGrouper
         var pairs = GroupMorphs(files, favMorphs);
         foreach (var (vmi, vmb, fav) in pairs)
         {
+            if (vmi?.FilenameLower == "nose bridge thin.vmi")
+                Debug.Write(true);
             var notNullPreset = vmi ?? vmb;
             if(notNullPreset == null)
                 continue;
 
-            if (vmi is FreeFile)
+            if (vmi is not null)
             {
                 vmi.MorphName = await ReadVmiName(vmi, openFileStream);
             }

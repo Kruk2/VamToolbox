@@ -215,7 +215,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
             _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
             InitVamFilesById(freeFiles, varFiles);
-            InitMorphNames(freeFiles);
+            InitMorphNames(freeFiles, varFiles);
 
             return freeFiles
                 .Where(_ => varFilters is null)
@@ -263,10 +263,18 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             .ToLookup(t => t.InternalId!);
     }
 
-    private void InitMorphNames(IEnumerable<FreeFile> freeFiles) => _morphFilesByName = freeFiles
-        .Where(t => t.MorphName != null && KnownNames.MorphDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
-        .Cast<FileReferenceBase>()
-        .ToLookup(t => t.MorphName!);
+    private void InitMorphNames(IEnumerable<FreeFile> freeFiles, IList<VarPackage> varFiles)
+    {
+        var morphFilesFromVars = varFiles
+            .SelectMany(t => t.Files.Where(x => x.MorphName != null));
+
+        _morphFilesByName = freeFiles
+            .Where(t => t.MorphName != null &&
+                        KnownNames.MorphDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
+            .Cast<FileReferenceBase>()
+            .Concat(morphFilesFromVars)
+            .ToLookup(t => t.MorphName!);
+    }
 
     private async Task RunDeepScan()
     {
@@ -539,7 +547,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessMorphReference(Reference morphReference)
         {
-            var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphReference, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(references, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceByMorphName != null)
                 references.Add(jsonReferenceByMorphName);
             else if (!delayedReference)
@@ -550,7 +558,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessVamReference(Reference vamReference)
         {
-            var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, vamReference, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(references, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceById != null)
                 references.Add(jsonReferenceById);
             else if (!delayedReference)
@@ -560,18 +568,18 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         }
     }
 
-    private (JsonReference?, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, Reference reference, FileReferenceBase? fallBackResolvedAsset)
+    private (JsonReference?, bool) MatchVamJsonReferenceById(List<JsonReference> jsonReferences, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
-        return MatchAssetByUuidOrName(jsonReferences, reference.InternalId, reference, _vamFilesById, fallBackResolvedAsset);
+        return MatchAssetByUuidOrName(jsonReferences, reference.InternalId, reference, _vamFilesById, sourceVar, fallBackResolvedAsset);
     }
 
-    private (JsonReference?, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, Reference reference, FileReferenceBase? fallBackResolvedAsset)
+    private (JsonReference?, bool) MatchMorphJsonReferenceByName(List<JsonReference> jsonReferences, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
-        return MatchAssetByUuidOrName(jsonReferences, reference.MorphName, reference, _morphFilesByName, fallBackResolvedAsset);
+        return MatchAssetByUuidOrName(jsonReferences, reference.MorphName, reference, _morphFilesByName, sourceVar, fallBackResolvedAsset);
     }
 
     private (JsonReference?, bool) MatchAssetByUuidOrName(List<JsonReference> jsonReferences, string? uuidOrName,
-        Reference reference, ILookup<string, FileReferenceBase> lookup, FileReferenceBase? fallBackResolvedAsset)
+        Reference reference, ILookup<string, FileReferenceBase> lookup, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
         if (string.IsNullOrWhiteSpace(uuidOrName))
             throw new VamRepackerException("Invalid displayNameOrUuid");
@@ -591,6 +599,13 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         if (matchedAssets.Count() == 1)
             return (new JsonReference(matchedAssets.First(), reference), false);
+        
+        // prefer files that are in var we're scanning
+        var anythingFromSourceVar = matchedAssets.Where(t => t is VarPackageFile varFile && varFile.ParentVar == sourceVar);
+        if (anythingFromSourceVar.Any())
+        {
+            return (new JsonReference(anythingFromSourceVar.OrderBy(t => t.LocalPath).First(), reference), false);
+        }
 
         _delayedReferencesToResolve.Add((jsonReferences, reference, matchedAssets, uuidOrName));
 
