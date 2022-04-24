@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using VamRepacker.Hashing;
@@ -13,28 +16,38 @@ public abstract class FileReferenceBase
     public string FilenameWithoutExt { get; }
     public string ExtLower { get; }
 
-    public string? Hash { get; internal set; }
 
     public string? InternalId { get; internal set; }
     public string? MorphName { get; internal set; }
-    public string? VamAuthor { get; internal set; }
 
-    public AssetType Type { get; } = AssetType.Unknown;
-
-    public List<JsonReference> JsonReferences { get; } = new();
+    [MemberNotNullWhen(true, nameof(VarFile))]
+    [MemberNotNullWhen(true, nameof(Var))]
+    [MemberNotNullWhen(false, nameof(Free))]
+    public bool IsVar => this is VarPackageFile;
+    public VarPackage? Var => this is VarPackageFile varFile ? varFile.ParentVar : null;
+    public VarPackageFile? VarFile => this as VarPackageFile;
+    public FreeFile? Free => this as FreeFile;
 
     public long Size { get; }
     public bool IsInVaMDir { get; }
-    public List<JsonFile> JsonFiles { get; } = new();
-    public FileReferenceBase ParentFile { get; protected internal set; } = null!;
+    public AssetType Type { get; } = AssetType.Unknown;
+    public FileReferenceBase? ParentFile { get; protected internal set; }
+    public bool Dirty { get; set; }
+    public DateTime ModifiedTimestamp { get; }
+
+    public JsonFile? JsonFile { get; internal set; }
+    public ConcurrentDictionary<JsonFile, bool> UsedByJsonFiles { get; } = new();
+    public int UsedByVarPackagesOrFreeFilesCount => UsedByJsonFiles.Keys.Select(t => t.File.IsVar ? (object)t.File.Var : t.File.Free).Distinct().Count();
     public abstract IReadOnlyCollection<FileReferenceBase> Children { get; }
     public List<string> MissingChildren { get; } = new();
+
+    public string? Hash { get; internal set; }
 
     private string? _hashWithChildren;
     public string HashWithChildren => _hashWithChildren ??= MD5Helper.GetHash(Hash!, Children.Select(t => t.Hash!));
     public long SizeWithChildren => Size + Children.Sum(t => t.SizeWithChildren);
 
-    protected FileReferenceBase(string localPath, long size, bool isInVamDir)
+    protected FileReferenceBase(string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
     {
         LocalPath = localPath.NormalizePathSeparators();
         FilenameLower = Path.GetFileName(localPath).ToLowerInvariant();
@@ -42,6 +55,7 @@ public abstract class FileReferenceBase
         ExtLower = Path.GetExtension(FilenameLower);
         Size = size;
         IsInVaMDir = isInVamDir;
+        ModifiedTimestamp = modifiedTimestamp;
 
         if (ExtLower is ".vmi" or ".vmb") Type = AssetType.Morph;
     }

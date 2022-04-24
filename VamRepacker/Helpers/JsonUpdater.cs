@@ -52,13 +52,13 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData, ZipArchive varArchive, Dictionary<string, ZipArchiveEntry> entries)
     {
-        if(!json.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
-        var jsonEntry = entries[json.JsonPathInVar];
+        if(!json.File.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
+        var jsonEntry = entries[json.File.LocalPath];
         var date = jsonEntry.LastWriteTime;
         jsonEntry.Delete();
 
-        jsonEntry = varArchive.CreateEntry(json.JsonPathInVar, CompressionLevel.Optimal);
-        entries[json.JsonPathInVar] = jsonEntry;
+        jsonEntry = varArchive.CreateEntry(json.File.LocalPath, CompressionLevel.Optimal);
+        entries[json.File.LocalPath] = jsonEntry;
 
         {
             var stream = jsonEntry.Open();
@@ -74,9 +74,9 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
-        if (json.IsVar) throw new ArgumentException($"Json file expected to be free file {json}", nameof(json));
+        if (json.File.IsVar) throw new ArgumentException($"Json file expected to be free file {json}", nameof(json));
 
-        await using var writer = new StreamWriter(json.Free.FullPath, false, Encoding.UTF8);
+        await using var writer = new StreamWriter(json.File.Free.FullPath, false, Encoding.UTF8);
         foreach (var s in jsonData)
         {
             await writer.WriteLineAsync(s);
@@ -123,17 +123,17 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task<List<string>> ReadJson(JsonFile json)
     {
-        if (json.IsVar) throw new ArgumentException($"Json file expected to free file {json}", nameof(json));
+        if (json.File.IsVar) throw new ArgumentException($"Json file expected to free file {json}", nameof(json));
 
-        using var reader = new StreamReader(json.Free.FullPath, Encoding.UTF8);
+        using var reader = new StreamReader(json.File.Free.FullPath, Encoding.UTF8);
         return await ReadJsonInternal(reader);
     }
 
     private static async Task<List<string>> ReadJson(JsonFile json,  Dictionary<string, ZipArchiveEntry> entries)
     {
-        if (!json.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
+        if (!json.File.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
 
-        var jsonEntry = entries[json.JsonPathInVar];
+        var jsonEntry = entries[json.File.LocalPath];
         var stream = jsonEntry.Open();
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return await ReadJsonInternal(reader);

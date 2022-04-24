@@ -55,9 +55,9 @@ public sealed class PresetGrouper :  IPresetGrouper
             if(notNullPreset == null)
                 continue;
 
-            if (vam != null)
+            if (vam is { InternalId: null })
             {
-                (vam.InternalId, vam.VamAuthor) = await ReadVamInternalId(vam, openFileStream);
+                vam.InternalId = await ReadVamInternalId(vam, openFileStream);
             }
 
             var localDir = _fs.Path.Combine(_fs.Path.GetDirectoryName(notNullPreset.LocalPath), _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
@@ -98,11 +98,10 @@ public sealed class PresetGrouper :  IPresetGrouper
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
     }
 
-    private async Task<(string?, string?)> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
+    private async Task<string?> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
         using var streamReader = new StreamReader(openFileStream(vam.LocalPath));
         string? uuid = null;
-        string? author = null;
 
         while (!streamReader.EndOfStream)
         {
@@ -115,19 +114,13 @@ public sealed class PresetGrouper :  IPresetGrouper
                 uuid = uuid[(uuid.IndexOf('\"') + 1)..uuid.LastIndexOf('\"')];
             }
 
-            if (line.Contains("\"creatorName\""))
-            {
-                author = line.Replace("\"creatorName\"", "");
-                author = author[(author.IndexOf('\"') + 1)..author.LastIndexOf('\"')];
-            }
-
-            if (author != null && uuid != null)
-                return (uuid, author);
+            if (uuid != null)
+                return uuid;
         }
 
         if(uuid is null)
             _logger.Log($"[MISSING-UUID-VAM] missing uuid in {vam.LocalPath} {(vam is VarPackageFile varFile ? varFile.ParentVar.Name : string.Empty)}");
 
-        return (uuid, author);
+        return uuid;
     }
 }

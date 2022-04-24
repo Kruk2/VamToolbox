@@ -31,7 +31,8 @@ public static class DependencyCalculator
             if (processedFiles.Contains(item.File))
                 continue;
 
-            queue.AddRange(item.File.JsonReferences);
+            if(item.File.JsonFile is not null)
+                queue.AddRange(item.File.JsonFile.References);
             processedFiles.Add(item.File);
         }
 
@@ -52,7 +53,7 @@ public static class DependencyCalculator
 
             var jsonFilesToScan = item.VarReferences.Where(t => !t.AlreadyCalculatedDeps)
                 .SelectMany(t => t.JsonFiles)
-                .Concat(item.FreeReferences.Where(t => !t.AlreadyCalculatedDeps).SelectMany(t => t.JsonFiles));
+                .Concat(item.FreeReferences.Where(t => !t.AlreadyCalculatedDeps && t.JsonFile != null).Select(t => t.JsonFile!));
 
             item.VarReferences.ForEach(t => varDeps.Add(t));
             item.FreeReferences.ForEach(t => freeFileDeps.Add(t));

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using VamRepacker.Models;
@@ -41,25 +42,27 @@ public sealed class Reference : IEquatable<Reference>
 
     private string? _estimatedReferenceLocation;
 
-    public Reference(string value, int index, int length)
+    public Reference(string value, int index, int length, FileReferenceBase fromJsonFile)
     {
         Value = value;
         Index = index;
         Length = length;
+        FromJsonFile = fromJsonFile;
     }
 
-    public Reference(ReferenceEntry referenceEntry)
+    public Reference(ReferenceEntry referenceEntry, FileReferenceBase fromJsonFile)
     {
         Value = referenceEntry.Value;
         InternalId = referenceEntry.InternalId;
         MorphName = referenceEntry.MorphName;
         Index = referenceEntry.Index;
         Length = referenceEntry.Length;
+        FromJsonFile = fromJsonFile;
     }
 
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
     public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
-    public JsonFile FromJson { get; internal set; } = null!;
+    public FileReferenceBase FromJsonFile { get; internal set; }
 
     private string GetEstimatedReference()
     {
@@ -71,7 +74,7 @@ public sealed class Reference : IEquatable<Reference>
 
 public interface IJsonFileParser
 {
-    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, out string? error);
+    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, FileReferenceBase fromFile, out string? outputError);
 }
 
 public sealed class JsonScannerHelper : IJsonFileParser
@@ -84,9 +87,9 @@ public sealed class JsonScannerHelper : IJsonFileParser
     //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, out string? error)
+    public Reference? GetAsset(ReadOnlySpan<char> line, int offset, FileReferenceBase fromFile, out string? outputError)
     {
-        error = null;
+        outputError = null;
         var lastQuoteIndex = line.LastIndexOf('"');
         if (lastQuoteIndex == -1)
             return null;
@@ -124,10 +127,10 @@ public sealed class JsonScannerHelper : IJsonFileParser
         //SeenExtensions.GetOrAdd(ext, ext);
 
         var endsWithExtension = Extensions.Contains(string.GetHashCode(assetExtension, StringComparison.OrdinalIgnoreCase));
-        if (!endsWithExtension || !IsUrl(assetName, line, ref error))
+        if (!endsWithExtension || !IsUrl(assetName, line, ref outputError))
             return null;
 
-        return new Reference(assetName.ToString(), index: offset + prevQuoteIndex + 1, length: lastQuoteIndex - prevQuoteIndex - 1);
+        return new Reference(assetName.ToString(), index: offset + prevQuoteIndex + 1, length: lastQuoteIndex - prevQuoteIndex - 1, fromFile);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]

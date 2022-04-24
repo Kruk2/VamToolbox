@@ -15,14 +15,12 @@ public sealed class JsonReference
     public VarPackage? ParentVar => File is VarPackageFile varFile ? varFile.ParentVar : null;
     public FreeFile? FreeFile => File as FreeFile;
     public VarPackageFile? VarFile => File as VarPackageFile;
-    public JsonFile FromJson { get; internal set; } = null!;
     public Reference Reference { get; }
 
     public JsonReference(FileReferenceBase file, Reference reference)
     {
         File = file;
         Reference = reference;
-        file.JsonReferences.Add(this);
     }
 
     public override string ToString()

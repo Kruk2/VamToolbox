@@ -21,36 +21,45 @@ public sealed class PotentialJsonFile : IDisposable
     private FileStream? _varFileStream;
     private ZipArchive? _varArchive;
 
-    private readonly Dictionary<string, List<Reference>> _referenceCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Reference>> _varFilesReferenceCache = new(StringComparer.OrdinalIgnoreCase);
+    private List<Reference>? _freeFileReferenceCache;
     public PotentialJsonFile(VarPackage var) => Var = var;
     public PotentialJsonFile(FreeFile free) => Free = free;
 
     public IEnumerable<OpenedPotentialJson> OpenJsons()
     {
-        if (_referenceCache.Any())
+        if (IsVar)
         {
-            foreach (var (localJsonPath, value) in _referenceCache)
+            var potentialJsonFiles = Var.Files
+                .SelectMany(t => t.SelfAndChildren())
+                .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower));
+            IDictionary<string, ZipArchiveEntry>? entries = null;
+
+            foreach (var potentialJsonFile in potentialJsonFiles)
             {
-                yield return new OpenedPotentialJson { LocalJsonPath = localJsonPath, CachedReferences = value };
+                if (_varFilesReferenceCache.ContainsKey(potentialJsonFile.LocalPath))
+                {
+                    yield return new OpenedPotentialJson(potentialJsonFile) { CachedReferences = _varFilesReferenceCache[potentialJsonFile.LocalPath] };
+                }
+                else
+                {
+                    _varFileStream ??= File.OpenRead(Var.FullPath);
+                    _varArchive ??= new ZipArchive(_varFileStream);
+                    entries ??=_varArchive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
+
+                    yield return new OpenedPotentialJson(potentialJsonFile) { Stream = entries[potentialJsonFile.LocalPath].Open() };
+                }
             }
-
-            yield break;
         }
-
-        if (Free != null && KnownNames.IsPotentialJsonFile(Free.ExtLower))
+        else
         {
-            yield return new OpenedPotentialJson { Stream = File.OpenRead(Free.FullPath), LocalJsonPath = Free.LocalPath };
-        }
-        else if (Var != null)
-        {
-            _varFileStream = File.OpenRead(Var.FullPath);
-            _varArchive = new ZipArchive(_varFileStream);
-
-            foreach (var entry in _varArchive.Entries.Where(t =>
-                         t.Name != "meta.json" && KnownNames.IsPotentialJsonFile(Path.GetExtension(t.Name).ToLower())))
+            if (_freeFileReferenceCache is not null)
             {
-                var localJsonPath = entry.FullName.NormalizePathSeparators();
-                yield return new OpenedPotentialJson { LocalJsonPath = localJsonPath, Stream = entry.Open() };
+                yield return new OpenedPotentialJson(Free) { CachedReferences = _freeFileReferenceCache };
+            }
+            else if (KnownNames.IsPotentialJsonFile(Free.ExtLower))
+            {
+                yield return new OpenedPotentialJson(Free) { Stream = File.OpenRead(Free.FullPath) };
             }
         }
     }
@@ -68,19 +77,25 @@ public sealed class PotentialJsonFile : IDisposable
 
     public void AddCachedReferences(string fileLocalPath, List<Reference> references)
     {
-        _referenceCache[fileLocalPath] = references;
+        if (!IsVar) throw new InvalidOperationException("Unable to add cache for non-var file");
+        _varFilesReferenceCache[fileLocalPath] = references;
     }
 
     public void AddCachedReferences(List<Reference> references)
     {
-        if (Free == null) throw new ArgumentException("Unable to add cached references for non-free file");
-        _referenceCache[Free.LocalPath] = references;
+        if (IsVar) throw new InvalidOperationException("Unable to add cache for var file");
+        _freeFileReferenceCache = references;
     }
 }
 
 public class OpenedPotentialJson
 {
+    public OpenedPotentialJson(FileReferenceBase file)
+    {
+        File = file;
+    }
+
     public Stream? Stream { get; init; }
-    public string? LocalJsonPath { get; init; }
+    public FileReferenceBase File { get; init; }
     public List<Reference>? CachedReferences { get; init; }
 }

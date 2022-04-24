@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using VamRepacker.Helpers;
+using VamRepacker.Models;
 
 namespace VamRepacker.Sqlite;
 
 public sealed class Database : IDatabase
 {
     private const string FilesTable = "Files";
-    private const string JsonTable = "JsonFiles";
     private const string RefTable= "JsonReferences";
     private readonly SqliteConnection _connection;
 
@@ -22,19 +22,21 @@ public sealed class Database : IDatabase
         var currentDir = Path.Combine(rootDir, "vamRepacker.sqlite");
         _connection = new SqliteConnection($@"data source={currentDir}");
         _connection.Open();
+    }
+
+    public void EnsureCreated()
+    {
         _connection.Query("PRAGMA journal_mode=WAL");
 
         CreateHashTable();
         CreateFilesTable();
-        CreateJsonFilesTable();
         CreateJsonReferencesTable();
         CreateIndexes();
     }
 
     private void CreateIndexes()
     {
-        _connection.Execute($"Create Index if not exists IX_ParentJsonId on {RefTable} (ParentJsonId)");
-        _connection.Execute($"Create Index if not exists IX_ParentFileId on {JsonTable} (ParentFileId)");
+        _connection.Execute($"Create Index if not exists IX_ParentFileId on {RefTable} (ParentFileId)");
     }
 
     private void CreateJsonReferencesTable()
@@ -47,21 +49,8 @@ public sealed class Database : IDatabase
             "InternalId TEXT," +
             "[Index] INTEGER NOT NULL," +
             "Length INTEGER NOT NULL," +
-            "ParentJsonId integer NOT NULL," +
-            "CONSTRAINT FK_ParentJsonId FOREIGN KEY(ParentJsonId) REFERENCES JsonFiles(Id) ON DELETE CASCADE);");
-    }
-
-    private void CreateJsonFilesTable()
-    {
-        if (!TableExists(JsonTable)) return;
-
-        _connection.Execute($"Create Table {JsonTable} (" +
-                            "Id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
-            "LocalPath TEXT collate nocase," +
             "ParentFileId integer NOT NULL," +
-            "CONSTRAINT FK_ParentFileId FOREIGN KEY(ParentFileId) REFERENCES Files(Id) ON DELETE CASCADE);");
-
-        _connection.Execute($"CREATE UNIQUE INDEX IX_JsonFiles ON {JsonTable}(LocalPath, ParentFileId);");
+            $"CONSTRAINT FK_ParentJsonId FOREIGN KEY(ParentFileId) REFERENCES {FilesTable}(Id) ON DELETE CASCADE);");
     }
 
     private void CreateFilesTable()
@@ -71,10 +60,12 @@ public sealed class Database : IDatabase
         _connection.Execute($"Create Table {FilesTable} (" +
                             "Id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
                             "Path TEXT collate nocase NOT NULL," +
+                            "LocalPath TEXT collate nocase," +
+                            "Uuid TEXT collate nocase," +
                             "FileSize integer NOT NULL," +
                             "ModifiedTime integer NOT NULL);");
 
-        _connection.Execute($"CREATE UNIQUE INDEX IX_Files ON {FilesTable}(Path);");
+        _connection.Execute($"CREATE UNIQUE INDEX IX_Files ON {FilesTable}(Path, LocalPath);");
     }
 
     private void CreateHashTable()
@@ -133,31 +124,27 @@ public sealed class Database : IDatabase
         await transaction.CommitAsync();
     }
 
-    public (long? size, DateTime? modifiedTime) GetFileInfo(string path)
+    public (long? size, DateTime? modifiedTime, string? uuid) GetFileInfo(string path, string? localPath)
     {
-        return _connection.QueryFirstOrDefault<(long?, DateTime?)>($"select FileSize, ModifiedTime from {FilesTable} where Path = @path", new { path });
+        return _connection.QueryFirstOrDefault<(long?, DateTime?, string?)>(
+            $"select FileSize, ModifiedTime, Uuid from {FilesTable} where Path is @path and LocalPath is @localPath", 
+            new { path, localPath });
     }
 
     public IEnumerable<ReferenceEntry> ReadReferenceCache()
     {
         return _connection.Query<ReferenceEntry>(
-            $"select file.Path as FilePath, json.LocalPath as LocalJsonPath, ref.Value, ref.[Index], ref.Length, ref.MorphName, ref.InternalId from {RefTable} ref " +
-            $"inner join {JsonTable} json on json.Id = ref.ParentJsonId " +
-            $"inner join {FilesTable} file on file.Id = json.ParentFileId ");
+            $"select file.Path as FilePath, file.LocalPath as LocalPath, ref.Value, ref.[Index], ref.Length, ref.MorphName, ref.InternalId from {RefTable} ref " +
+            $"inner join {FilesTable} file on file.Id = ref.ParentFileId ");
     }
 
-    public IEnumerable<string> ReadScannedFilesCache()
-    {
-        return _connection.Query<string>($"select Path from {FilesTable}");
-    }
-
-    public void UpdateReferences(List<(string filePath, string? jsonLocalPath, IEnumerable<Reference> references)> batch, Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles)
+    public void UpdateReferences(Dictionary<FileReferenceBase, long> batch,  List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles)
     {
         using var transaction = _connection.BeginTransaction();
         var command = _connection.CreateCommand();
         command.CommandText =
-            $"insert into {RefTable} (Value, [Index], Length, MorphName, InternalId, ParentJsonId) VALUES " +
-            "($Value, $Index, $Length, $MorphName, $InternalId, $jsonId)";
+            $"insert into {RefTable} (Value, [Index], Length, MorphName, InternalId, ParentFileId) VALUES " +
+            "($Value, $Index, $Length, $MorphName, $InternalId, $fileId)";
 
         var parameterValue = command.CreateParameter();
         parameterValue.ParameterName = "$Value";
@@ -174,15 +161,15 @@ public sealed class Database : IDatabase
         var paramInternalId = command.CreateParameter();
         paramInternalId.ParameterName = "$InternalId";
         command.Parameters.Add(paramInternalId);
-        var paramJsonId = command.CreateParameter();
-        paramJsonId.ParameterName = "$jsonId";
-        command.Parameters.Add(paramJsonId);
+        var paramFileId = command.CreateParameter();
+        paramFileId.ParameterName = "$fileId";
+        command.Parameters.Add(paramFileId);
 
-        foreach (var (filePath, jsonLocalPath, references) in batch)
+        foreach (var (file, references) in jsonFiles)
         {
             foreach (var reference in references)
             {
-                paramJsonId.Value = jsonFiles[(filePath, jsonLocalPath)];
+                paramFileId.Value = batch[file];
                 parameterValue.Value = reference.Value;
                 parameterIndex.Value = reference.Index;
                 parameterLength.Value = reference.Length;
@@ -198,20 +185,25 @@ public sealed class Database : IDatabase
     public async Task ClearCache()
     {
         await _connection.QueryAsync($"DELETE FROM {RefTable}");
-        await _connection.QueryAsync($"DELETE FROM {JsonTable}");
         await _connection.QueryAsync($"DELETE FROM {FilesTable}");
         await _connection.QueryAsync("VACUUM");
     }
 
-    public void SaveFiles(Dictionary<string, (long size, DateTime timestamp, long id)> files)
+    public void SaveFiles(Dictionary<FileReferenceBase, long> files)
     {
         using var transaction = _connection.BeginTransaction();
         var commandInsert = _connection.CreateCommand();
-        commandInsert.CommandText = $"insert or replace into {FilesTable} (Path, FileSize, ModifiedTime) VALUES ($fullPath, $size, $timestamp); SELECT last_insert_rowid();";
+        commandInsert.CommandText = $"insert or replace into {FilesTable} (Path, LocalPath, Uuid, FileSize, ModifiedTime) VALUES ($fullPath, $localPath, $uuid, $size, $timestamp); SELECT last_insert_rowid();";
 
-        var paramPath = commandInsert.CreateParameter();
-        paramPath.ParameterName = "$fullPath";
-        commandInsert.Parameters.Add(paramPath);
+        var paramFullPath = commandInsert.CreateParameter();
+        paramFullPath.ParameterName = "$fullPath";
+        commandInsert.Parameters.Add(paramFullPath);
+        var localPath = commandInsert.CreateParameter();
+        localPath.ParameterName = "$localPath";
+        commandInsert.Parameters.Add(localPath);
+        var uuid = commandInsert.CreateParameter();
+        uuid.ParameterName = "$uuid";
+        commandInsert.Parameters.Add(uuid);
         var paramSize = commandInsert.CreateParameter();
         paramSize.ParameterName = "$size";
         commandInsert.Parameters.Add(paramSize);
@@ -219,43 +211,18 @@ public sealed class Database : IDatabase
         paramTimestamp.ParameterName = "$timestamp";
         commandInsert.Parameters.Add(paramTimestamp);
 
-        foreach (var (filePath, (size, timestamp, _)) in files.ToList())
+        foreach (var file in files.Keys)
         {
-            paramPath.Value = filePath;
-            paramSize.Value = size;
-            paramTimestamp.Value = timestamp;
-            files[filePath] = (size, timestamp, (long)commandInsert.ExecuteScalar()!);
+            paramFullPath.Value = file.IsVar ? file.Var.FullPath : file.Free.FullPath;
+            localPath.Value = (object?)(file.IsVar ? file.VarFile.LocalPath : null) ?? DBNull.Value;
+            uuid.Value = (object?)(file.MorphName ?? file.InternalId) ?? DBNull.Value;
+            paramSize.Value = file.Size;
+            paramTimestamp.Value = file.ModifiedTimestamp;
+            files[file] = (long)commandInsert.ExecuteScalar()!;
         }
 
         transaction.Commit();
     }
 
-    public void UpdateJson(Dictionary<(string filePath, string? jsonLocalPath), long> jsonFiles,  Dictionary<string, long> files)
-    {
-        using var transaction = _connection.BeginTransaction();
-        var commandInsert = _connection.CreateCommand();
-        commandInsert.CommandText = $"insert into {JsonTable} (LocalPath, ParentFileId) VALUES ($localPath, $fileId); SELECT last_insert_rowid();";
-
-        var paramPath = commandInsert.CreateParameter();
-        paramPath.ParameterName = "$localPath";
-        commandInsert.Parameters.Add(paramPath);
-        var paramFileId = commandInsert.CreateParameter();
-        paramFileId.ParameterName = "$fileId";
-        commandInsert.Parameters.Add(paramFileId);
-
-
-        foreach (var ((filePath, jsonLocalPath), _) in jsonFiles.ToList())
-        {
-            paramPath.Value = (object?)jsonLocalPath ?? DBNull.Value;
-            paramFileId.Value = files[filePath];
-            jsonFiles[(filePath, jsonLocalPath)] = (long)commandInsert.ExecuteScalar()!;
-        }
-
-        transaction.Commit();
-    }
-
-    public void Dispose()
-    {
-        _connection.Dispose();
-    }
+    public void Dispose() => _connection.Dispose();
 }

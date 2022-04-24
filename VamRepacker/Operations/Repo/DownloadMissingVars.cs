@@ -97,7 +97,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
     private static List<string> FindMissingReferences(IList<VarPackage> vars, IList<FreeFile> freeFiles)
     {
         var jsonFiles = vars.Where(t => t.IsInVaMDir).SelectMany(t => t.JsonFiles)
-            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.JsonFiles));
+            .Concat(freeFiles.Where(t => t.IsInVaMDir && t.JsonFile != null).Select(t => t.JsonFile!));
 
         var unresolvedVars = jsonFiles
             .SelectMany(t => t.Missing)

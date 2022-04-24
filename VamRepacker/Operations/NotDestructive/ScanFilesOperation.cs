@@ -69,6 +69,9 @@ public sealed class ScanFilesOperation : IScanFilesOperation
                     
             Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
+            _reporter.Report("Updating local database", forceShow: true);
+            LookupDirtyFiles(files);
+
             _reporter.Report("Grouping scripts", forceShow: true);
             await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
             _reporter.Report("Grouping morphs", forceShow: true);
@@ -77,9 +80,6 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             await _scope.Resolve<IPresetGrouper>().GroupPresets(files, varName: null, OpenFileStream);
             _reporter.Report("Grouping previews", forceShow: true);
             _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
-
-            _reporter.Report("Updating local database", forceShow: true);
-            LookupDirtyFiles(files);
 
         });
 
@@ -105,12 +105,25 @@ public sealed class ScanFilesOperation : IScanFilesOperation
 
     private void LookupDirtyFiles(List<FreeFile> files)
     {
-        foreach (var freeFile in files.SelectMany(t => t.SelfAndChildren()))
+        foreach (var freeFile in files
+                     .SelectMany(t => t.SelfAndChildren())
+                     .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower)))
         {
-            var (size, modifiedTime) = _database.GetFileInfo(freeFile.FullPath);
+            var (size, modifiedTime, uuid) = _database.GetFileInfo(freeFile.FullPath, null);
             if (size == null || freeFile.Size != size.Value || modifiedTime != freeFile.ModifiedTimestamp)
             {
                 freeFile.Dirty = true;
+            }
+            else if (!string.IsNullOrEmpty(uuid))
+            {
+                if (freeFile.ExtLower == ".vmi")
+                {
+                    freeFile.MorphName = uuid;
+                }
+                else if (freeFile.ExtLower == ".vam")
+                {
+                    freeFile.InternalId = uuid;
+                }
             }
         }
     }

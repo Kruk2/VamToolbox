@@ -12,7 +12,9 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public string FullPath { get; }
     public bool IsInVaMDir { get; }
     public List<VarPackageFile> Files { get; }
-    public List<JsonFile> JsonFiles { get; } = new();
+
+    private List<JsonFile>? _jsonFiles;
+    public List<JsonFile> JsonFiles => _jsonFiles ??= Files.SelectMany(t => t.SelfAndChildren()).Where(t => t.JsonFile != null).Select(t => t.JsonFile!).ToList();
 
     private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
     private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
@@ -33,23 +35,18 @@ public sealed class VarPackage : IVamObjectWithDependencies
         .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
         .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
-    public bool Dirty { get; set; }
-    public DateTime ModifiedTimestamp { get; }
-
     public VarPackage(
         VarPackageName name, 
         string fullPath, 
         List<VarPackageFile> files,
         bool isInVamDir,
-        long size,
-        DateTime modifiedTimestamp)
+        long size)
     {
         Name = name;
         FullPath = fullPath.NormalizePathSeparators();
         Files = files;
         IsInVaMDir = isInVamDir;
         Size = size;
-        ModifiedTimestamp = modifiedTimestamp;
     }
 
     public override string ToString() => Name.ToString();

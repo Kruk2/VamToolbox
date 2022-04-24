@@ -31,7 +31,14 @@ static class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         var container = Configure();
+        EnsureDbCreated(container);
         Application.Run(container.Resolve<MainWindow>());
+    }
+
+    private static void EnsureDbCreated(IContainer container)
+    {
+        using var scope = container.BeginLifetimeScope();
+        scope.Resolve<IDatabase>().EnsureCreated();
     }
 
     private static void CatchUnhandledDomain(object sender, UnhandledExceptionEventArgs e)

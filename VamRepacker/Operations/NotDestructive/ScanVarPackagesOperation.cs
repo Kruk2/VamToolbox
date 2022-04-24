@@ -26,7 +26,6 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
     private readonly ILifetimeScope _scope;
-    private readonly IDatabase _database;
     private readonly ISoftLinker _softLinker;
     private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs = null!;
     private readonly ConcurrentBag<VarPackage> _packages = new();
@@ -36,13 +35,12 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private int _totalVarsCount;
     private OperationContext _context = null!;
 
-    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
+    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, ISoftLinker softLinker)
     {
         _fs = fs;
         _reporter = progressTracker;
         _logger = logger;
         _scope = scope;
-        _database = database;
         _softLinker = softLinker;
     }
 
@@ -84,9 +82,6 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 return fromVamDir ?? sortedVars.First();
             })
             .ToList();
-
-        _reporter.Report("Updating local database", forceShow: true);
-        await Task.Run(() => LookupDirtyPackages(_result.Vars));
 
         var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
         _reporter.Complete(endingMessage);
@@ -154,7 +149,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                     continue;
                 }
 
-                var packageFile = ReadPackageFileAsync(entry, isInVamDir);
+                var packageFile = ReadPackageFileAsync(entry, isInVamDir, entry.LastWriteTime.DateTime);
                 files.Add(packageFile);
             }
             if (!foundMetaFile)
@@ -163,19 +158,20 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 return;
             }
 
+            var softLinkPath = _softLinker.GetSoftLink(varFullPath);
+            var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
+            var varPackage = new VarPackage(name, varFullPath, files, isInVamDir, fileInfo.Length);
+            files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
+            _packages.Add(varPackage);
+
             var entries = archive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
             Stream OpenFileStream(string p) => entries[p].Open();
+            LookupDirtyPackages(varPackage);
 
             await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
             await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, name, OpenFileStream, _favMorphs);
             await _scope.Resolve<IPresetGrouper>().GroupPresets(files, name, OpenFileStream);
             _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
-
-            var softLinkPath = _softLinker.GetSoftLink(varFullPath);
-            var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
-            var varPackage = new VarPackage(name, varFullPath, files, isInVamDir, fileInfo.Length, fileInfo.LastWriteTimeUtc);
-            files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
-            _packages.Add(varPackage);
         }
         catch (Exception exc)
         {
@@ -186,14 +182,30 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         _reporter.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalVarsCount, name.Filename));
     }
 
-    private void LookupDirtyPackages(List<VarPackage> varPackages)
+    private void LookupDirtyPackages(VarPackage varPackage)
     {
-        foreach (var varPackage in varPackages)
+        using var scope = _scope.BeginLifetimeScope();
+        var database = scope.Resolve<IDatabase>();
+
+        foreach (var varFile in varPackage.Files
+                     .SelectMany(t => t.SelfAndChildren())
+                     .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower) && t.FilenameLower != "meta.json"))
         {
-            var (size, timeStamp) = _database.GetFileInfo(varPackage.FullPath);
-            if (size == null || varPackage.Size != size.Value || timeStamp != varPackage.ModifiedTimestamp)
+            var (size, timeStamp, uuid) = database.GetFileInfo(varPackage.FullPath, varFile.LocalPath);
+            if (size == null || varFile.Size != size.Value || timeStamp != varFile.ModifiedTimestamp)
             {
-                varPackage.Dirty = true;
+                varFile.Dirty = true;
+            }
+            else if (!string.IsNullOrEmpty(uuid))
+            {
+                if (varFile.ExtLower == ".vmi")
+                {
+                    varFile.MorphName = uuid;
+                }
+                else if (varFile.ExtLower == ".vam")
+                {
+                    varFile.InternalId = uuid;
+                }
             }
         }
     }
@@ -207,7 +219,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry, bool isInVamDir) => new (entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir);
+    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry, bool isInVamDir, DateTime modifiedTimestamp) => new (entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir, modifiedTimestamp);
 }
 
 public interface IScanVarPackagesOperation : IOperation

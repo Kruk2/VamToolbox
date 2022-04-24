@@ -41,7 +41,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         InitLookups(vars, freeFiles);
 
         var jsonWithMissingReferences = jsonFiles
-            .Where(t => (t.IsVar && t.Var.IsInVaMDir) || !t.IsVar)
+            .Where(t => (t.File.IsVar && t.File.Var.IsInVaMDir) || !t.File.IsVar)
             .Where(t => t.Missing.Count > 0)
             .ToList();
 
@@ -139,7 +139,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             }
 
             if (bestReference is null && 
-                json.IsVar && _varsByAuthor.TryGetValue(json.Var.Name.Author, out var varFiles) &&
+                json.File.IsVar && _varsByAuthor.TryGetValue(json.File.Var.Name.Author, out var varFiles) &&
                 varFiles.Contains(localReferenceFileName))
             {
                 var varFilesFromTheSameAuthor = varFiles[localReferenceFileName];
@@ -163,7 +163,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             if (bestReference is VarPackageFile varFile)
                 resolvedLocalPath = await CopyVarFile(varFile);
 
-            ApplyFix(jsonData, missing, resolvedLocalPath, json.JsonPathInVar);
+            ApplyFix(jsonData, missing, resolvedLocalPath, json.File.LocalPath);
         }
 
         if(!_context.DryRun)
@@ -172,14 +172,14 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
-        if (json.IsVar)
+        if (json.File.IsVar)
         {
-            await using var varFileStream = File.Open(json.Var.FullPath, FileMode.Open, FileAccess.ReadWrite);
+            await using var varFileStream = File.Open(json.File.Var.FullPath, FileMode.Open, FileAccess.ReadWrite);
             using var varArchive = new ZipArchive(varFileStream, ZipArchiveMode.Update);
-            var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.JsonPathInVar);
+            var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.File.LocalPath);
             jsonEntry.Delete();
 
-            jsonEntry = varArchive.CreateEntry(json.JsonPathInVar, CompressionLevel.Fastest);
+            jsonEntry = varArchive.CreateEntry(json.File.LocalPath, CompressionLevel.Fastest);
             var stream = jsonEntry.Open();
             await using var writer = new StreamWriter(stream, Encoding.UTF8);
             foreach (var s in jsonData)
@@ -189,7 +189,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         }
         else
         {
-            await using var writer = new StreamWriter(json.Free.FullPath, false);
+            await using var writer = new StreamWriter(json.File.Free.FullPath, false);
             foreach (var s in jsonData)
             {
                 await writer.WriteLineAsync(s);
@@ -227,18 +227,18 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             }
         }
 
-        if (json.IsVar)
+        if (json.File.IsVar)
         {
-            await using var varFileStream = File.OpenRead(json.Var.FullPath);
+            await using var varFileStream = File.OpenRead(json.File.Var.FullPath);
             using var varArchive = new ZipArchive(varFileStream);
-            var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.JsonPathInVar);
+            var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.File.LocalPath);
             var stream = jsonEntry.Open();
             using var reader = new StreamReader(stream, Encoding.UTF8);
             await ReadJsonInternal(reader);
         }
         else
         {
-            using var reader = new StreamReader(json.Free.FullPath, Encoding.UTF8);
+            using var reader = new StreamReader(json.File.Free.FullPath, Encoding.UTF8);
             await ReadJsonInternal(reader);
         }
 

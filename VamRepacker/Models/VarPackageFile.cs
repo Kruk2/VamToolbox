@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace VamRepacker.Models;
@@ -11,8 +11,8 @@ public sealed class VarPackageFile : FileReferenceBase
     private readonly List<VarPackageFile> _children = new();
     public override IReadOnlyCollection<VarPackageFile> Children => _children.AsReadOnly();
 
-    public VarPackageFile(string localPath, long size, bool isInVamDir)
-        : base(localPath, size, isInVamDir)
+    public VarPackageFile(string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
+        : base(localPath, size, isInVamDir, modifiedTimestamp)
     {
     }
 
