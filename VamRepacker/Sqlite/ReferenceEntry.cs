@@ -2,7 +2,7 @@
 
 public sealed class ReferenceEntry
 {
-    public string Value { get; init; } = null!;
+    public string? Value { get; init; }
     public int Index { get; init; }
     public int Length { get; init; }
     public string? MorphName { get; set; }

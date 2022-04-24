@@ -60,7 +60,7 @@ public sealed class Database : IDatabase
         _connection.Execute($"Create Table {FilesTable} (" +
                             "Id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
                             "Path TEXT collate nocase NOT NULL," +
-                            "LocalPath TEXT collate nocase," +
+                            "LocalPath TEXT," +
                             "Uuid TEXT collate nocase," +
                             "FileSize integer NOT NULL," +
                             "ModifiedTime integer NOT NULL);");
@@ -124,18 +124,23 @@ public sealed class Database : IDatabase
         await transaction.CommitAsync();
     }
 
-    public (long? size, DateTime? modifiedTime, string? uuid) GetFileInfo(string path, string? localPath)
-    {
-        return _connection.QueryFirstOrDefault<(long?, DateTime?, string?)>(
-            $"select FileSize, ModifiedTime, Uuid from {FilesTable} where Path is @path and LocalPath is @localPath", 
-            new { path, localPath });
-    }
-
     public IEnumerable<ReferenceEntry> ReadReferenceCache()
     {
         return _connection.Query<ReferenceEntry>(
-            $"select file.Path as FilePath, file.LocalPath as LocalPath, ref.Value, ref.[Index], ref.Length, ref.MorphName, ref.InternalId from {RefTable} ref " +
-            $"inner join {FilesTable} file on file.Id = ref.ParentFileId ");
+            $"select file.Path as FilePath, file.LocalPath as LocalPath, ref.Value, ref.[Index], ref.Length, ref.MorphName, ref.InternalId from {FilesTable} file " +
+            $"left join {RefTable} ref on file.Id = ref.ParentFileId ");
+    }
+
+    public IEnumerable<(string fullPath, string localPath, long size, DateTime modifiedTime, string? uuid)> ReadVarFilesCache()
+    {
+        return _connection.Query<(string, string, long, DateTime, string?)>(
+            $"select Path, LocalPath, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is not null");
+    }
+
+    public IEnumerable<(string fullPath, long size, DateTime modifiedTime, string? uuid)> ReadFreeFilesCache()
+    {
+        return _connection.Query<(string, long, DateTime, string?)>(
+            $"select Path, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is null");
     }
 
     public void UpdateReferences(Dictionary<FileReferenceBase, long> batch,  List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles)

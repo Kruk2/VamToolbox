@@ -34,14 +34,17 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private int _scanned;
     private int _totalVarsCount;
     private OperationContext _context = null!;
+    private readonly IDatabase _database;
+    private Dictionary<string, Dictionary<string, (long size, DateTime modifiedTime, string? uuid)>> _uuidCache = null!;
 
-    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, ISoftLinker softLinker)
+    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, ISoftLinker softLinker, IDatabase database)
     {
         _fs = fs;
         _reporter = progressTracker;
         _logger = logger;
         _scope = scope;
         _softLinker = softLinker;
+        _database = database;
     }
 
     public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles)
@@ -114,6 +117,14 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
                 .ToLookup(t => t.FilenameWithoutExt,
                     t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
+
+            _uuidCache = _database.ReadVarFilesCache()
+                .GroupBy(t => t.fullPath, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    t => t.Key, 
+                    t => t.ToDictionary(x => x.localPath, x => (x.size, x.modifiedTime, x.uuid)),
+                    StringComparer.OrdinalIgnoreCase);
+
             return packageFiles;
         });
     }
@@ -184,27 +195,30 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
     private void LookupDirtyPackages(VarPackage varPackage)
     {
-        using var scope = _scope.BeginLifetimeScope();
-        var database = scope.Resolve<IDatabase>();
-
         foreach (var varFile in varPackage.Files
                      .SelectMany(t => t.SelfAndChildren())
                      .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower) && t.FilenameLower != "meta.json"))
         {
-            var (size, timeStamp, uuid) = database.GetFileInfo(varPackage.FullPath, varFile.LocalPath);
-            if (size == null || varFile.Size != size.Value || timeStamp != varFile.ModifiedTimestamp)
+            if (!_uuidCache.TryGetValue(varPackage.FullPath, out var cacheEntry) ||
+                !cacheEntry.TryGetValue(varFile.LocalPath, out var uuidEntry))
+            {
+                varFile.Dirty = true;
+                continue;
+            }
+
+            if (varFile.Size != uuidEntry.size || uuidEntry.modifiedTime != varFile.ModifiedTimestamp)
             {
                 varFile.Dirty = true;
             }
-            else if (!string.IsNullOrEmpty(uuid))
+            else if (!string.IsNullOrEmpty(uuidEntry.uuid))
             {
                 if (varFile.ExtLower == ".vmi")
                 {
-                    varFile.MorphName = uuid;
+                    varFile.MorphName = uuidEntry.uuid;
                 }
                 else if (varFile.ExtLower == ".vam")
                 {
-                    varFile.InternalId = uuid;
+                    varFile.InternalId = uuidEntry.uuid;
                 }
             }
         }

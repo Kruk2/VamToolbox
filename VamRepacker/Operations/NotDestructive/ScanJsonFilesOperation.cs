@@ -45,7 +45,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
-    private ILookup<string, ReferenceEntry> _globalReferenceCache = null!;
+    private Dictionary<string, ILookup<string?, ReferenceEntry>> _globalReferenceCache = null!;
 
     public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IDatabase database)
     {
@@ -90,7 +90,9 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         int progress = 0;
         _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database", forceShow: true));
-        _globalReferenceCache = _database.ReadReferenceCache().ToLookup(t => t.FilePath, StringComparer.OrdinalIgnoreCase);
+        _globalReferenceCache = _database.ReadReferenceCache()
+            .GroupBy(t => t.FilePath, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
 
         foreach (var json in potentialScenes)
         {
@@ -151,18 +153,25 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                          .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
                          .Where(t => !t.Dirty))
             {
-                var references = _globalReferenceCache[varFile.ParentVar.FullPath].Where(t => t.LocalPath == varFile.LocalPath);
-                var mappedReferences = references.Select(t => new Reference(t, varFile)).ToList();
-
-                jsonFile.AddCachedReferences(varFile.LocalPath, mappedReferences);
+                #if DEBUG
+                if(varFile.ParentVar.FullPath.EndsWith("AddonPackages2/other/vamX.1.8.var", StringComparison.OrdinalIgnoreCase) && varFile.LocalPath.Contains("Custom/Scripts/vamX/resources/appearance/Female/Parts/Body 3.json"))
+                    Debug.Write(true);
+                #endif
+                if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath))
+                {
+                    var mappedReferences = references[varFile.LocalPath].Where(x => x.Value is not null).Select(t => new Reference(t, varFile)).ToList();
+                    jsonFile.AddCachedReferences(varFile.LocalPath, mappedReferences);
+                }
             }
         }
         else if(!jsonFile.IsVar && !jsonFile.Free.Dirty)
         {
             var free = jsonFile.Free;
-            var references = _globalReferenceCache[free.FullPath];
-            var mappedReferences = references.Select(t => new Reference(t, free)).ToList();
-            jsonFile.AddCachedReferences(mappedReferences);
+            if (_globalReferenceCache.TryGetValue(free.FullPath, out var references))
+            {
+                var mappedReferences = references[null].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
+                jsonFile.AddCachedReferences(mappedReferences);
+            }
         }
     }
 
@@ -380,7 +389,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             foreach (var reference in openedJson.CachedReferences)
             {
                 #if DEBUG
-                if(openedJson.File.LocalPath.EndsWith("Cherry.json", StringComparison.Ordinal) && reference.Value.Contains("Custom/Atom/Person/Morphs/female/Ren/Nose/Nose Bridge Thin.vmi"))
+                if(openedJson.File.LocalPath.EndsWith("anime dream/anime dream.json", StringComparison.Ordinal) && reference.Value.Contains("Custom/Hair/Female/Supa/Tron/Tron Bun.vam"))
                     Debug.Write(true);
                 #endif
                 (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
@@ -548,26 +557,28 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             throw new VamRepackerException("Invalid displayNameOrUuid");
 
         var matchedAssets = lookup[uuidOrName];
-        if (fallBackResolvedAsset is not null) matchedAssets = Enumerable.Append(matchedAssets, fallBackResolvedAsset).Distinct();
+        if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = Enumerable.Append(matchedAssets, fallBackResolvedAsset);
 
-        if (!matchedAssets.Any())
+        var matchedAsset = matchedAssets.Take(2).ToArray();
+        if (matchedAsset.Length == 0)
             return (null, false);
 
-        if (matchedAssets.Count() == 1)
-            return (new JsonReference(matchedAssets.First(), reference), false);
+        if (matchedAsset.Length == 1)
+            return (new JsonReference(matchedAsset[0], reference), false);
 
         // prefer files inside VAM dir
         if (matchedAssets.Any(t => t.IsInVaMDir))
             matchedAssets = matchedAssets.Where(t => t.IsInVaMDir);
 
-        if (matchedAssets.Count() == 1)
-            return (new JsonReference(matchedAssets.First(), reference), false);
+        matchedAsset = matchedAssets.Take(2).ToArray();
+        if (matchedAsset.Length == 1)
+            return (new JsonReference(matchedAsset[0], reference), false);
         
         // prefer files that are in var we're scanning
-        var anythingFromSourceVar = matchedAssets.Where(t => t is VarPackageFile varFile && varFile.ParentVar == sourceVar);
-        if (anythingFromSourceVar.Any())
+        var anythingFromSourceVar = Enumerable.MinBy(matchedAssets.Where(t => t.Var == sourceVar), t => t.ToString());
+        if (sourceVar is not null && anythingFromSourceVar is not null)
         {
-            return (new JsonReference(anythingFromSourceVar.OrderBy(t => t.ToString()).First(), reference), false);
+            return (new JsonReference(anythingFromSourceVar, reference), false);
         }
 
         _delayedReferencesToResolve.Add((jsonFile, reference, matchedAssets, uuidOrName));

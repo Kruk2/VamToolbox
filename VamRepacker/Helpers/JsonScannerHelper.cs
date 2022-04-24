@@ -52,7 +52,7 @@ public sealed class Reference : IEquatable<Reference>
 
     public Reference(ReferenceEntry referenceEntry, FileReferenceBase fromJsonFile)
     {
-        Value = referenceEntry.Value;
+        Value = referenceEntry.Value!;
         InternalId = referenceEntry.InternalId;
         MorphName = referenceEntry.MorphName;
         Index = referenceEntry.Index;

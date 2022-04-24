@@ -21,7 +21,7 @@ public sealed class PotentialJsonFile : IDisposable
     private FileStream? _varFileStream;
     private ZipArchive? _varArchive;
 
-    private readonly Dictionary<string, List<Reference>> _varFilesReferenceCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Reference>> _varFilesReferenceCache = new(StringComparer.Ordinal);
     private List<Reference>? _freeFileReferenceCache;
     public PotentialJsonFile(VarPackage var) => Var = var;
     public PotentialJsonFile(FreeFile free) => Free = free;
@@ -43,6 +43,7 @@ public sealed class PotentialJsonFile : IDisposable
                 }
                 else
                 {
+                    if (!potentialJsonFile.Dirty) throw new InvalidOperationException($"Tried to read not-dirty var file {potentialJsonFile}");
                     _varFileStream ??= File.OpenRead(Var.FullPath);
                     _varArchive ??= new ZipArchive(_varFileStream);
                     entries ??=_varArchive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
@@ -59,6 +60,7 @@ public sealed class PotentialJsonFile : IDisposable
             }
             else if (KnownNames.IsPotentialJsonFile(Free.ExtLower))
             {
+                if (!Free.Dirty) throw new InvalidOperationException($"Tried to read not-dirty file {Free}");
                 yield return new OpenedPotentialJson(Free) { Stream = File.OpenRead(Free.FullPath) };
             }
         }
