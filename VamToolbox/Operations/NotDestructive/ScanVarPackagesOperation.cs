@@ -164,7 +164,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             }
 
             var softLinkPath = _softLinker.GetSoftLink(varFullPath);
-            var fileInfo = _fs.FileInfo.FromFileName(softLinkPath ?? varFullPath);
+            var fileInfo = softLinkPath != null && _fs.File.Exists(softLinkPath) ? _fs.FileInfo.FromFileName(softLinkPath) : _fs.FileInfo.FromFileName(varFullPath);
             var varPackage = new VarPackage(name, varFullPath, files, isInVamDir, fileInfo.Length);
             files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
             _packages.Add(varPackage);
