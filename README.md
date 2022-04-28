@@ -1,4 +1,4 @@
-# VamRepacker
+# VamToolbox
 The idea behind this program is to have empty ```VAM``` directory, terrabytes of vars in ```REPO``` directory and a defined subset of vars that you want to play with.  
 There are two ways to make it work.   
 
@@ -8,13 +8,13 @@ It will lookup up what files are need to correctly load files you've copied and 
 Second way (more roboust) is to define various profiles.  
 For example you can create profile called "Fav looks" and define it as list of files: ```Niko3dx.Someone.1.var```, ```A1X.Person.2.var``` etc  
 Then you can define profile called ```Kitty mocaps``` and define it as all vars inside ```REPO/KittyMocaps``` directory.  
-You can create as many profiles as you wan (they will be saved in VamRepacker settings).  
+You can create as many profiles as you wan (they will be saved in VamToolbox settings).  
 Then in UI just select profiles you want to soft-link and hit ```Apply profiles``` button. 
 
 ## Technical info
-To make the soft-links working you have to run VamRepacker as admin.
+To make the soft-links working you have to run VamToolbox as admin.
 
-VamRepacker will create local sqlite database to store some information between runs.
+VamToolbox will create local sqlite database to store some information between runs.
 
 Program ignores meta.json file inside vars as they are often incorrect or superfluous. Instead it will read each individual json/preset file inside var to determine it's dependencies.
 
