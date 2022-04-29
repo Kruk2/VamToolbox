@@ -18,7 +18,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
     private readonly IJsonFileParser _jsonFileParser;
-    private readonly IDatabase _database;
+    private readonly IReferenceCacheReader _referenceCacheReader;
     private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
     private readonly ConcurrentBag<string> _errors = new();
     private int _scanned;
@@ -38,15 +38,14 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
-    private Dictionary<string, ILookup<string?, ReferenceEntry>> _globalReferenceCache = null!;
 
-    public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IDatabase database)
+    public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IReferenceCacheReader referenceCacheReader)
     {
         _progressTracker = progressTracker;
         _fs = fs;
         _logger = logger;
         _jsonFileParser = jsonFileParser;
-        _database = database;
+        _referenceCacheReader = referenceCacheReader;
     }
 
     public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles,
@@ -60,7 +59,9 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         _progressTracker.InitProgress("Scanning scenes/presets references");
 
         var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
-        await Task.Run(() => ReadCache(potentialScenes));
+        var (dirtyFreeFiles, dirtyVars) = await _referenceCacheReader.ReadCache(potentialScenes);
+        dirtyFreeFiles.ForEach(t => _queuedFreeFiles.TryAdd(t, true));
+        dirtyVars.ForEach(t => _queuedVars.TryAdd(t, true));
 
         _total = potentialScenes.Count;
         await RunScenesScan(potentialScenes);
@@ -68,7 +69,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         _total = varFiles.Count + freeFiles.Count;
         await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
-        await Task.Run(() => SaveCache(varFiles, freeFiles));
+        await _referenceCacheReader.SaveCache(varFiles, freeFiles);
 
         var missingCount = _jsonFiles.Sum(s => s.Missing.Count);
         var resolvedCount = _jsonFiles.Sum(s => s.References.Count);
@@ -77,95 +78,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         _progressTracker.Complete($"Scanned {_scanned} json files for references. Found {missingCount} missing and {resolvedCount} resolved references.\r\nTook {stopWatch.Elapsed:hh\\:mm\\:ss}");
         return scenes;
-    }
-
-    private void ReadCache(List<PotentialJsonFile> potentialScenes)
-    {
-        int progress = 0;
-        _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database", forceShow: true));
-        _globalReferenceCache = _database.ReadReferenceCache()
-            .GroupBy(t => t.FilePath, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
-
-        foreach (var json in potentialScenes)
-        {
-            if (json.IsVar && _queuedVars.TryAdd(json.Var, true))
-            {
-                ReadReferenceCache(json);
-            }
-            else if (!json.IsVar && _queuedFreeFiles.TryAdd(json.Free, true))
-            {
-                ReadReferenceCache(json);
-            }
-
-            _progressTracker.Report(new ProgressInfo(progress++, potentialScenes.Count, "Reading cache: " + (json.IsVar ? json.Var.ToString() : json.Free.ToString())));
-        }
-    }
-
-    private void SaveCache(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
-    {
-        _progressTracker.Report("Generating cache", forceShow: true);
-
-        var progress = 0;
-        var jsonFilesFromFreeFiles = freeFiles
-            .SelectMany(t => t.SelfAndChildren())
-            .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty);
-        var jsonFilesFromVars = varFiles.SelectMany(t => t.Files)
-            .SelectMany(t => t.SelfAndChildren())
-            .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty); // ugly, forces to save cache for internalId/morphName
-
-        var jsonFiles = jsonFilesFromVars.Cast<FileReferenceBase>().Concat(jsonFilesFromFreeFiles).ToList();
-        var total = jsonFiles.Count + jsonFiles.Count;
-
-        var bulkInsertFiles = new Dictionary<FileReferenceBase, long>();
-        var bulkInsertReferences = new List<(FileReferenceBase file, IEnumerable<Reference> references)>();
-
-        foreach (var file in jsonFiles)
-        {
-            bulkInsertFiles[file] = 0;
-            if (file.JsonFile is not null)
-            {
-                var references = file.JsonFile.References.Select(t => t.Reference).Concat(file.JsonFile.Missing);
-                bulkInsertReferences.Add((file, references));
-            }
-            _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {file.LocalPath}"));
-        }
-
-        _progressTracker.Report("Saving file cache", forceShow: true);
-        _database.SaveFiles(bulkInsertFiles);
-        _progressTracker.Report("Saving references cache", forceShow: true);
-        _database.UpdateReferences(bulkInsertFiles, bulkInsertReferences);
-    }
-
-    private void ReadReferenceCache(PotentialJsonFile jsonFile)
-    {
-        if (jsonFile.IsVar)
-        {
-            foreach (var varFile in jsonFile.Var.Files
-                         .SelectMany(t => t.SelfAndChildren())
-                         .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
-                         .Where(t => !t.Dirty))
-            {
-                #if DEBUG
-                if(varFile.ParentVar.FullPath.EndsWith("AddonPackages2/other/vamX.1.8.var", StringComparison.OrdinalIgnoreCase) && varFile.LocalPath.Contains("Custom/Scripts/vamX/resources/appearance/Female/Parts/Body 3.json"))
-                    Debug.Write(true);
-                #endif
-                if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath))
-                {
-                    var mappedReferences = references[varFile.LocalPath].Where(x => x.Value is not null).Select(t => new Reference(t, varFile)).ToList();
-                    jsonFile.AddCachedReferences(varFile.LocalPath, mappedReferences);
-                }
-            }
-        }
-        else if(!jsonFile.IsVar && !jsonFile.Free.Dirty)
-        {
-            var free = jsonFile.Free;
-            if (_globalReferenceCache.TryGetValue(free.FullPath, out var references))
-            {
-                var mappedReferences = references[null].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
-                jsonFile.AddCachedReferences(mappedReferences);
-            }
-        }
     }
 
     private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles, IVarFilters? varFilters)
@@ -254,7 +166,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                     .ToList();
 
                 foreach (var potentialJsonFile in json)
-                    ReadReferenceCache(potentialJsonFile);
+                    _referenceCacheReader.ReadReferenceCache(potentialJsonFile);
 
                 _total += json.Count;
                 _queueFree.Clear();

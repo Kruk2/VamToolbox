@@ -64,6 +64,7 @@ static class Program
         builder.RegisterType<PreviewGrouper>().As<IPreviewGrouper>();
         builder.RegisterType<ScriptGrouper>().As<IScriptGrouper>();
         builder.RegisterType<JsonUpdater>().As<IJsonUpdater>();
+        builder.RegisterType<ReferenceCacheReader>().As<IReferenceCacheReader>();
 
 
         var assembly = typeof(ScanVarPackagesOperation).Assembly;
