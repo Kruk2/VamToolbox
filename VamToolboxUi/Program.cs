@@ -66,7 +66,7 @@ static class Program
         builder.RegisterType<ScriptGrouper>().As<IScriptGrouper>();
         builder.RegisterType<JsonUpdater>().As<IJsonUpdater>();
         builder.RegisterType<ReferenceCacheReader>().As<IReferenceCacheReader>();
-
+        builder.RegisterType<UuidReferencesResolver>().As<IUuidReferenceResolver>();
 
         var assembly = typeof(ScanVarPackagesOperation).Assembly;
         builder

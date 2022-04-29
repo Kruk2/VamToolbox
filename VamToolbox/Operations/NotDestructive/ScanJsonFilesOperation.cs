@@ -3,12 +3,11 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Threading.Tasks.Dataflow;
 using MoreLinq;
+using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
-using VamToolbox.Operations.Repo;
-using VamToolbox.Sqlite;
 
 namespace VamToolbox.Operations.NotDestructive;
 
@@ -19,6 +18,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly ILogger _logger;
     private readonly IJsonFileParser _jsonFileParser;
     private readonly IReferenceCacheReader _referenceCacheReader;
+    private readonly IUuidReferenceResolver _uuidReferenceResolver;
     private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
     private readonly ConcurrentBag<string> _errors = new();
     private int _scanned;
@@ -26,30 +26,25 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
     private ILookup<string, FreeFile> _freeFilesIndex = null!;
     private ILookup<string, VarPackage> _varFilesIndex = null!;
-    private ILookup<string, FileReferenceBase> _vamFilesById = null!;
-    private ILookup<string, FileReferenceBase> _morphFilesByName = null!;
-
-    private readonly ConcurrentDictionary<VarPackage, bool> _queuedVars = new();
-    private readonly ConcurrentDictionary<FreeFile, bool> _queuedFreeFiles = new();
-    private readonly ConcurrentBag<VarPackage> _queueVars = new();
-    private readonly ConcurrentBag<FreeFile> _queueFree = new();
-
     private OperationContext _context = null!;
-    private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
-    private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
-    private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
 
-    public ScanJsonFilesOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger, IJsonFileParser jsonFileParser, IReferenceCacheReader referenceCacheReader)
+    public ScanJsonFilesOperation(
+        IProgressTracker progressTracker, 
+        IFileSystem fs, 
+        ILogger logger, 
+        IJsonFileParser jsonFileParser, 
+        IReferenceCacheReader referenceCacheReader,
+        IUuidReferenceResolver uuidReferenceResolver)
     {
         _progressTracker = progressTracker;
         _fs = fs;
         _logger = logger;
         _jsonFileParser = jsonFileParser;
         _referenceCacheReader = referenceCacheReader;
+        _uuidReferenceResolver = uuidReferenceResolver;
     }
 
-    public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles,
-        IList<VarPackage> varFiles, IVarFilters? varFilters = null)
+    public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -58,14 +53,11 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await _logger.Init("scan_json_files.log");
         _progressTracker.InitProgress("Scanning scenes/presets references");
 
-        var potentialScenes = await InitLookups(varFiles, freeFiles, varFilters);
-        var (dirtyFreeFiles, dirtyVars) = await _referenceCacheReader.ReadCache(potentialScenes);
-        dirtyFreeFiles.ForEach(t => _queuedFreeFiles.TryAdd(t, true));
-        dirtyVars.ForEach(t => _queuedVars.TryAdd(t, true));
+        var potentialScenes = await InitLookups(varFiles, freeFiles);
+        await _referenceCacheReader.ReadCache(potentialScenes);
 
         _total = potentialScenes.Count;
         await RunScenesScan(potentialScenes);
-        await Task.Run(async () => await RunDeepScan());
 
         _total = varFiles.Count + freeFiles.Count;
         await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
@@ -80,23 +72,22 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         return scenes;
     }
 
-    private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles, IVarFilters? varFilters)
+    private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
+        await _uuidReferenceResolver.InitLookups(freeFiles, varFiles);
+
         return await Task.Run(() =>
         {
             var varFilesWithScene = varFiles
-                .Where(t => (varFilters != null && varFilters.Matches(t.FullPath)) || varFilters is null)
                 .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
                     .Any(x => x.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(x.ExtLower)));
 
             _freeFilesIndex = freeFiles
                 .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
             _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
-            InitVamFilesById(freeFiles, varFiles);
-            InitMorphNames(freeFiles, varFiles);
+            
 
             return freeFiles
-                .Where(_ => varFilters is null)
                 .SelectMany(x => x.SelfAndChildren())
                 .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower))
                 .Select(t => new PotentialJsonFile(t))
@@ -104,8 +95,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 .ToList();
         });
     }
-
-        
 
     private async Task CalculateDeps(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
@@ -130,52 +119,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await depScanBlock.Completion;
     }
 
-    private void InitVamFilesById(IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
-    {
-        var vamFilesFromVars = varFiles
-            .SelectMany(t => t.Files.Where(x => x.InternalId != null));
-
-        _vamFilesById = vamFilesFromVars.Cast<FileReferenceBase>()
-            .Concat(freeFiles.Where(t => t.InternalId != null))
-            .Where(t => KnownNames.HairClothDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
-            .ToLookup(t => t.InternalId!);
-    }
-
-    private void InitMorphNames(IEnumerable<FreeFile> freeFiles, IList<VarPackage> varFiles)
-    {
-        var morphFilesFromVars = varFiles
-            .SelectMany(t => t.Files.Where(x => x.MorphName != null));
-
-        _morphFilesByName = freeFiles
-            .Where(t => t.MorphName != null &&
-                        KnownNames.MorphDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
-            .Cast<FileReferenceBase>()
-            .Concat(morphFilesFromVars)
-            .ToLookup(t => t.MorphName!);
-    }
-
-    private async Task RunDeepScan()
-    {
-        do
-        {
-            while (!_queueFree.IsEmpty || !_queueVars.IsEmpty)
-            {
-                var json = _queueVars.Distinct()
-                    .Select(t => new PotentialJsonFile(t))
-                    .Concat(_queueFree.Distinct().Select(t => new PotentialJsonFile(t)))
-                    .ToList();
-
-                foreach (var potentialJsonFile in json)
-                    _referenceCacheReader.ReadReferenceCache(potentialJsonFile);
-
-                _total += json.Count;
-                _queueFree.Clear();
-                _queueVars.Clear();
-                await RunScenesScan(json);
-            }
-        } while (await ResolveDelayedReferences());
-    }
-
     private async Task RunScenesScan(IEnumerable<PotentialJsonFile> potentialScenes)
     {
         var scanSceneBlock = new ActionBlock<PotentialJsonFile>(
@@ -192,6 +135,8 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         scanSceneBlock.Complete();
         await scanSceneBlock.Completion;
+
+        await _uuidReferenceResolver.ResolveDelayedReferences();
     }
 
     private static string MigrateLegacyPaths(string refPath)
@@ -389,8 +334,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             openedJson.File.JsonFile = jsonFile;
         }
 
-        QueueReferences(jsonFile.References);
-
         (Reference? nextScanForUuidOrMorphName, JsonReference? jsonReference) ProcessJsonReference(Reference reference)
         {
             JsonReference? jsonReference = null;
@@ -424,7 +367,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessMorphReference(Reference morphReference)
         {
-            var (jsonReferenceByMorphName, delayedReference) = MatchMorphJsonReferenceByName(jsonFile, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceByMorphName, delayedReference) = _uuidReferenceResolver.MatchMorphJsonReferenceByName(jsonFile, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceByMorphName != null)
                 jsonFile.AddReference(jsonReferenceByMorphName);
             else if (!delayedReference)
@@ -435,175 +378,13 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessVamReference(Reference vamReference)
         {
-            var (jsonReferenceById, delayedReference) = MatchVamJsonReferenceById(jsonFile, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceById, delayedReference) = _uuidReferenceResolver.MatchVamJsonReferenceById(jsonFile, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
             if (jsonReferenceById != null)
                 jsonFile.AddReference(jsonReferenceById);
             else if (!delayedReference)
                 jsonFile.AddMissingReference(vamReference);
             else
                 hasDelayedReferences = true;
-        }
-    }
-
-    private (JsonReference?, bool) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
-    {
-        return MatchAssetByUuidOrName(jsonFile, reference.InternalId, reference, _vamFilesById, sourceVar, fallBackResolvedAsset);
-    }
-
-    private (JsonReference?, bool) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
-    {
-        return MatchAssetByUuidOrName(jsonFile, reference.MorphName, reference, _morphFilesByName, sourceVar, fallBackResolvedAsset);
-    }
-
-    private (JsonReference?, bool hasDelayed) MatchAssetByUuidOrName(JsonFile jsonFile, string? uuidOrName,
-        Reference reference, ILookup<string, FileReferenceBase> lookup, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
-    {
-        if (string.IsNullOrWhiteSpace(uuidOrName))
-            throw new VamToolboxException("Invalid displayNameOrUuid");
-
-        var matchedAssets = lookup[uuidOrName];
-        if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = Enumerable.Append(matchedAssets, fallBackResolvedAsset);
-
-        var matchedAsset = matchedAssets.Take(2).ToArray();
-        if (matchedAsset.Length == 0)
-            return (null, false);
-
-        if (matchedAsset.Length == 1)
-            return (new JsonReference(matchedAsset[0], reference), false);
-
-        // prefer files inside VAM dir
-        if (matchedAssets.Any(t => t.IsInVaMDir))
-            matchedAssets = matchedAssets.Where(t => t.IsInVaMDir);
-
-        matchedAsset = matchedAssets.Take(2).ToArray();
-        if (matchedAsset.Length == 1)
-            return (new JsonReference(matchedAsset[0], reference), false);
-        
-        // prefer files that are in var we're scanning
-        var anythingFromSourceVar = Enumerable.MinBy(matchedAssets.Where(t => t.Var == sourceVar), t => t.ToString());
-        if (sourceVar is not null && anythingFromSourceVar is not null)
-        {
-            return (new JsonReference(anythingFromSourceVar, reference), false);
-        }
-
-        _delayedReferencesToResolve.Add((jsonFile, reference, matchedAssets, uuidOrName));
-
-        return (null, true);
-    }
-
-    private Task<bool> ResolveDelayedReferences()
-    {
-        return Task.Run(() =>
-        {
-            if (_delayedReferencesToResolve.IsEmpty)
-                return false;
-
-            var createdReferences = new List<JsonReference>(_delayedReferencesToResolve.Count);
-            foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve)
-            {
-                var isVam = reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase);
-
-                void AddJsonReference(JsonReference referenceToAdd)
-                {
-                    jsonFile.AddReference(referenceToAdd);
-                }
-
-                void AddReference(FileReferenceBase fileToAdd)
-                {
-                    var referenceToAdd = new JsonReference(fileToAdd, reference);
-                    AddJsonReference(referenceToAdd);
-                }
-
-                if (isVam && _cachedDeleyedVam.TryGetValue(uuidOrName, out var cachedReference))
-                {
-                    AddReference(cachedReference);
-                    continue;
-                }
-
-                if (!isVam && _cachedDeleyedMorphs.TryGetValue(uuidOrName, out var cachedMorphReference))
-                {
-                    AddReference(cachedMorphReference);
-                    continue;
-                }
-
-                // prefer vars/json with least dependencies outside vam folder
-                var objectsWithDependencies = matchedAssets
-                    .Select(t => t is VarPackageFile varFile ? varFile.ParentVar : (IVamObjectWithDependencies)t)
-                    .ToList();
-
-                objectsWithDependencies.ForEach(t => _ = t.TrimmedResolvedVarDependencies);
-
-                var dependenciesCount = objectsWithDependencies.Select(t =>
-                    t.TrimmedResolvedVarDependencies.Count(t => !t.IsInVaMDir) + t.TrimmedResolvedFreeDependencies.Count(t => !t.IsInVaMDir));
-                var minCount = dependenciesCount.Min();
-                if (dependenciesCount.All(t => t == 0))
-                {
-                    // if they are all 0 then prefer min dependencies overall
-                    dependenciesCount = objectsWithDependencies.Select(t =>
-                        t.TrimmedResolvedVarDependencies.Count + t.TrimmedResolvedFreeDependencies.Count);
-                    minCount = dependenciesCount.Min();
-                }
-
-                var zipped = matchedAssets.Zip(dependenciesCount);
-
-                var bestMatches = zipped.Where(t => t.Second == minCount).Select(t => t.First);
-                FileReferenceBase bestMatch;
-
-                if (bestMatches.Count() == 1)
-                {
-                    bestMatch = bestMatches.First();
-                }
-                else
-                {
-                    var byMostUsedFile = MoreLinq.MoreEnumerable.MaxBy(bestMatches, t => t.UsedByVarPackagesOrFreeFilesCount);
-                    var bySmallestSize = MoreLinq.MoreEnumerable.MinBy(byMostUsedFile,
-                        t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren);
-                    bestMatch = bySmallestSize.OrderBy(t => t.ToString()).First();
-                }
-
-                AddReference(bestMatch);
-
-                if (isVam)
-                    _cachedDeleyedVam[uuidOrName] = bestMatch;
-                else
-                    _cachedDeleyedMorphs[uuidOrName] = bestMatch;
-            }
-
-            QueueReferences(createdReferences);
-            _delayedReferencesToResolve.Clear();
-            return true;
-        });
-    }
-
-    private void QueueReferences(IReadOnlyCollection<JsonReference> references)
-    {
-        var referencedVars = references
-            .Where(t => t.IsVarReference)
-            .SelectMany(t => t.VarFile!.SelfAndChildren())
-            .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower))
-            .Select(t => t.ParentVar);
-
-        var referencedFreeFiles = references
-            .Where(t => !t.IsVarReference)
-            .SelectMany(t => t.FreeFile!.SelfAndChildren())
-            .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower));
-
-        foreach (var referencedVar in referencedVars)
-        {
-            if (_queuedVars.TryAdd(referencedVar, true))
-            {
-                _queueVars.Add(referencedVar);
-                referencedVar.ClearDependencies();
-            }
-        }
-
-        foreach (var referencedFreeFile in referencedFreeFiles)
-        {
-            if (_queuedFreeFiles.TryAdd(referencedFreeFile, true))
-            {
-                _queueFree.Add(referencedFreeFile);
-                referencedFreeFile.ClearDependencies();
-            }
         }
     }
 
@@ -703,6 +484,5 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
 public interface IScanJsonFilesOperation : IOperation
 {
-    Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles,
-        IList<VarPackage> varFiles, IVarFilters? varFilters = null);
+    Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles);
 }

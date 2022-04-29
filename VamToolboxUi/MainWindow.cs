@@ -100,7 +100,7 @@ public partial class MainWindow : Form, IProgressTracker
         var ctx = GetContext(stages: 5);
         await using var scope = _ctx.BeginLifetimeScope();
         await RemoveOldLinks(scope, ctx);
-        var (vars, _) = await ScanJsonFiles(scope, ctx, BuildFilters());
+        var (vars, _) = await ScanJsonFiles(scope, ctx);
         await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
             .ExecuteAsync(ctx, vars, BuildFilters());
 
@@ -386,10 +386,10 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters? filters = null)
+    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx)
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
-        await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);
+        await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars);
         
         return (vars, freeFiles);
     }

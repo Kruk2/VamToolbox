@@ -246,6 +246,7 @@ namespace VamToolboxUi
             this.groupBox3.Controls.Add(this.profilesListBox);
             this.groupBox3.Controls.Add(this.manageProfilesBtn);
             this.groupBox3.Controls.Add(this.copyVarsFromRepoBtn);
+            this.groupBox3.Enabled = false;
             this.groupBox3.Location = new System.Drawing.Point(3, 276);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(337, 155);

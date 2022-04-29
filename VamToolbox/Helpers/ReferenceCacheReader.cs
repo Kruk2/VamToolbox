@@ -9,7 +9,7 @@ namespace VamToolbox.Helpers;
 public interface IReferenceCacheReader
 {
     Task SaveCache(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles);
-    Task<(ICollection<FreeFile> queuedFreeFiles, ICollection<VarPackage> queuedVars)> ReadCache(List<PotentialJsonFile> potentialScenes);
+    Task ReadCache(List<PotentialJsonFile> potentialScenes);
     void ReadReferenceCache(PotentialJsonFile potentialJsonFile);
 }
 
@@ -25,52 +25,51 @@ public class ReferenceCacheReader : IReferenceCacheReader
         _progressTracker = progressTracker;
     }
 
-    public Task SaveCache(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles)
+    public Task SaveCache(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles) => Task.Run(() => SaveCacheSync(varFiles, freeFiles));
+
+    private void SaveCacheSync(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles)
     {
-        return Task.Run(() =>
+        _progressTracker.Report("Generating cache", forceShow: true);
+
+        var progress = 0;
+        var jsonFilesFromFreeFiles = freeFiles
+            .SelectMany(t => t.SelfAndChildren())
+            .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty);
+        var jsonFilesFromVars = varFiles.SelectMany(t => t.Files)
+            .SelectMany(t => t.SelfAndChildren())
+            .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty); // ugly, forces to save cache for internalId/morphName
+
+        var jsonFiles = jsonFilesFromVars.Cast<FileReferenceBase>().Concat(jsonFilesFromFreeFiles).ToList();
+        var total = jsonFiles.Count + jsonFiles.Count;
+
+        var bulkInsertFiles = new Dictionary<FileReferenceBase, long>();
+        var bulkInsertReferences = new List<(FileReferenceBase file, IEnumerable<Reference> references)>();
+
+        foreach (var file in jsonFiles)
         {
-            _progressTracker.Report("Generating cache", forceShow: true);
-
-            var progress = 0;
-            var jsonFilesFromFreeFiles = freeFiles
-                .SelectMany(t => t.SelfAndChildren())
-                .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty);
-            var jsonFilesFromVars = varFiles.SelectMany(t => t.Files)
-                .SelectMany(t => t.SelfAndChildren())
-                .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty); // ugly, forces to save cache for internalId/morphName
-
-            var jsonFiles = jsonFilesFromVars.Cast<FileReferenceBase>().Concat(jsonFilesFromFreeFiles).ToList();
-            var total = jsonFiles.Count + jsonFiles.Count;
-
-            var bulkInsertFiles = new Dictionary<FileReferenceBase, long>();
-            var bulkInsertReferences = new List<(FileReferenceBase file, IEnumerable<Reference> references)>();
-
-            foreach (var file in jsonFiles)
+            bulkInsertFiles[file] = 0;
+            if (file.JsonFile is not null)
             {
-                bulkInsertFiles[file] = 0;
-                if (file.JsonFile is not null)
-                {
-                    var references = file.JsonFile.References.Select(t => t.Reference).Concat(file.JsonFile.Missing);
-                    bulkInsertReferences.Add((file, references));
-                }
-
-                _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {file.LocalPath}"));
+                var references = file.JsonFile.References.Select(t => t.Reference).Concat(file.JsonFile.Missing);
+                bulkInsertReferences.Add((file, references));
             }
 
-            _progressTracker.Report("Saving file cache", forceShow: true);
-            _database.SaveFiles(bulkInsertFiles);
-            _progressTracker.Report("Saving references cache", forceShow: true);
-            _database.UpdateReferences(bulkInsertFiles, bulkInsertReferences);
-        });
+            _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref progress), total, $"Caching {file.LocalPath}"));
+        }
+
+        _progressTracker.Report("Saving file cache", forceShow: true);
+        _database.SaveFiles(bulkInsertFiles);
+        _progressTracker.Report("Saving references cache", forceShow: true);
+        _database.UpdateReferences(bulkInsertFiles, bulkInsertReferences);
     }
 
-    public Task<(ICollection<FreeFile> queuedFreeFiles, ICollection<VarPackage> queuedVars)> ReadCache(List<PotentialJsonFile> potentialScenes) => Task.Run(() => ReadCacheSync(potentialScenes));
+    public Task ReadCache(List<PotentialJsonFile> potentialScenes) => Task.Run(() => ReadCacheSync(potentialScenes));
 
-    public (ICollection<FreeFile> queuedFreeFiles, ICollection<VarPackage> queuedVars) ReadCacheSync(List<PotentialJsonFile> potentialScenes)
+    public void ReadCacheSync(List<PotentialJsonFile> potentialScenes)
     {
         var progress = 0;
-        HashSet<VarPackage> queuedVars = new();
-        HashSet<FreeFile> queuedFreeFiles = new();
+        HashSet<VarPackage> processedVars = new();
+        HashSet<FreeFile> processedFreeFiles = new();
 
         _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database", forceShow: true));
 
@@ -82,16 +81,14 @@ public class ReferenceCacheReader : IReferenceCacheReader
         {
             switch (json.IsVar)
             {
-                case true when queuedVars.Add(json.Var):
-                case false when queuedFreeFiles.Add(json.Free):
+                case true when processedVars.Add(json.Var):
+                case false when processedFreeFiles.Add(json.Free):
                     ReadReferenceCache(json);
                     break;
             }
 
             _progressTracker.Report(new ProgressInfo(progress++, potentialScenes.Count, "Reading cache: " + (json.IsVar ? json.Var.ToString() : json.Free.ToString())));
         }
-
-        return (queuedFreeFiles, queuedVars);
     }
 
     public void ReadReferenceCache(PotentialJsonFile potentialJsonFile)
