@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using Autofac;
+using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;

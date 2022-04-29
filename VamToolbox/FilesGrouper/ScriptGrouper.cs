@@ -1,8 +1,9 @@
 ﻿using System.IO.Abstractions;
+using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 
-namespace VamToolbox.Helpers;
+namespace VamToolbox.FilesGrouper;
 
 public interface IScriptGrouper
 {

@@ -6,6 +6,7 @@ using System.Threading.Tasks.Dataflow;
 using Autofac;
 using MoreLinq;
 using Newtonsoft.Json;
+using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;

@@ -1,4 +1,4 @@
-﻿namespace VamToolbox.Helpers;
+﻿namespace VamToolbox;
 
 public static class KnownNames
 {
