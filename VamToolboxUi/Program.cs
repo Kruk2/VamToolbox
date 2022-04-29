@@ -67,6 +67,7 @@ static class Program
         builder.RegisterType<JsonUpdater>().As<IJsonUpdater>();
         builder.RegisterType<ReferenceCacheReader>().As<IReferenceCacheReader>();
         builder.RegisterType<UuidReferencesResolver>().As<IUuidReferenceResolver>();
+        builder.RegisterType<ReferencesResolver>().As<IReferencesResolver>();
 
         var assembly = typeof(ScanVarPackagesOperation).Assembly;
         builder

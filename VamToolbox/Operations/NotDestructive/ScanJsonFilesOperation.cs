@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Threading.Tasks.Dataflow;
-using MoreLinq;
 using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
@@ -19,13 +18,12 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly IJsonFileParser _jsonFileParser;
     private readonly IReferenceCacheReader _referenceCacheReader;
     private readonly IUuidReferenceResolver _uuidReferenceResolver;
+    private readonly IReferencesResolver _referencesResolver;
     private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
     private readonly ConcurrentBag<string> _errors = new();
     private int _scanned;
     private int _total;
 
-    private ILookup<string, FreeFile> _freeFilesIndex = null!;
-    private ILookup<string, VarPackage> _varFilesIndex = null!;
     private OperationContext _context = null!;
 
     public ScanJsonFilesOperation(
@@ -34,7 +32,8 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         ILogger logger, 
         IJsonFileParser jsonFileParser, 
         IReferenceCacheReader referenceCacheReader,
-        IUuidReferenceResolver uuidReferenceResolver)
+        IUuidReferenceResolver uuidReferenceResolver,
+        IReferencesResolver referencesResolver)
     {
         _progressTracker = progressTracker;
         _fs = fs;
@@ -42,6 +41,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         _jsonFileParser = jsonFileParser;
         _referenceCacheReader = referenceCacheReader;
         _uuidReferenceResolver = uuidReferenceResolver;
+        _referencesResolver = referencesResolver;
     }
 
     public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
@@ -66,7 +66,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         var missingCount = _jsonFiles.Sum(s => s.Missing.Count);
         var resolvedCount = _jsonFiles.Sum(s => s.References.Count);
         var scenes = _jsonFiles.OrderBy(s => s.ToString()).ToList();
-        await Task.Run(() => PrintWarnings(scenes));
+        await Task.Run(() => PrintWarnings(scenes, varFiles));
 
         _progressTracker.Complete($"Scanned {_scanned} json files for references. Found {missingCount} missing and {resolvedCount} resolved references.\r\nTook {stopWatch.Elapsed:hh\\:mm\\:ss}");
         return scenes;
@@ -75,17 +75,14 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private async Task<List<PotentialJsonFile>> InitLookups(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
         await _uuidReferenceResolver.InitLookups(freeFiles, varFiles);
+        await _referencesResolver.InitLookups(freeFiles, varFiles, _errors);
 
         return await Task.Run(() =>
         {
+
             var varFilesWithScene = varFiles
                 .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
                     .Any(x => x.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(x.ExtLower)));
-
-            _freeFilesIndex = freeFiles
-                .ToLookup(f => f.LocalPath, f => f, StringComparer.InvariantCultureIgnoreCase);
-            _varFilesIndex = varFiles.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.InvariantCultureIgnoreCase);
-            
 
             return freeFiles
                 .SelectMany(x => x.SelfAndChildren())
@@ -139,16 +136,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await _uuidReferenceResolver.ResolveDelayedReferences();
     }
 
-    private static string MigrateLegacyPaths(string refPath)
-    {
-        if (refPath.StartsWith(@"Saves\Scripts\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Scripts\", refPath.AsSpan(@"Saves\Scripts\".Length));
-        if (refPath.StartsWith(@"Saves\Assets\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Assets\", refPath.AsSpan(@"Saves\Assets\".Length));
-        if (refPath.StartsWith(@"Import\morphs\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Atom\Person\Morphs\", refPath.AsSpan(@"Import\morphs\".Length));
-        if (refPath.StartsWith(@"Textures\", StringComparison.OrdinalIgnoreCase)) return string.Concat(@"Custom\Atom\Person\Textures\", refPath.AsSpan(@"Textures\".Length));
-        return refPath;
-    }
-
-    private void PrintWarnings(List<JsonFile> scenes)
+    private void PrintWarnings(List<JsonFile> scenes, IList<VarPackage> varPackages)
     {
         _progressTracker.Report("Saving logs", forceShow: true);
 
@@ -159,6 +147,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 VarPackageName.TryGet(t.Key + ".var", out var x);
                 return (fromJsonFiles: t.Select(y => y.FromJsonFile).Distinct().ToList(), VarName: x, t.Key);
             });
+        var varIndex = varPackages.Select(t => t.Name.PackageNameWithoutVersion).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         _logger.Log("Missing vars:");
         foreach (var (jsonFiles, varName, key) in uniqueMissingVars.OrderBy(t => t.VarName?.Filename ?? string.Empty))
@@ -168,7 +157,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 _logger.Log($"Unable to parse: {key} from " + string.Join(" AND ", jsonFiles));
                 continue;
             }
-            if (!_varFilesIndex.Contains(varName.PackageNameWithoutVersion))
+            if (!varIndex.Contains(varName.PackageNameWithoutVersion))
             {
                 _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
                 continue;
@@ -176,21 +165,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             if (varName.Version == -1)
                 continue;
 
-            VarPackage? matchingVar;
-            if (varName.MinVersion)
-            {
-                matchingVar = MoreEnumerable.MaxBy(_varFilesIndex[varName.PackageNameWithoutVersion]
-                    .Where(t => t.Name.Version >= varName.Version), t => t.Name.Version)
-                    .First();
-            }
-            else
-            {
-                matchingVar = _varFilesIndex[varName.PackageNameWithoutVersion]
-                    .FirstOrDefault(t => t.Name.Version == varName.Version);
-            }
-
-            if (matchingVar is null)
-                _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
+            _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
         }
 
         _logger.Log("");
@@ -339,17 +314,17 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             JsonReference? jsonReference = null;
             if (reference.Value.Contains(':'))
             {
-                jsonReference = ScanPackageSceneReference(potentialJson, reference, reference.Value, localSavesFolder);
+                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, reference.Value, localSavesFolder);
             }
 
             if (jsonReference == null && (!reference.Value.Contains(':') ||
                                           (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal))))
             {
-                jsonReference = ScanFreeFileSceneReference(localSavesFolder, reference);
+                jsonReference = _referencesResolver.ScanFreeFileSceneReference(localSavesFolder, reference);
                 // it can be inside scene in var
                 if (jsonReference == default && potentialJson.IsVar)
                 {
-                    jsonReference = ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localSavesFolder);
+                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localSavesFolder);
                 }
             }
 
@@ -386,99 +361,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             else
                 hasDelayedReferences = true;
         }
-    }
-
-    private JsonReference? ScanFreeFileSceneReference(string? localSceneFolder, Reference reference)
-    {
-        if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:", StringComparison.Ordinal))
-            throw new VamToolboxException($"{reference.FromJsonFile} {reference.Value} refers to var but processing free file reference");
-
-        var refPath = reference.Value.Split(':').Last();
-        refPath = refPath.NormalizeAssetPath();
-        refPath = MigrateLegacyPaths(refPath);
-        // searching in localSceneFolder for var json files is handled in ScanPackageSceneReference
-        if (!reference.FromJsonFile.IsVar && localSceneFolder is not null && _freeFilesIndex[_fs.Path.Combine(localSceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any())
-        {
-            f1 = f1.OrderByDescending(t => t.UsedByVarPackagesOrFreeFilesCount).ThenBy(t => t.FullPath);
-            var x = f1.FirstOrDefault(t => t.IsInVaMDir) ?? f1.First();
-            return new JsonReference(x, reference);
-        }
-        if (_freeFilesIndex[refPath] is var f2 && f2.Any())
-        {
-            f2 = f2.OrderByDescending(t => t.UsedByVarPackagesOrFreeFilesCount).ThenBy(t => t.FullPath);
-            var x = f2.FirstOrDefault(t => t.IsInVaMDir) ?? f2.First();
-            return new JsonReference(x, reference);
-        }
-
-        return default;
-    }
-
-    private JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string? localSceneFolder)
-    {
-        var refPathSplit = refPath.Split(':');
-        var assetName = refPathSplit[1];
-
-        VarPackage? varToSearch = null;
-        if (refPathSplit[0] == "SELF")
-        {
-            if (!potentialJson.IsVar)
-                return default;
-
-            varToSearch = potentialJson.Var;
-        }
-        else
-        {
-            if (!VarPackageName.TryGet(refPathSplit[0] + ".var", out var varFile))
-            {
-                _errors.Add($"[INTERNAL-ERROR] {refPath} was neither a SELF reference or VAR in {potentialJson}");
-                return default;
-            }
-
-            if (!_varFilesIndex.Contains(varFile.PackageNameWithoutVersion))
-            {
-                return default;
-            }
-
-            if (varFile.Version == -1)
-            {
-                varToSearch = MoreEnumerable.MaxBy(_varFilesIndex[varFile.PackageNameWithoutVersion], t => t.Name.Version).First();
-            }
-            else if (varFile.MinVersion)
-            {
-                varToSearch = MoreEnumerable.MaxBy(_varFilesIndex[varFile.PackageNameWithoutVersion]
-                    .Where(t => t.Name.Version >= varFile.Version), t => t.Name.Version).First();
-            }
-            else
-            {
-                varToSearch = _varFilesIndex[varFile.PackageNameWithoutVersion]
-                    .FirstOrDefault(t => t.Name.Version == varFile.Version);
-            }
-        }
-
-        if (varToSearch != null)
-        {
-            var varAssets = varToSearch.FilesDict;
-            assetName = assetName.NormalizeAssetPath();
-            assetName = MigrateLegacyPaths(assetName);
-
-            if (potentialJson.Var == varToSearch && localSceneFolder is not null)
-            {
-                var refInScene = _fs.Path.Combine(localSceneFolder, assetName).NormalizePathSeparators();
-                if (varAssets.TryGetValue(refInScene, out var f1))
-                {
-                    //_logger.Log($"[RESOLVER] Found f1 {f1.ParentVar.Name.Filename} for reference {refer}")}");ence.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath
-                    return new JsonReference(f1, reference);
-                }
-            }
-
-            if (varAssets.TryGetValue(assetName, out var f2))
-            {
-                //_logger.Log($"[RESOLVER] Found f2 {f2.ParentVar.Name.Filename} for reference {reference.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath}")}");
-                return new JsonReference(f2, reference);
-            }
-        }
-
-        return null;
     }
 }
 

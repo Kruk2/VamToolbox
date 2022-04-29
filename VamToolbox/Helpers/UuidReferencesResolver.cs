@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using VamToolbox.Helpers;
 using VamToolbox.Models;
 
-namespace VamToolbox.FilesGrouper;
+namespace VamToolbox.Helpers;
 public interface IUuidReferenceResolver
 {
     (JsonReference?, bool) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);

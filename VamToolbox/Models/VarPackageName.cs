@@ -41,10 +41,7 @@ public sealed class VarPackageName : IEquatable<VarPackageName>
         PackageNameWithoutVersion = $"{Author}.{Name}";
     }
 
-    public override string ToString()
-    {
-        return Name != null ? $"{Name} v{Version} by {Author}" : Filename;
-    }
+    public override string ToString() => $"{Name} v{Version} by {Author}";
 
     public bool Equals(VarPackageName? other)
     {
