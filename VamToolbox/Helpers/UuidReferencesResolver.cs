@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
@@ -15,8 +16,25 @@ public class UuidReferencesResolver : IUuidReferenceResolver
     private ILookup<string, FileReferenceBase> _vamFilesById = null!;
     private ILookup<string, FileReferenceBase> _morphFilesByName = null!;
     private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
-    private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
-    private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
+    private readonly Dictionary<(string uuidOrName, byte femaleOrMale), FileReferenceBase> _cachedDeleyedVam = new(new CustomUuidComparer());
+    private readonly Dictionary<(string uuidOrName, byte femaleOrMale), FileReferenceBase> _cachedDeleyedMorphs = new(new CustomUuidComparer());
+
+    private class CustomUuidComparer : IEqualityComparer<(string uuidOrName, byte femaleOrMale)>
+    {
+        public bool Equals((string uuidOrName, byte femaleOrMale) x, (string uuidOrName, byte femaleOrMale) y)
+        {
+            return string.Equals(x.uuidOrName, y.uuidOrName, StringComparison.OrdinalIgnoreCase) && x.femaleOrMale == y.femaleOrMale;
+        }
+
+        public int GetHashCode((string uuidOrName, byte femaleOrMale) obj)
+        {
+            var hashCode = new HashCode();
+            hashCode.Add(obj.uuidOrName, StringComparer.OrdinalIgnoreCase);
+            hashCode.Add(obj.femaleOrMale);
+            return hashCode.ToHashCode();
+        }
+    }
+
 
     public async Task InitLookups(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles)
     {
@@ -30,8 +48,8 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             .SelectMany(t => t.Files.Where(x => x.InternalId != null));
 
         _vamFilesById = vamFilesFromVars.Cast<FileReferenceBase>()
-            .Concat(freeFiles.Where(t => t.InternalId != null))
-            .Where(t => KnownNames.HairClothDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
+            .Concat(freeFiles.Where(t => t.InternalId != null && (t.Type & AssetType.ClothOrHair) != 0))
+            .Where(t => (t.Type & AssetType.ClothOrHair) != 0)
             .ToLookup(t => t.InternalId!);
     }
 
@@ -70,13 +88,17 @@ public class UuidReferencesResolver : IUuidReferenceResolver
                 AddJsonReference(referenceToAdd);
             }
 
-            if (isVam && _cachedDeleyedVam.TryGetValue(uuidOrName, out var cachedReference))
+            var isFemaleReference = reference.EstimatedAssetType.IsFemale();
+            var isMaleReference = reference.EstimatedAssetType.IsMale();
+            var femaleOrMaleReference = (byte)(isFemaleReference ? 2 : isMaleReference ? 1 : 0);
+
+            if (isVam && _cachedDeleyedVam.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedReference))
             {
                 AddReference(cachedReference);
                 continue;
             }
 
-            if (!isVam && _cachedDeleyedMorphs.TryGetValue(uuidOrName, out var cachedMorphReference))
+            if (!isVam && _cachedDeleyedMorphs.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedMorphReference))
             {
                 AddReference(cachedMorphReference);
                 continue;
@@ -105,7 +127,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             var bestMatches = zipped.Where(t => t.Second == minCount).Select(t => t.First);
             FileReferenceBase bestMatch;
 
-            if (bestMatches.Count() == 1)
+            if (bestMatches.Take(2).Count() == 1)
             {
                 bestMatch = bestMatches.First();
             }
@@ -114,15 +136,19 @@ public class UuidReferencesResolver : IUuidReferenceResolver
                 var byMostUsedFile = MoreLinq.MoreEnumerable.MaxBy(bestMatches, t => t.UsedByVarPackagesOrFreeFilesCount);
                 var bySmallestSize = MoreLinq.MoreEnumerable.MinBy(byMostUsedFile,
                     t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren);
-                bestMatch = bySmallestSize.OrderBy(t => t.ToString()).First();
+                var byNewerVar = MoreLinq.MoreEnumerable.MaxBy(bySmallestSize, t => t.IsVar ? t.Var.Name.Version : int.MaxValue);
+                bestMatch = byNewerVar.OrderBy(t => t.ToString()).First();
             }
 
             AddReference(bestMatch);
 
+            var isFemaleAsset = bestMatch.Type.IsFemale();
+            var isMaleAsset = bestMatch.Type.IsMale();
+            var femaleOrMale = (byte)(isFemaleAsset ? 2 : isMaleAsset ? 1 : 0);
             if (isVam)
-                _cachedDeleyedVam[uuidOrName] = bestMatch;
+                _cachedDeleyedVam[(uuidOrName, femaleOrMale)] = bestMatch;
             else
-                _cachedDeleyedMorphs[uuidOrName] = bestMatch;
+                _cachedDeleyedMorphs[(uuidOrName, femaleOrMale)] = bestMatch;
         }
 
         _delayedReferencesToResolve.Clear();
@@ -147,6 +173,20 @@ public class UuidReferencesResolver : IUuidReferenceResolver
 
         var matchedAssets = lookup[uuidOrName];
         if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = matchedAssets.Append(fallBackResolvedAsset);
+
+        var isSupportedType = (reference.EstimatedAssetType & AssetType.ClothOrHairOrMorph) != 0;
+        if (isSupportedType)
+        {
+            var isFemaleAsset = reference.EstimatedAssetType.IsFemale();
+            var isMaleAsset = reference.EstimatedAssetType.IsMale();
+
+            if (matchedAssets.Any(x => (x.Type & AssetType.Female) != 0 && isFemaleAsset || (x.Type & AssetType.Male) != 0 && isMaleAsset))
+                matchedAssets = matchedAssets.Where(x => (x.Type & AssetType.Female) != 0 && isFemaleAsset || (x.Type & AssetType.Male) != 0 && isMaleAsset);
+            else if (fallBackResolvedAsset != null)
+                return (new JsonReference(fallBackResolvedAsset, reference), false);
+            else
+                return (null, false);
+        }
 
         var matchedAsset = matchedAssets.Take(2).ToArray();
         switch (matchedAsset.Length)

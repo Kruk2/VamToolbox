@@ -38,12 +38,14 @@ public class UuidReferencesResolverTests
     [Fact]
     public async Task Resolve_MatchingMaleMorphAgainstFemale_ShouldReturnNothing()
     {
+        var reference = new Reference(KnownNames.FemaleMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
         var matchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
-        matchedFile.MorphName = _reference.MorphName!;
+        matchedFile.MorphName = reference.MorphName!;
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -52,22 +54,55 @@ public class UuidReferencesResolverTests
     [Fact]
     public async Task Resolve_MatchingFemaleMorphAgainstMale_ShouldReturnNothing()
     {
+        var reference = new Reference(KnownNames.MaleMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
         var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
-
-        matchedFile.MorphName = _reference.MorphName!;
+        matchedFile.MorphName = reference.MorphName!;
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
     }
 
     [Fact]
+    public async Task Resolve_MatchingMaleGenMorphAgainstMale_ShouldMatch()
+    {
+        var reference = new Reference(KnownNames.MaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_MatchingFemaleGenMorphAgainstFemale_ShouldReturnNothing()
+    {
+        var reference = new Reference(KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Resolve_NoMatchingUuidsWithFileMatchedOutsideMorphDirectory_ShouldReturnNothing()
     {
-        var matchedFile = CreateFile(KnownNames.ClothDirs + "/morph.vmi");
+        var matchedFile = CreateFile(KnownNames.FemaleClothDir + "/morph.vmi");
         matchedFile.MorphName = _reference.MorphName!;
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
@@ -155,6 +190,93 @@ public class UuidReferencesResolverTests
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeTrue();
+    }
+
+    [Fact] public async Task ResolvePreset_MaleHairReferenceMatchedInFemaleHairDirectory_ShouldReturnNothing()
+    {
+        var matchedFile = CreateFile(KnownNames.MaleHairDir + "/hair.vam");
+        var reference = new Reference(KnownNames.FemaleHairDir + "hair.vam", 0, 0, _freeFiles.First());
+        reference.InternalId = "internal id";
+        matchedFile.InternalId = reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference.Should().BeNull();
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolvePreset_MaleClothReferenceMatchedInFemaleClothDirectory_ShouldReturnNothing()
+    {
+        var matchedFile = CreateFile(KnownNames.MaleClothDir + "/cloth.vam");
+        var reference = new Reference(KnownNames.FemaleClothDir + "cloth.vam", 0, 0, _freeFiles.First());
+        reference.InternalId = "internal id";
+        matchedFile.InternalId = reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference.Should().BeNull();
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolvePreset_HairFileMatchedOutsideHairDirectory_ShouldReturnNothing()
+    {
+        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/hair.vam");
+        matchedFile.InternalId = _reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference.Should().BeNull();
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolvePreset_ClothFileMatchedOutsideClothDirectory_ShouldReturnNothing()
+    {
+        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/cloth.vam");
+        matchedFile.InternalId = _reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference.Should().BeNull();
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolvePreset_SingleHairFileMatched_ShouldReturnIt()
+    {
+        var matchedFile = CreateFile(KnownNames.FemaleHairDir + "/hair.vam");
+        matchedFile.InternalId = _reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolvePreset_SingleClothFileMatched_ShouldReturnIt()
+    {
+        var matchedFile = CreateFile(KnownNames.FemaleClothDir + "/cloth.vam");
+        matchedFile.InternalId = _reference.InternalId!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
     }
 
     private FreeFile CreateFile(string localPath, bool isInVamDir = true) => new("a", localPath, 1, isInVamDir, DateTime.Now);

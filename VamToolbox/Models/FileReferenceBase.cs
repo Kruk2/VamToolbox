@@ -26,7 +26,7 @@ public abstract class FileReferenceBase
 
     public long Size { get; }
     public bool IsInVaMDir { get; }
-    public AssetType Type { get; } = AssetType.Unknown;
+    public AssetType Type { get; }
     public FileReferenceBase? ParentFile { get; protected internal set; }
     public bool Dirty { get; set; }
     public DateTime ModifiedTimestamp { get; }
@@ -52,20 +52,7 @@ public abstract class FileReferenceBase
         Size = size;
         IsInVaMDir = isInVamDir;
         ModifiedTimestamp = modifiedTimestamp;
-
-        if (ExtLower is ".vmi" or ".vmb")
-        {
-            if (LocalPath.IsFemaleGenMorph())
-                Type |= AssetType.FemaleGenMorph;
-            else if (LocalPath.IsMaleGenMorph())
-                Type |= AssetType.MaleGenMorph;
-            else if (LocalPath.IsFemaleNormalMorph())
-                Type |= AssetType.FemaleNormalMorph;
-            else if (LocalPath.IsMaleNormalMorph())
-                Type |= AssetType.MaleNormalMorph;
-            else 
-                Type = AssetType.MorphInWrongDirectory;
-        }
+        Type = ExtLower.ClassifyType(LocalPath);
     }
 
     public override string ToString() => LocalPath;

@@ -1,33 +1,16 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using VamToolbox.Models;
 using VamToolbox.Sqlite;
 
 namespace VamToolbox.Helpers;
 
-public sealed class Reference : IEquatable<Reference>
+public sealed class Reference
 {
-    public bool Equals(Reference? other)
-    {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Value == other.Value;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (obj is null) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
-        return Equals((Reference) obj);
-    }
-
-    public override int GetHashCode() => Value.GetHashCode();
-
-
     public string NormalizedLocalPath => Value.Split(':').Last().NormalizeAssetPath();
-    public string Value { get; init; }
-    public int Index { get; init; }
-    public int Length { get; init; }
+    public string Value { get; }
+    public int Index { get; }
+    public int Length { get; }
 
     // these are read from next line in JSON file
     public string? MorphName { get; set; }
@@ -55,16 +38,13 @@ public sealed class Reference : IEquatable<Reference>
         ForJsonFile = forJsonFile;
     }
 
-    public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
-    public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
+    private string? _estimatedExtension;
+    public string EstimatedExtension => _estimatedExtension ??= '.' + Value.Split('.').Last().ToLower(CultureInfo.InvariantCulture);
+    private AssetType? _estimatedAssetType;
+    public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation); 
+    public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= Value.Split(':').Last().NormalizeAssetPath();
+    public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':') ? null : Value.Split(':').First();
     public FileReferenceBase ForJsonFile { get; internal set; }
-
-    private string GetEstimatedReference()
-    {
-        if (Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':'))
-            return Value.Split(':').Last().NormalizeAssetPath();
-        return Value.Split(':')[0].NormalizeAssetPath();
-    }
 }
 
 public interface IJsonFileParser
