@@ -145,7 +145,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             .Select(t =>
             {
                 VarPackageName.TryGet(t.Key + ".var", out var x);
-                return (fromJsonFiles: t.Select(y => y.FromJsonFile).Distinct().ToList(), VarName: x, t.Key);
+                return (fromJsonFiles: t.Select(y => y.ForJsonFile).Distinct().ToList(), VarName: x, t.Key);
             });
         var varIndex = varPackages.Select(t => t.Name.PackageNameWithoutVersion).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -342,7 +342,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessMorphReference(Reference morphReference)
         {
-            var (jsonReferenceByMorphName, delayedReference) = _uuidReferenceResolver.MatchMorphJsonReferenceByName(jsonFile, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceByMorphName, delayedReference) = _uuidReferenceResolver.MatchMorphJsonReferenceByName(jsonFile, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.ToFile);
             if (jsonReferenceByMorphName != null)
                 jsonFile.AddReference(jsonReferenceByMorphName);
             else if (!delayedReference)
@@ -353,7 +353,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessVamReference(Reference vamReference)
         {
-            var (jsonReferenceById, delayedReference) = _uuidReferenceResolver.MatchVamJsonReferenceById(jsonFile, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.File);
+            var (jsonReferenceById, delayedReference) = _uuidReferenceResolver.MatchVamJsonReferenceById(jsonFile, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.ToFile);
             if (jsonReferenceById != null)
                 jsonFile.AddReference(jsonReferenceById);
             else if (!delayedReference)

@@ -140,8 +140,11 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         try
         {
             varFullPath = varFullPath.NormalizePathSeparators();
-            var files = new List<VarPackageFile>();
             var isInVamDir = varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal);
+            var softLinkPath = _softLinker.GetSoftLink(varFullPath);
+            var fileInfo = softLinkPath != null && _fs.File.Exists(softLinkPath) ? _fs.FileInfo.FromFileName(softLinkPath) : _fs.FileInfo.FromFileName(varFullPath);
+            var varPackage = new VarPackage(name, varFullPath, isInVamDir, fileInfo.Length);
+
             await using var stream = _fs.File.OpenRead(varFullPath);
             using var archive = new ZipArchive(stream);
 
@@ -155,8 +158,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                     continue;
                 }
 
-                var packageFile = ReadPackageFileAsync(entry, isInVamDir, entry.LastWriteTime.DateTime);
-                files.Add(packageFile);
+                CreatePackageFileAsync(entry, isInVamDir, entry.LastWriteTime.DateTime, varPackage);
             }
             if (!foundMetaFile)
             {
@@ -164,20 +166,18 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 return;
             }
 
-            var softLinkPath = _softLinker.GetSoftLink(varFullPath);
-            var fileInfo = softLinkPath != null && _fs.File.Exists(softLinkPath) ? _fs.FileInfo.FromFileName(softLinkPath) : _fs.FileInfo.FromFileName(varFullPath);
-            var varPackage = new VarPackage(name, varFullPath, files, isInVamDir, fileInfo.Length);
-            files.SelectMany(t => t.SelfAndChildren()).ForEach(t => t.ParentVar = varPackage);
+
+            var varFilesList = (List<VarPackageFile>)varPackage.Files;
             _packages.Add(varPackage);
 
             var entries = archive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
             Stream OpenFileStream(string p) => entries[p].Open();
             LookupDirtyPackages(varPackage);
 
-            await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
-            await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, name, OpenFileStream, _favMorphs);
-            await _scope.Resolve<IPresetGrouper>().GroupPresets(files, name, OpenFileStream);
-            _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
+            await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(varFilesList, OpenFileStream);
+            await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(varFilesList, name, OpenFileStream, _favMorphs);
+            await _scope.Resolve<IPresetGrouper>().GroupPresets(varFilesList, name, OpenFileStream);
+            _scope.Resolve<IPreviewGrouper>().GroupsPreviews(varFilesList);
         }
         catch (Exception exc)
         {
@@ -228,7 +228,10 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private static VarPackageFile ReadPackageFileAsync(ZipArchiveEntry entry, bool isInVamDir, DateTime modifiedTimestamp) => new (entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir, modifiedTimestamp);
+    private static void CreatePackageFileAsync(ZipArchiveEntry entry, bool isInVamDir, DateTime modifiedTimestamp, VarPackage varPackage)
+    {
+        _ = new VarPackageFile(entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir, varPackage, modifiedTimestamp);
+    }
 }
 
 public interface IScanVarPackagesOperation : IOperation

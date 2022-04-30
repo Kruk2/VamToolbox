@@ -53,7 +53,19 @@ public abstract class FileReferenceBase
         IsInVaMDir = isInVamDir;
         ModifiedTimestamp = modifiedTimestamp;
 
-        if (ExtLower is ".vmi" or ".vmb") Type = AssetType.Morph;
+        if (ExtLower is ".vmi" or ".vmb")
+        {
+            if (LocalPath.IsFemaleGenMorph())
+                Type |= AssetType.FemaleGenMorph;
+            else if (LocalPath.IsMaleGenMorph())
+                Type |= AssetType.MaleGenMorph;
+            else if (LocalPath.IsFemaleNormalMorph())
+                Type |= AssetType.FemaleNormalMorph;
+            else if (LocalPath.IsMaleNormalMorph())
+                Type |= AssetType.MaleNormalMorph;
+            else 
+                Type = AssetType.MorphInWrongDirectory;
+        }
     }
 
     public override string ToString() => LocalPath;

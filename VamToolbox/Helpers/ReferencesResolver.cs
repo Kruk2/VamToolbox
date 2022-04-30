@@ -33,12 +33,12 @@ public class ReferencesResolver : IReferencesResolver
     public JsonReference? ScanFreeFileSceneReference(string? localSceneFolder, Reference reference)
     {
         if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:", StringComparison.Ordinal))
-            throw new VamToolboxException($"{reference.FromJsonFile} {reference.Value} refers to var but processing free file reference");
+            throw new VamToolboxException($"{reference.ForJsonFile} {reference.Value} refers to var but processing free file reference");
 
         var refPath = reference.Value.Split(':').Last();
         refPath = refPath.NormalizeAssetPath();
         // searching in localSceneFolder for var json files is handled in ScanPackageSceneReference
-        if (!reference.FromJsonFile.IsVar && localSceneFolder is not null && _freeFilesIndex[_fs.Path.Combine(localSceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any())
+        if (!reference.ForJsonFile.IsVar && localSceneFolder is not null && _freeFilesIndex[_fs.Path.Combine(localSceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any())
         {
             f1 = f1.OrderByDescending(t => t.UsedByVarPackagesOrFreeFilesCount).ThenBy(t => t.FullPath);
             var x = f1.FirstOrDefault(t => t.IsInVaMDir) ?? f1.First();
@@ -106,14 +106,14 @@ public class ReferencesResolver : IReferencesResolver
                 var refInScene = _fs.Path.Combine(localSceneFolder, assetName).NormalizePathSeparators();
                 if (varAssets.TryGetValue(refInScene, out var f1))
                 {
-                    //_logger.Log($"[RESOLVER] Found f1 {f1.ParentVar.Name.Filename} for reference {refer}")}");ence.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath
+                    //_logger.Log($"[RESOLVER] Found f1 {f1.ToParentVar.Name.Filename} for reference {refer}")}");ence.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath
                     return new JsonReference(f1, reference);
                 }
             }
 
             if (varAssets.TryGetValue(assetName, out var f2))
             {
-                //_logger.Log($"[RESOLVER] Found f2 {f2.ParentVar.Name.Filename} for reference {reference.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath}")}");
+                //_logger.Log($"[RESOLVER] Found f2 {f2.ToParentVar.Name.Filename} for reference {reference.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath}")}");
                 return new JsonReference(f2, reference);
             }
         }

@@ -78,7 +78,7 @@ public sealed class JsonUpdater : IJsonUpdater
         }
     }
 
-    private void ApplyFixes(IList<string> jsonData, IEnumerable<JsonUpdateDto> changes, JsonFile jsonFile)
+    private static void ApplyFixes(IList<string> jsonData, IEnumerable<JsonUpdateDto> changes, JsonFile jsonFile)
     {
         int sum = 0;
         int i = 0;

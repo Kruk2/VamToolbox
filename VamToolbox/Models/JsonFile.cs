@@ -23,12 +23,12 @@ public sealed class JsonFile
     {
         _references.Add(reference);
         if (reference.IsVarReference)
-            ((HashSet<VarPackage>)VarReferences).Add(reference.ParentVar);
+            ((HashSet<VarPackage>)VarReferences).Add(reference.ToParentVar);
         else
-            ((HashSet<FreeFile>)FreeReferences).Add(reference.FreeFile);
+            ((HashSet<FreeFile>)FreeReferences).Add(reference.ToFreeFile);
 
-        if(reference.File != File)
-            reference.File.UsedByJsonFiles[this] = true;
+        if(reference.ToFile != File)
+            reference.ToFile.UsedByJsonFiles[this] = true;
     }
     public void AddMissingReference(Reference reference) => _missing.Add(reference);
 

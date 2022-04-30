@@ -191,7 +191,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         }
     }
 
-    private void ApplyFix(List<string> jsonData, Reference missing, string newReferenceLocalPath, string? jsonLocalPath)
+    private static void ApplyFix(List<string> jsonData, Reference missing, string newReferenceLocalPath, string? jsonLocalPath)
     {
         int sum = 0;
         for (var i = 0; i < jsonData.Count; i++)

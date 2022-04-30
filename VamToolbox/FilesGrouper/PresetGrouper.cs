@@ -59,7 +59,7 @@ public sealed class PresetGrouper :  IPresetGrouper
             var localDir = _fs.Path.Combine(_fs.Path.GetDirectoryName(notNullPreset.LocalPath), _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
             if (vaj == null)
             {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vaj file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vaj toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vaj");
             }
             else if(notNullPreset != vaj)
@@ -70,7 +70,7 @@ public sealed class PresetGrouper :  IPresetGrouper
 
             if (vam == null)
             {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vam file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vam toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vam");
             }
             else if(notNullPreset != vam)
@@ -81,7 +81,7 @@ public sealed class PresetGrouper :  IPresetGrouper
 
             if (vab == null)
             {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vab file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vab toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vab");
             }
             else if(notNullPreset != vab)

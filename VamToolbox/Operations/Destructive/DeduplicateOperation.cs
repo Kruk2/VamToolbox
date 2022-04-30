@@ -22,7 +22,7 @@
 //    private readonly Dictionary<JsonFile, List<JsonUpdateDto>> _changesQueue = new();
 
 //    private IList<VarPackage> _vars = null!;
-//    private IList<FreeFile> _freeFiles = null!;
+//    private IList<ToFreeFile> _freeFiles = null!;
 //    private OperationContext _context = null!;
 //    private int _total;
 //    private int _processed;
@@ -43,7 +43,7 @@
 //        _fs = fs;
 //    }
 
-//    public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles)
+//    public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<ToFreeFile> freeFiles)
 //    {
 //        _context = context with {DryRun = true };
 //        _vars = vars;
@@ -95,7 +95,7 @@
 //            var singleFile = toDelete.Single();
 //            if (!_context.DryRun)
 //            {
-//                _fs.File.Delete(((FreeFile)singleFile).FullPath);
+//                _fs.ToFile.Delete(((ToFreeFile)singleFile).FullPath);
 //            }
 
 //            Interlocked.Add(ref _removedBytes, singleFile.Size);
@@ -105,7 +105,7 @@
 //        {
 //            var date = _fs.FileInfo.FromFileName(varPackage.FullPath).LastWriteTime;
 //            {
-//                await using var varFileStream = File.Open(varPackage.FullPath, FileMode.Open,
+//                await using var varFileStream = ToFile.Open(varPackage.FullPath, FileMode.Open,
 //                    _context.DryRun ? FileAccess.Read : FileAccess.ReadWrite);
 //                using var varArchive = new ZipArchive(varFileStream,
 //                    _context.DryRun ? ZipArchiveMode.Read : ZipArchiveMode.Update);
@@ -125,7 +125,7 @@
 //            }
 
 //            if (!_context.DryRun)
-//                _fs.File.SetLastWriteTime(varPackage.FullPath, date);
+//                _fs.ToFile.SetLastWriteTime(varPackage.FullPath, date);
 //        }
 //    }
 
@@ -140,13 +140,13 @@
 //                MaxDegreeOfParallelism = _context.Threads
 //            });
 
-//        foreach (var group in _changesQueue.Where(t => t.Key.File.IsVar).GroupBy(t => t.Key.File.Var))
+//        foreach (var group in _changesQueue.Where(t => t.Key.ToFile.IsVar).GroupBy(t => t.Key.ToFile.Var))
 //        {
 //            var list = group.Select(t => (t.Key, t.Value)).ToList();
 //            removeBlock.Post((group.Key, list));
 //        }
 
-//        foreach (var (jsonFile, dupes) in _changesQueue.Where(t => !t.Key.File.IsVar))
+//        foreach (var (jsonFile, dupes) in _changesQueue.Where(t => !t.Key.ToFile.IsVar))
 //        {
 //            var list = new List<(JsonFile jsonFile, List<JsonUpdateDto> dupes)>
 //            {
@@ -170,7 +170,7 @@
 
 //        var date = _fs.FileInfo.FromFileName(varPackage.FullPath).LastWriteTime;
 //        {
-//            await using var varFileStream = File.Open(varPackage.FullPath, FileMode.Open,
+//            await using var varFileStream = ToFile.Open(varPackage.FullPath, FileMode.Open,
 //                _context.DryRun ? FileAccess.Read : FileAccess.ReadWrite);
 //            using var varArchive = new ZipArchive(varFileStream,
 //                _context.DryRun ? ZipArchiveMode.Read : ZipArchiveMode.Update);
@@ -185,20 +185,20 @@
 //        }
 
 //        if(!_context.DryRun)
-//            _fs.File.SetLastWriteTime(varPackage.FullPath, date);
+//            _fs.ToFile.SetLastWriteTime(varPackage.FullPath, date);
 //    }
 
 //    private async Task RewriteJsonFiles((JsonFile jsonFile, List<JsonUpdateDto> dupes) arg)
 //    {
 //        var (jsonFile, dupes) = arg;
-//        if (jsonFile.File.IsVar) throw new ArgumentException($"Json file expected to be in var {jsonFile}", nameof(arg));
+//        if (jsonFile.ToFile.IsVar) throw new ArgumentException($"Json file expected to be in var {jsonFile}", nameof(arg));
 
-//        var date = _fs.FileInfo.FromFileName(jsonFile.File.Free.FullPath).LastWriteTime;
+//        var date = _fs.FileInfo.FromFileName(jsonFile.ToFile.Free.FullPath).LastWriteTime;
 //        await _jsonUpdater.UpdateFreeJson(jsonFile, dupes);
-//        _progressTracker.Report(new ProgressInfo(Interlocked.Add(ref _processed, dupes.Count), _total, $"2/3 Fixing json file in {jsonFile.File.Free.LocalPath}"));
+//        _progressTracker.Report(new ProgressInfo(Interlocked.Add(ref _processed, dupes.Count), _total, $"2/3 Fixing json file in {jsonFile.ToFile.Free.LocalPath}"));
 
 //        if (!_context.DryRun)
-//            _fs.File.SetLastWriteTime(jsonFile.File.Free.FullPath, date);
+//            _fs.ToFile.SetLastWriteTime(jsonFile.ToFile.Free.FullPath, date);
 //    }
 
 //    private void CalculateDuplicates()
@@ -215,7 +215,7 @@
 //        foreach (var fileReferences in _filesByHash.Where(t => t.Count() > 1))
 //        {
 //            IEnumerable<FileReferenceBase> filesToScan = fileReferences;
-//            var freeFiles = fileReferences.OfType<FreeFile>();
+//            var freeFiles = fileReferences.OfType<ToFreeFile>();
 //            if (freeFiles.Any())
 //                filesToScan = freeFiles;
                     
@@ -251,10 +251,10 @@
 
 //        if (toDelete is VarPackageFile varFile)
 //        {
-//            if (!_varDeleteQueue.TryGetValue(varFile.ParentVar, out var filesToDelete))
+//            if (!_varDeleteQueue.TryGetValue(varFile.ToParentVar, out var filesToDelete))
 //            {
 //                filesToDelete = new List<FileReferenceBase>();
-//                _varDeleteQueue[varFile.ParentVar] = filesToDelete;
+//                _varDeleteQueue[varFile.ToParentVar] = filesToDelete;
 //            }
 
 //            foreach (var referenceBase in toDelete.Children.Where(t => t.JsonReferences.Count == 0))
@@ -274,5 +274,5 @@
 
 //public interface IDeduplicateOperation : IOperation
 //{
-//    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles);
+//    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<ToFreeFile> freeFiles);
 //}

@@ -46,4 +46,13 @@ public static class KnownNames
     public static readonly string[] HairClothDirs = {FemaleHairDir, MaleHairDir, FemaleClothDir, MaleClothDir};
 
     public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
+
+
+    public static bool IsFemaleNormalMorph(this string localPath) => localPath.IsInDir(FemaleMorphsDir);
+    public static bool IsFemaleGenMorph(this string localPath) => localPath.IsInDir(FemaleGenMorphsDir);
+
+    public static bool IsMaleNormalMorph(this string localPath) => localPath.IsInDir(MaleMorphsDir);
+    public static bool IsMaleGenMorph(this string localPath) => localPath.IsInDir(MaleGenMorphsDir);
+
+    private static bool IsInDir(this string localPath, string dir) => localPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase);
 }

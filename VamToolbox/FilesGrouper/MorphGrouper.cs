@@ -41,7 +41,7 @@ public sealed class MorphGrouper : IMorphGrouper
             var localDir = _fs.Path.Combine(_fs.Path.GetDirectoryName(notNullPreset.LocalPath), _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
             if (vmi == null)
             {
-                _logger.Log($"[MISSING-MORPH-FILE] Missing vmi file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-MORPH-FILE] Missing vmi toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vmi");
             }
             else if(notNullPreset != vmi)
@@ -52,7 +52,7 @@ public sealed class MorphGrouper : IMorphGrouper
 
             if (vmb == null)
             {
-                _logger.Log($"[MISSING-MORPH-FILE] Missing vmb file for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-MORPH-FILE] Missing vmb toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vmb");
             }
             else if(notNullPreset != vmb)

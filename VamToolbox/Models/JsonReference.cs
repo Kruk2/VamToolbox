@@ -5,25 +5,22 @@ namespace VamToolbox.Models;
 
 public sealed class JsonReference
 {
-    [MemberNotNullWhen(true, nameof(ParentVar))]
-    [MemberNotNullWhen(true, nameof(VarFile))]
-    [MemberNotNullWhen(false, nameof(FreeFile))]
-    public bool IsVarReference => File is VarPackageFile;
-    public FileReferenceBase File { get; }
+    [MemberNotNullWhen(true, nameof(ToParentVar))]
+    [MemberNotNullWhen(true, nameof(ToVarFile))]
+    [MemberNotNullWhen(false, nameof(ToFreeFile))]
+    public bool IsVarReference => ToFile is VarPackageFile;
+    public FileReferenceBase ToFile { get; }
 
-    public VarPackage? ParentVar => File is VarPackageFile varFile ? varFile.ParentVar : null;
-    public FreeFile? FreeFile => File as FreeFile;
-    public VarPackageFile? VarFile => File as VarPackageFile;
+    public VarPackage? ToParentVar => ToFile is VarPackageFile varFile ? varFile.ParentVar : null;
+    public FreeFile? ToFreeFile => ToFile as FreeFile;
+    public VarPackageFile? ToVarFile => ToFile as VarPackageFile;
     public Reference Reference { get; }
 
-    public JsonReference(FileReferenceBase file, Reference reference)
+    public JsonReference(FileReferenceBase toFile, Reference reference)
     {
-        File = file;
+        ToFile = toFile;
         Reference = reference;
     }
 
-    public override string ToString()
-    {
-        return $"{(ParentVar is null ? "SELF" : ParentVar.Name)}: " + File;
-    }
+    public override string ToString() => ToFile.ToString();
 }

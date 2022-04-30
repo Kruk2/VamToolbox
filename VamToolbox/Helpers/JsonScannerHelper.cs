@@ -37,27 +37,27 @@ public sealed class Reference : IEquatable<Reference>
 
     private string? _estimatedReferenceLocation;
 
-    public Reference(string value, int index, int length, FileReferenceBase fromJsonFile)
+    public Reference(string value, int index, int length, FileReferenceBase forJsonFile)
     {
         Value = value;
         Index = index;
         Length = length;
-        FromJsonFile = fromJsonFile;
+        ForJsonFile = forJsonFile;
     }
 
-    public Reference(ReferenceEntry referenceEntry, FileReferenceBase fromJsonFile)
+    public Reference(ReferenceEntry referenceEntry, FileReferenceBase forJsonFile)
     {
         Value = referenceEntry.Value!;
         InternalId = referenceEntry.InternalId;
         MorphName = referenceEntry.MorphName;
         Index = referenceEntry.Index;
         Length = referenceEntry.Length;
-        FromJsonFile = fromJsonFile;
+        ForJsonFile = forJsonFile;
     }
 
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= GetEstimatedReference();
     public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.Ordinal) || !Value.Contains(':') ? null : Value.Split(':').First();
-    public FileReferenceBase FromJsonFile { get; internal set; }
+    public FileReferenceBase ForJsonFile { get; internal set; }
 
     private string GetEstimatedReference()
     {

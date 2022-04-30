@@ -4,10 +4,10 @@ using VamToolbox.Models;
 namespace VamToolbox.Helpers;
 public interface IUuidReferenceResolver
 {
-    (JsonReference?, bool) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
-    (JsonReference?, bool) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
+    (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
+    (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
     Task<List<JsonReference>> ResolveDelayedReferences();
-    Task InitLookups(IList<FreeFile> freeFiles, IList<VarPackage> varFiles);
+    Task InitLookups(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles);
 }
 
 public class UuidReferencesResolver : IUuidReferenceResolver
@@ -18,13 +18,13 @@ public class UuidReferencesResolver : IUuidReferenceResolver
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedVam = new();
     private readonly Dictionary<string, FileReferenceBase> _cachedDeleyedMorphs = new();
 
-    public async Task InitLookups(IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
+    public async Task InitLookups(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles)
     {
         await Task.Run(() => InitVamFilesById(freeFiles, varFiles));
         await Task.Run(() => InitMorphNames(freeFiles, varFiles));
     }
 
-    private void InitVamFilesById(IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
+    private void InitVamFilesById(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles)
     {
         var vamFilesFromVars = varFiles
             .SelectMany(t => t.Files.Where(x => x.InternalId != null));
@@ -35,14 +35,13 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             .ToLookup(t => t.InternalId!);
     }
 
-    private void InitMorphNames(IEnumerable<FreeFile> freeFiles, IList<VarPackage> varFiles)
+    private void InitMorphNames(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles)
     {
         var morphFilesFromVars = varFiles
-            .SelectMany(t => t.Files.Where(x => x.MorphName != null));
+            .SelectMany(t => t.Files.Where(x => x.MorphName != null && (x.Type & AssetType.Morph) != 0));
 
         _morphFilesByName = freeFiles
-            .Where(t => t.MorphName != null &&
-                        KnownNames.MorphDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
+            .Where(t => t.MorphName != null && (t.Type & AssetType.Morph) != 0)
             .Cast<FileReferenceBase>()
             .Concat(morphFilesFromVars)
             .ToLookup(t => t.MorphName!);
@@ -130,17 +129,17 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         return createdReferences;
     }
 
-    public (JsonReference?, bool) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
+    public (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
         return MatchAssetByUuidOrName(jsonFile, reference.InternalId, reference, _vamFilesById, sourceVar, fallBackResolvedAsset);
     }
 
-    public (JsonReference?, bool) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
+    public (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
         return MatchAssetByUuidOrName(jsonFile, reference.MorphName, reference, _morphFilesByName, sourceVar, fallBackResolvedAsset);
     }
 
-    private (JsonReference?, bool isDelayed) MatchAssetByUuidOrName(JsonFile jsonFile, string? uuidOrName,
+    private (JsonReference? jsonReference, bool isDelayed) MatchAssetByUuidOrName(JsonFile jsonFile, string? uuidOrName,
         Reference reference, ILookup<string, FileReferenceBase> lookup, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
     {
         if (string.IsNullOrWhiteSpace(uuidOrName))
@@ -167,7 +166,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             return (new JsonReference(matchedAsset[0], reference), false);
 
         // prefer files that are in var we're scanning
-        var anythingFromSourceVar = Enumerable.MinBy(matchedAssets.Where(t => t.Var == sourceVar), t => t.ToString());
+        var anythingFromSourceVar = matchedAssets.Where(t => t.Var == sourceVar).MinBy(t => t.ToString());
         if (sourceVar is not null && anythingFromSourceVar is not null)
         {
             return (new JsonReference(anythingFromSourceVar, reference), false);

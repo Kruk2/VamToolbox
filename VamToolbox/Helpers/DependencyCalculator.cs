@@ -5,7 +5,7 @@ namespace VamToolbox.Helpers;
 
 public static class DependencyCalculator
 {
-    public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(List<JsonFile> jsonFiles)
+    public static (List<VarPackage>, List<FreeFile>) CalculateTrimmedDeps(IReadOnlyList<JsonFile> jsonFiles)
     {
         var queue = jsonFiles.SelectMany(t => t.References).Distinct().ToList();
         var processedFiles = new HashSet<FileReferenceBase>(jsonFiles.Select(t => t.File));
@@ -17,27 +17,27 @@ public static class DependencyCalculator
             var item = queue[^1];
             queue.RemoveAt(queue.Count - 1);
 
-            var ext = item.File.ExtLower;
+            var ext = item.ToFile.ExtLower;
             if (item.IsVarReference)
-                varDeps.Add(item.ParentVar);
+                varDeps.Add(item.ToParentVar);
             else
-                freeFileDeps.Add(item.FreeFile);
+                freeFileDeps.Add(item.ToFreeFile);
 
             if (!KnownNames.ExtReferencesToPresets.Contains(ext))
                 continue;
 
-            if (processedFiles.Contains(item.File))
+            if (processedFiles.Contains(item.ToFile))
                 continue;
 
-            if(item.File.JsonFile is not null)
-                queue.AddRange(item.File.JsonFile.References);
-            processedFiles.Add(item.File);
+            if(item.ToFile.JsonFile is not null)
+                queue.AddRange(item.ToFile.JsonFile.References);
+            processedFiles.Add(item.ToFile);
         }
 
         return (varDeps.ToList(), freeFileDeps.ToList());
     }
 
-    public static (List<VarPackage>, List<FreeFile>) CalculateAllVarRecursiveDeps(IEnumerable<JsonFile> jsonFiles)
+    public static (List<VarPackage>, List<FreeFile>) CalculateAllVarRecursiveDeps(IReadOnlyList<JsonFile> jsonFiles)
     {
         var queue = jsonFiles.ToList();
         var queued = new HashSet<JsonFile>(queue);

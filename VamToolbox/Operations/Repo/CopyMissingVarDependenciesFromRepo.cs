@@ -128,7 +128,7 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
             .Where(t => t.IsInVaMDir && t.TrimmedResolvedVarDependencies.Contains(v));
         var jsonFiles = because.First().JsonFiles
             .Where(t => t.VarReferences.Contains(v)).ToList();
-        var jsonReferences = jsonFiles.SelectMany(t => t.References.Where(t => t.IsVarReference && t.ParentVar == v))
+        var jsonReferences = jsonFiles.SelectMany(t => t.References.Where(t => t.IsVarReference && t.ToParentVar == v))
             .ToList();
         #endif
 

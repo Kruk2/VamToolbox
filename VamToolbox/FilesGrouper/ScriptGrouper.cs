@@ -45,7 +45,7 @@ public sealed class ScriptGrouper : IScriptGrouper
                 {
                     cslist.AddMissingChildren(cslistRef);
                     //if(cslist is VarPackageFile varFile)
-                    //    _logger.Log($"[MISSING-SCRIPT] {cslistRef} in {cslist} in {varFile.ParentVar.Path}");
+                    //    _logger.Log($"[MISSING-SCRIPT] {cslistRef} in {cslist} in {varFile.ToParentVar.Path}");
                     //else
                     //    _logger.Log($"[MISSING-SCRIPT] {cslistRef} in {cslist}");
                 }

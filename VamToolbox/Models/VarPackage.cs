@@ -5,20 +5,26 @@ namespace VamToolbox.Models;
 public sealed class VarPackage : IVamObjectWithDependencies
 {
     public VarPackageName Name { get; }
-    public long Size { get; set; }
+    public long Size { get; }
     public string FullPath { get; }
     public bool IsInVaMDir { get; }
-    public List<VarPackageFile> Files { get; }
+
+    private readonly List<VarPackageFile> _files = new();
+    public IReadOnlyList<VarPackageFile> Files => _files;
 
     private List<JsonFile>? _jsonFiles;
-    public List<JsonFile> JsonFiles => _jsonFiles ??= Files.SelectMany(t => t.SelfAndChildren()).Where(t => t.JsonFile != null).Select(t => t.JsonFile!).ToList();
+    public IReadOnlyList<JsonFile> JsonFiles => _jsonFiles ??= Files
+        .SelectMany(t => t.SelfAndChildren())
+        .Where(t => t.JsonFile != null)
+        .Select(t => t.JsonFile!)
+        .ToList();
 
     private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
     private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
-    public List<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
-    public List<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
-    public List<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
-    public List<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
+    public IReadOnlyList<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
+    public IReadOnlyList<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
+    public IReadOnlyList<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
+    public IReadOnlyList<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
     public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
 
     public IEnumerable<string> UnresolvedDependencies => JsonFiles
@@ -35,16 +41,16 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public VarPackage(
         VarPackageName name, 
         string fullPath, 
-        List<VarPackageFile> files,
         bool isInVamDir,
         long size)
     {
         Name = name;
         FullPath = fullPath.NormalizePathSeparators();
-        Files = files;
         IsInVaMDir = isInVamDir;
         Size = size;
     }
+
+    public void AddVarFile(VarPackageFile varFile) => _files.Add(varFile);
 
     public override string ToString() => Name.ToString();
 

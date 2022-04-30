@@ -10,10 +10,10 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 
     private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
     private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
-    public List<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
-    public List<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
-    public List<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
-    public List<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
+    public IReadOnlyList<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
+    public IReadOnlyList<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
+    public IReadOnlyList<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
+    public IReadOnlyList<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
     public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
     public IEnumerable<string> UnresolvedDependencies => JsonFile?.Missing.Select(x => x.Value + " from " + this) ?? Enumerable.Empty<string>();
 
