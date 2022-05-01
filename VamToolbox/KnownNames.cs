@@ -4,7 +4,7 @@ namespace VamToolbox;
 
 public static class KnownNames
 {
-    public static readonly string[] ExtReferencesToPresets = {".json", ".vam"}; // can it even be vab or json?
+    public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" }; // can it even be json?
 
     public static readonly string[] KnownVamDirs = {
         "Custom",
@@ -45,7 +45,7 @@ public static class KnownNames
     public const string SharedClothDir = "Custom/Clothing/Shared";
     public const string NeutralClothDir = "Custom/Clothing/Neutral";
 
-    public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj";
+    public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj" or ".uiap";
 
     public static bool IsFemaleNormalMorph(this string localPath) => localPath.IsInDir(FemaleMorphsDir);
     public static bool IsFemaleGenMorph(this string localPath) => localPath.IsInDir(FemaleGenMorphsDir);
