@@ -213,10 +213,6 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         {
             foreach (var reference in openedJson.CachedReferences)
             {
-                #if DEBUG
-                if(openedJson.File.LocalPath.EndsWith("anime dream/anime dream.json", StringComparison.Ordinal) && reference.Value.Contains("Custom/Hair/Female/Supa/Tron/Tron Bun.vam"))
-                    Debug.Write(true);
-                #endif
                 (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
 
                 if (reference.InternalId != null)

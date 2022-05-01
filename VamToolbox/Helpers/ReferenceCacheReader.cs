@@ -102,10 +102,6 @@ public class ReferenceCacheReader : IReferenceCacheReader
                          .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
                          .Where(t => !t.Dirty))
             {
-#if DEBUG
-                if (varFile.ParentVar.FullPath.EndsWith("AddonPackages2/other/vamX.1.8.var", StringComparison.OrdinalIgnoreCase) && varFile.LocalPath.Contains("Custom/Scripts/vamX/resources/appearance/Female/Parts/Body 3.json"))
-                    Debug.Write(true);
-#endif
                 if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath))
                 {
                     var mappedReferences = references[varFile.LocalPath].Where(x => x.Value is not null).Select(t => new Reference(t, varFile)).ToList();
