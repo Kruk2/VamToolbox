@@ -107,10 +107,6 @@ public class ReferencesResolver : IReferencesResolver
                 var refInScene = _fs.Path.Combine(localSceneFolder, assetName).NormalizePathSeparators();
                 if (varAssets.TryGetValue(refInScene, out var f1))
                 {
-                    if(reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase))
-                        Debug.Write(true);
-                    if (reference.Value.EndsWith(".vmi", StringComparison.OrdinalIgnoreCase))
-                        Debug.Write(true);
                     //_logger.Log($"[RESOLVER] Found f1 {f1.ToParentVar.Name.Filename} for reference {refer}")}");ence.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath
                     return new JsonReference(f1, reference);
                 }
