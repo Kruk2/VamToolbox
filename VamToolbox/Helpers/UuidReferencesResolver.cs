@@ -171,6 +171,16 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         if (string.IsNullOrWhiteSpace(uuidOrName))
             throw new VamToolboxException("Invalid displayNameOrUuid");
 
+        if (fallBackResolvedAsset is not null)
+        {
+            if (fallBackResolvedAsset.IsInVaMDir) 
+                return (new JsonReference(fallBackResolvedAsset, reference), false);
+            if (sourceVar is not null && fallBackResolvedAsset.Var == sourceVar)
+                return (new JsonReference(fallBackResolvedAsset, reference), false);
+            if (reference.EstimatedVarName is not null && (reference.EstimatedVarName.Version != -1 || reference.EstimatedVarName.MinVersion))
+                return (new JsonReference(fallBackResolvedAsset, reference), false);
+        }
+
         var matchedAssets = lookup[uuidOrName];
         if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = matchedAssets.Append(fallBackResolvedAsset);
 

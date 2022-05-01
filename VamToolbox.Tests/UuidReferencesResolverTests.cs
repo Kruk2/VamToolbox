@@ -52,6 +52,23 @@ public class UuidReferencesResolverTests
     }
 
     [Fact]
+    public async Task Resolve_MatchingMaleAgainstFemale_WithFallbackReference_ShouldReturnFallbackReference()
+    {
+        var fallbackReference = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi", isInVamDir: false);
+        var reference = new Reference(KnownNames.FemaleMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Resolve_MatchingFemaleMorphAgainstMale_ShouldReturnNothing()
     {
         var reference = new Reference(KnownNames.MaleMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
@@ -100,7 +117,7 @@ public class UuidReferencesResolverTests
     }
 
     [Fact]
-    public async Task Resolve_NoMatchingUuidsWithFileMatchedOutsideMorphDirectory_ShouldReturnNothing()
+    public async Task Resolve_NoMatchingUuids_WhenFileMatchedOutsideMorphDirectory_ShouldReturnNothing()
     {
         var matchedFile = CreateFile(KnownNames.FemaleClothDir + "/morph.vmi");
         matchedFile.MorphName = _reference.MorphName!;
@@ -113,9 +130,11 @@ public class UuidReferencesResolverTests
         isDelayed.Should().BeFalse();
     }
 
-    [Theory, CustomAutoData]
-    public void Resolve_NotMatchingUuidsWithFallBackReference_ShouldReturnFallbackReference(FreeFile fallbackReference)
+    [Fact]
+    public void Resolve_NoMatchingUuidsWithFallBackReference_ShouldReturnFallbackReference()
     {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+
         var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
 
         jsonReference.Should().NotBeNull();
@@ -123,6 +142,97 @@ public class UuidReferencesResolverTests
         isDelayed.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Resolve_FallbackReference_WhenInVamDir_ShouldReturnFallbackReference()
+    {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi");
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+
+    [Theory, CustomAutoData]
+    public async Task Resolve_FallbackVarFileReference_WhenInVamDir_ShouldReturnFallbackReference(VarPackage package)
+    {
+        var fallbackReference = CreateVarFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", package);
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Theory, CustomAutoData]
+    public async Task Resolve_FallbackVarFileReference_WhenItsOutsideVamDirButInScannedVarPackage_ShouldReturnFallbackReference(VarPackageName packageName)
+    {
+        var varOutsideVamDir = new VarPackage(packageName, "", isInVamDir: false, 1);
+        var fallbackReference = CreateVarFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", varOutsideVamDir, isInVamDir: false);
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: varOutsideVamDir, fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_FallbackFileReference_WhenItsOutsideVamDirButReferencesParticularVarVersion_ShouldReturnFallbackReference()
+    {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi",  isInVamDir: false);
+        var reference = new Reference("Author.Name.1:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        reference.MorphName =  matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Resolve_FallbackFileReference_WhenItsOutsideVamDirButReferencesParticularVarMinVersion_ShouldReturnFallbackReference()
+    {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        var reference = new Reference("Author.Name.min1:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = _reference.MorphName!;
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
+
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_FallbackFileReference_WhenItsOutsideVamDirAndReferencesLatestVersion_ShouldReturnDelayedFlag()
+    {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
+        matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var reference = new Reference("Author.Name.latest:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
+        reference.MorphName = _reference.MorphName!;
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
+
+        jsonReference.Should().BeNull();
+        isDelayed.Should().BeTrue();
+    }
 
     [Fact]
     public async Task Resolve_MatchingOneUuid_ShouldReturnExactMatch()
@@ -280,5 +390,5 @@ public class UuidReferencesResolverTests
     }
 
     private FreeFile CreateFile(string localPath, bool isInVamDir = true) => new("a", localPath, 1, isInVamDir, DateTime.Now);
-    private VarPackageFile CreateVarFile(string localPath, VarPackage varPackage) => new(localPath, 1, true, varPackage, DateTime.Now);
+    private VarPackageFile CreateVarFile(string localPath, VarPackage varPackage, bool isInVamDir = true) => new(localPath, 1, isInVamDir, varPackage, DateTime.Now);
 }

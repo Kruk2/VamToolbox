@@ -95,7 +95,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
 
         var unresolvedVars = jsonFiles
             .SelectMany(t => t.Missing)
-            .Select(t => t.EstimatedVarName)
+            .Select(t => t.EstimatedVarName?.Filename)
             .Where(t => t != null)
             .Select(t => t!)
             .Distinct()

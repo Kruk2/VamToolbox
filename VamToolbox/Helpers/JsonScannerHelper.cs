@@ -43,8 +43,22 @@ public sealed class Reference
     private AssetType? _estimatedAssetType;
     public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation); 
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= Value.Split(':').Last().NormalizeAssetPath();
-    public string? EstimatedVarName => Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':') ? null : Value.Split(':').First();
     public FileReferenceBase ForJsonFile { get; internal set; }
+
+    private bool _estimatedVarNameCalculated;
+    private VarPackageName? _estimatedVarName;
+    public VarPackageName? EstimatedVarName => GetEstimatedVarName();
+
+    private VarPackageName? GetEstimatedVarName()
+    {
+        if (_estimatedVarNameCalculated) return _estimatedVarName;
+
+        _estimatedVarNameCalculated = true;
+        if(Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':')) return null;
+        var name = Value.Split(':').First();
+        VarPackageName.TryGet(name + ".var", out _estimatedVarName);
+        return _estimatedVarName;
+    }
 }
 
 public interface IJsonFileParser
