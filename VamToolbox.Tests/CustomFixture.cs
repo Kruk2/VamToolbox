@@ -1,4 +1,7 @@
+using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using AutoFixture;
+using AutoFixture.AutoNSubstitute;
 using AutoFixture.Kernel;
 using VamToolbox.Models;
 
@@ -12,8 +15,12 @@ public sealed class CustomFixture : Fixture
         Customizations.Add(new TypeRelay( typeof(FileReferenceBase), typeof(FreeFile)));
         Customizations.Add(new TypeRelay( typeof(FileReferenceBase), typeof(VarPackageFile)));
         Customizations.Add(new VarNameBuilder());
-    }
+        Customize(new AutoNSubstituteCustomization { ConfigureMembers = false });
 
+        var fs = new MockFileSystem();
+        this.Inject((IFileSystem)fs);
+        this.Inject(fs);
+    }
 
     internal class VarNameBuilder : ISpecimenBuilder
     {

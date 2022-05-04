@@ -12,18 +12,16 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
 {
     private readonly IProgressTracker _progressTracker;
     private readonly IFileSystem _fs;
-    private readonly ILogger _logger;
     private int _total;
     private int _progress;
     private int _trusted;
     private string _vamPrefsDir = null!;
     private OperationContext _context = null!;
 
-    public TrustAllVarsOperation(IProgressTracker progressTracker, IFileSystem fs, ILogger logger)
+    public TrustAllVarsOperation(IProgressTracker progressTracker, IFileSystem fs)
     {
         _progressTracker = progressTracker;
         _fs = fs;
-        _logger = logger;
     }
 
     public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars)
@@ -31,7 +29,7 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
         _context = context;
         _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
         if (!context.DryRun)
-            Directory.CreateDirectory(_vamPrefsDir);
+            _fs.Directory.CreateDirectory(_vamPrefsDir);
 
         _progressTracker.InitProgress("Trusting all vars");
         _total = vars.Count;
@@ -52,7 +50,15 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
     private void TrustVar(VarPackage var)
     {
         var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
-        dynamic json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile))! : new ExpandoObject();
+        dynamic json;
+        try
+        {
+            json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile))! : new ExpandoObject();
+        }
+        catch (JsonReaderException)
+        {
+            return;
+        }
 
         var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
         var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");

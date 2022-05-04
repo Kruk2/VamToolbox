@@ -10,7 +10,6 @@ public interface IReferenceCacheReader
 {
     Task SaveCache(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles);
     Task ReadCache(List<PotentialJsonFile> potentialScenes);
-    void ReadReferenceCache(PotentialJsonFile potentialJsonFile);
 }
 
 public class ReferenceCacheReader : IReferenceCacheReader
@@ -91,7 +90,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
         }
     }
 
-    public void ReadReferenceCache(PotentialJsonFile potentialJsonFile)
+    private void ReadReferenceCache(PotentialJsonFile potentialJsonFile)
     {
         if (_globalReferenceCache is null) throw new InvalidOperationException("Cache not initialized");
 
