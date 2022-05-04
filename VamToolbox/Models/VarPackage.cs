@@ -50,9 +50,9 @@ public sealed class VarPackage : IVamObjectWithDependencies
         Size = size;
     }
 
-    public void AddVarFile(VarPackageFile varFile) => _files.Add(varFile);
+    internal void AddVarFile(VarPackageFile varFile) => _files.Add(varFile);
 
-    public override string ToString() => Name.ToString();
+    public override string ToString() => FullPath;
 
     private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()
     {

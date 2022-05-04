@@ -25,7 +25,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 
     public IEnumerable<FreeFile> SelfAndChildren() => Children.Append(this);
 
-    public override string ToString() => LocalPath;
+    public override string ToString() => FullPath;
 
     public override void AddChildren(FileReferenceBase children)
     {

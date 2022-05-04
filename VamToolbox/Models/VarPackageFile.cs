@@ -24,6 +24,6 @@ public sealed class VarPackageFile : FileReferenceBase
 
     public override string ToString()
     {
-        return base.ToString() + $" Var: {ParentVar.Name.Filename}";
+        return base.ToString() + $" Var: {ParentVar.FullPath}";
     }
 }
