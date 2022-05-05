@@ -12,6 +12,11 @@ public sealed class VarPackage : IVamObjectWithDependencies
     private readonly List<VarPackageFile> _files = new();
     public IReadOnlyList<VarPackageFile> Files => _files;
 
+    private AssetType? _assetType;
+    private AssetType? Type => _assetType ??= Files
+        .SelectMany(t => t.SelfAndChildren())
+        .Aggregate(AssetType.Unknown, (a, b) => a | b.Type);
+
     private List<JsonFile>? _jsonFiles;
     public IReadOnlyList<JsonFile> JsonFiles => _jsonFiles ??= Files
         .SelectMany(t => t.SelfAndChildren())
