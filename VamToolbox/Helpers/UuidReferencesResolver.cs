@@ -48,18 +48,18 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             .SelectMany(t => t.Files.Where(x => x.InternalId != null));
 
         _vamFilesById = vamFilesFromVars.Cast<FileReferenceBase>()
-            .Concat(freeFiles.Where(t => t.InternalId != null && (t.Type & AssetType.ClothOrHair) != 0))
-            .Where(t => (t.Type & AssetType.ClothOrHair) != 0)
+            .Concat(freeFiles.Where(t => t.InternalId != null && (t.Type & AssetType.ValidClothOrHair) != 0))
+            .Where(t => (t.Type & AssetType.ValidClothOrHair) != 0)
             .ToLookup(t => t.InternalId!);
     }
 
     private void InitMorphNames(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles)
     {
         var morphFilesFromVars = varFiles
-            .SelectMany(t => t.Files.Where(x => x.MorphName != null && (x.Type & AssetType.Morph) != 0));
+            .SelectMany(t => t.Files.Where(x => x.MorphName != null && (x.Type & AssetType.ValidMorph) != 0));
 
         _morphFilesByName = freeFiles
-            .Where(t => t.MorphName != null && (t.Type & AssetType.Morph) != 0)
+            .Where(t => t.MorphName != null && (t.Type & AssetType.ValidMorph) != 0)
             .Cast<FileReferenceBase>()
             .Concat(morphFilesFromVars)
             .ToLookup(t => t.MorphName!);
@@ -184,18 +184,24 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         var matchedAssets = lookup[uuidOrName];
         if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = matchedAssets.Append(fallBackResolvedAsset);
 
-        var isSupportedType = (reference.EstimatedAssetType & AssetType.ClothOrHairOrMorph) != 0;
+        var isSupportedType = (reference.EstimatedAssetType & AssetType.ValidClothOrHairOrMorph) != 0;
         if (isSupportedType)
         {
             var isFemaleAsset = reference.EstimatedAssetType.IsFemale();
             var isMaleAsset = reference.EstimatedAssetType.IsMale();
 
-            if (matchedAssets.Any(x => (x.Type & AssetType.Female) != 0 && isFemaleAsset || (x.Type & AssetType.Male) != 0 && isMaleAsset))
+            if (matchedAssets.Any(x => x.Type.IsFemale() && isFemaleAsset || x.Type.IsMale() && isMaleAsset))
                 matchedAssets = matchedAssets.Where(x => (x.Type & AssetType.Female) != 0 && isFemaleAsset || (x.Type & AssetType.Male) != 0 && isMaleAsset);
             else if (fallBackResolvedAsset != null)
                 return (new JsonReference(fallBackResolvedAsset, reference), false);
             else
                 return (null, false);
+        }
+        else
+        {
+            // TODO detect if it's female/male morph/cloth/hair, for not prefer females
+            if (matchedAssets.Any(x => x.Type.IsFemale()))
+                matchedAssets = matchedAssets.Where(x => x.Type.IsFemale());
         }
 
         var matchedAsset = matchedAssets.Take(2).ToArray();

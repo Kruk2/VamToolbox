@@ -73,6 +73,8 @@ public static class KnownNames
                 type |= AssetType.FemaleNormalMorph;
             else if (localPath.IsMaleNormalMorph())
                 type |= AssetType.MaleNormalMorph;
+            else
+                type |= AssetType.UnknownMorph;
         }
         else if (ext is ".vaj" or ".vam" or ".vab")
         {
@@ -86,6 +88,8 @@ public static class KnownNames
                 type |= AssetType.MaleCloth;
             else if (localPath.IsOtherCloth())
                 type |= AssetType.OtherCloth;
+            else
+                type |= AssetType.UnknownClothOrHair;
         }
 
         return type;

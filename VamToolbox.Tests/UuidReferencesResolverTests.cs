@@ -117,7 +117,7 @@ public class UuidReferencesResolverTests
     }
 
     [Fact]
-    public async Task Resolve_NoMatchingUuids_WhenFileMatchedOutsideMorphDirectory_ShouldReturnNothing()
+    public async Task Resolve_NoMatchingUuids_WhenFileInputMorphOutsideMorphDirectory_ShouldReturnNothing()
     {
         var matchedFile = CreateFile(KnownNames.FemaleClothDir + "/morph.vmi");
         matchedFile.MorphName = _reference.MorphName!;
@@ -127,6 +127,41 @@ public class UuidReferencesResolverTests
         var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_SingleMatchingUuid_WhenReferencedAssetHasUnknownGender_ShouldReturnMatchingUuid()
+    {
+        var reference = new Reference(string.Empty, 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_FemaleAndMaleMatchingUuids_WhenReferencedAssetHasUnknownGender_ShouldReturnFemaleUuid()
+    {
+        var reference = new Reference(string.Empty, 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        var notMatchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
+        notMatchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(notMatchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
     }
 

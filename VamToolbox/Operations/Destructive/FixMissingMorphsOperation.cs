@@ -112,10 +112,10 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
 
     private (IEnumerable<FreeFile> missingMorphs, ILookup<string, FreeFile> allMorphsByName) GetMissingMorphsAndLookup()
     {
-        var missingMorphs = _files.Where(t => t.Type == AssetType.Morph && t.Children.Count == 0);
+        var missingMorphs = _files.Where(t => t.Type == AssetType.ValidMorph && t.Children.Count == 0);
         var allMorphsByName = _files
             .SelectMany(t => t.SelfAndChildren())
-            .Where(t => t.Type == AssetType.Morph)
+            .Where(t => t.Type == AssetType.ValidMorph)
             .ToLookup(t => t.FilenameLower);
         return (missingMorphs, allMorphsByName);
     }

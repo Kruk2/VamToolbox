@@ -18,14 +18,32 @@ public class AssetTypeTests
         using var _ = new AssertionScope();
         assetType.Should().NotBe(AssetType.Unknown);
         assetType.Should().Be(expectedType);
+        (assetType & AssetType.ValidMorph).Should().NotBe(0);
         (assetType & AssetType.Morph).Should().NotBe(0);
-        (assetType & AssetType.ClothOrHairOrMorph).Should().NotBe(0);
+        (assetType & AssetType.ValidClothOrHairOrMorph).Should().NotBe(0);
 
         AssertFemaleMaleAssetTypes(isFemale, assetType);
         if (isFemale)
             (assetType & AssetType.FemaleMorph).Should().NotBe(0);
         else
             (assetType & AssetType.MaleMorph).Should().NotBe(0);
+    }
+
+    [Theory]
+    [InlineData(".vmb", KnownNames.MaleHairDir + "morph.vmb")]
+    [InlineData(".vmi", KnownNames.MaleHairDir + "morph.vmi")]
+    public void Classify_UnknownMorph(string ext, string localPath)
+    {
+        var assetType = ext.ClassifyType(localPath);
+
+        using var _ = new AssertionScope();
+
+        assetType.Should().NotBe(AssetType.Unknown);
+        assetType.Should().Be(AssetType.UnknownMorph);
+        (assetType & AssetType.Morph).Should().NotBe(0);
+        (assetType & AssetType.ValidMorph).Should().Be(0);
+        assetType.IsFemale().Should().BeFalse();
+        assetType.IsMale().Should().BeFalse();
     }
 
     [Theory]
@@ -42,9 +60,9 @@ public class AssetTypeTests
         using var _ = new AssertionScope();
         assetType.Should().NotBe(AssetType.Unknown);
         assetType.Should().Be(expectedType);
-        (assetType & AssetType.Hair).Should().NotBe(0);
-        (assetType & AssetType.ClothOrHair).Should().NotBe(0);
-        (assetType & AssetType.ClothOrHairOrMorph).Should().NotBe(0);
+        (assetType & AssetType.ValidHair).Should().NotBe(0);
+        (assetType & AssetType.ValidClothOrHair).Should().NotBe(0);
+        (assetType & AssetType.ValidClothOrHairOrMorph).Should().NotBe(0);
 
         AssertFemaleMaleAssetTypes(isFemale, assetType);
     }
@@ -66,9 +84,9 @@ public class AssetTypeTests
         using var _ = new AssertionScope();
         assetType.Should().NotBe(AssetType.Unknown);
         assetType.Should().Be(expectedType);
-        (assetType & AssetType.Cloth).Should().NotBe(0);
-        (assetType & AssetType.ClothOrHair).Should().NotBe(0);
-        (assetType & AssetType.ClothOrHairOrMorph).Should().NotBe(0);
+        (assetType & AssetType.ValidCloth).Should().NotBe(0);
+        (assetType & AssetType.ValidClothOrHair).Should().NotBe(0);
+        (assetType & AssetType.ValidClothOrHairOrMorph).Should().NotBe(0);
 
         if(isFemale.HasValue)
             AssertFemaleMaleAssetTypes(isFemale.Value, assetType);
@@ -77,6 +95,24 @@ public class AssetTypeTests
             assetType.IsFemale().Should().BeFalse();
             assetType.IsMale().Should().BeFalse();
         }
+    }
+
+    [Theory]
+    [InlineData(".vaj", KnownNames.MaleMorphsDir + "a.vaj")]
+    [InlineData(".vam", KnownNames.MaleMorphsDir + "b.vam")]
+    public void Classify_UnknownHairOrClothes(string ext, string localPath)
+    {
+        var assetType = ext.ClassifyType(localPath);
+
+        using var _ = new AssertionScope();
+
+        assetType.Should().NotBe(AssetType.Unknown);
+        assetType.Should().Be(AssetType.UnknownClothOrHair);
+        (assetType & AssetType.ValidCloth).Should().Be(0);
+        (assetType & AssetType.ValidClothOrHair).Should().Be(0);
+        (assetType & AssetType.ValidHair).Should().Be(0);
+        assetType.IsFemale().Should().BeFalse();
+        assetType.IsMale().Should().BeFalse();
     }
 
     private static void AssertFemaleMaleAssetTypes(bool isFemale, AssetType assetType)
