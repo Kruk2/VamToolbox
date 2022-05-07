@@ -55,7 +55,7 @@ public sealed class Database : IDatabase
         _connection.Execute($"Create Table {FilesTable} (" +
                             "Id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
                             "Path TEXT collate nocase NOT NULL," +
-                            "LocalPath TEXT," +
+                            "LocalPath TEXT NOT NULL," +
                             "Uuid TEXT collate nocase," +
                             "FileSize integer NOT NULL," +
                             "ModifiedTime integer NOT NULL);");
@@ -128,13 +128,13 @@ public sealed class Database : IDatabase
     public IEnumerable<(string fullPath, string localPath, long size, DateTime modifiedTime, string? uuid)> ReadVarFilesCache()
     {
         return _connection.Query<(string, string, long, DateTime, string?)>(
-            $"select Path, LocalPath, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is not null");
+            $"select Path, LocalPath, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is not ''");
     }
 
     public IEnumerable<(string fullPath, long size, DateTime modifiedTime, string? uuid)> ReadFreeFilesCache()
     {
         return _connection.Query<(string, long, DateTime, string?)>(
-            $"select Path, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is null");
+            $"select Path, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is ''");
     }
 
     public void UpdateReferences(Dictionary<FileReferenceBase, long> batch, List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles)
@@ -210,7 +210,7 @@ public sealed class Database : IDatabase
 
         foreach (var file in files.Keys) {
             paramFullPath.Value = file.IsVar ? file.Var.FullPath : file.Free.FullPath;
-            localPath.Value = (object?)(file.IsVar ? file.VarFile.LocalPath : null) ?? DBNull.Value;
+            localPath.Value = (object?)(file.IsVar ? file.VarFile.LocalPath : null) ?? string.Empty;
             uuid.Value = (object?)(file.MorphName ?? file.InternalId) ?? DBNull.Value;
             paramSize.Value = file.Size;
             paramTimestamp.Value = file.ModifiedTimestamp;

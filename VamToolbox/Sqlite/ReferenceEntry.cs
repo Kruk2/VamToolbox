@@ -8,5 +8,5 @@ public sealed class ReferenceEntry
     public string? MorphName { get; set; }
     public string? InternalId { get; set; }
     public string FilePath { get; set; } = null!;
-    public string? LocalPath { get; set; }
+    public string LocalPath { get; set; } = null!;
 }

@@ -15,7 +15,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
 {
     private readonly IDatabase _database;
     private readonly IProgressTracker _progressTracker;
-    private Dictionary<string, ILookup<string?, ReferenceEntry>>? _globalReferenceCache;
+    private Dictionary<string, ILookup<string, ReferenceEntry>>? _globalReferenceCache;
 
     public ReferenceCacheReader(IDatabase database, IProgressTracker progressTracker)
     {
@@ -102,7 +102,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
         } else if (!potentialJsonFile.IsVar && !potentialJsonFile.Free.Dirty) {
             var free = potentialJsonFile.Free;
             if (_globalReferenceCache.TryGetValue(free.FullPath, out var references)) {
-                var mappedReferences = references[null].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
+                var mappedReferences = references[string.Empty].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
                 potentialJsonFile.AddCachedReferences(mappedReferences);
             }
         }
