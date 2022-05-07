@@ -41,7 +41,9 @@ public abstract class FileReferenceBase
 
     private string? _hashWithChildren;
     public string HashWithChildren => _hashWithChildren ??= MD5Helper.GetHash(Hash!, Children.Select(t => t.Hash!));
-    public long SizeWithChildren => Size + Children.Sum(t => t.SizeWithChildren);
+
+    private long? _sizeWithChildren;
+    public long SizeWithChildren => _sizeWithChildren ??= Size + Children.Sum(t => t.SizeWithChildren);
 
     protected FileReferenceBase(string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
     {

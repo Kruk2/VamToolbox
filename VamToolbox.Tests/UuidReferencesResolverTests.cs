@@ -29,7 +29,7 @@ public class UuidReferencesResolverTests
     [Fact]
     public void Resolve_NoMatchingUuids_ShouldReturnNothing()
     {
-        var (jsonReference, isDelayed) =_resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) =_resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -45,7 +45,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -62,7 +62,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: fallbackReference);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: fallbackReference);
 
         jsonReference!.ToFile.Should().Be(fallbackReference);
         isDelayed.Should().BeFalse();
@@ -78,7 +78,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -94,7 +94,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -110,7 +110,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -124,7 +124,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -140,7 +140,39 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_SingleMatchingUuid_WhenReferencedAssetHasFemaleGenderInWeirdDirectory_ShouldReturnMatchingUuid()
+    {
+        var reference = new Reference("custom/female/morph", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
+
+        jsonReference!.ToFile.Should().Be(matchedFile);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_SingleMatchingUuid_WhenReferencedAssetHasMaleGenderInWeirdDirectory_ShouldReturnMatchingUuid()
+    {
+        var reference = new Reference("custom/male/morph", 0, 0, _freeFiles.First());
+        reference.MorphName = "internal id";
+        var matchedFile = CreateFile(KnownNames.MaleMorphsDir + "/morph.vmi");
+        matchedFile.MorphName = reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -159,7 +191,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(notMatchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -170,9 +202,24 @@ public class UuidReferencesResolverTests
     {
         var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallbackReference);
 
         jsonReference.Should().NotBeNull();
+        jsonReference!.ToFile.Should().Be(fallbackReference);
+        isDelayed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_MatchingUuidsHaveDifferentSizeThanFallback_ShouldReturnFallbackReference()
+    {
+        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", size: 10);
+        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", size: 5);
+        matchedFile.MorphName = _reference.MorphName!;
+        _freeFiles.Add(matchedFile);
+        await _resolver.InitLookups(_freeFiles, _vars);
+
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallbackReference);
+
         jsonReference!.ToFile.Should().Be(fallbackReference);
         isDelayed.Should().BeFalse();
     }
@@ -186,7 +233,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallbackReference);
 
         jsonReference!.ToFile.Should().Be(fallbackReference);
         isDelayed.Should().BeFalse();
@@ -202,71 +249,10 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallbackReference);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallbackReference);
 
         jsonReference!.ToFile.Should().Be(fallbackReference);
         isDelayed.Should().BeFalse();
-    }
-
-    [Theory, CustomAutoData]
-    public async Task Resolve_FallbackVarFileReference_WhenItsOutsideVamDirButInScannedVarPackage_ShouldReturnFallbackReference(VarPackageName packageName)
-    {
-        var varOutsideVamDir = new VarPackage(packageName, "", isInVamDir: false, 1);
-        var fallbackReference = CreateVarFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", varOutsideVamDir, isInVamDir: false);
-        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
-        matchedFile.MorphName = _reference.MorphName!;
-        _freeFiles.Add(matchedFile);
-        await _resolver.InitLookups(_freeFiles, _vars);
-
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: varOutsideVamDir, fallbackReference);
-
-        jsonReference!.ToFile.Should().Be(fallbackReference);
-        isDelayed.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Resolve_FallbackFileReference_WhenItsOutsideVamDirButReferencesParticularVarVersion_ShouldReturnFallbackReference()
-    {
-        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi",  isInVamDir: false);
-        var reference = new Reference("Author.Name.1:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
-        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
-        reference.MorphName =  matchedFile.MorphName = _reference.MorphName!;
-        _freeFiles.Add(matchedFile);
-        await _resolver.InitLookups(_freeFiles, _vars);
-
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
-
-        jsonReference!.ToFile.Should().Be(fallbackReference);
-        isDelayed.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Resolve_FallbackFileReference_WhenItsOutsideVamDirButReferencesParticularVarMinVersion_ShouldReturnFallbackReference()
-    {
-        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
-        var reference = new Reference("Author.Name.min1:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
-        reference.MorphName = _reference.MorphName!;
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
-
-        jsonReference!.ToFile.Should().Be(fallbackReference);
-        isDelayed.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Resolve_FallbackFileReference_WhenItsOutsideVamDirAndReferencesLatestVersion_ShouldReturnDelayedFlag()
-    {
-        var fallbackReference = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
-        var matchedFile = CreateFile(KnownNames.FemaleGenMorphsDir + "morph.vmi", isInVamDir: false);
-        matchedFile.MorphName = _reference.MorphName!;
-        _freeFiles.Add(matchedFile);
-        await _resolver.InitLookups(_freeFiles, _vars);
-
-        var reference = new Reference("Author.Name.latest:" + KnownNames.FemaleGenMorphsDir + "morph.vmi", 0, 0, _freeFiles.First());
-        reference.MorphName = _reference.MorphName!;
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, reference, sourceVar: null, fallbackReference);
-
-        jsonReference.Should().BeNull();
-        isDelayed.Should().BeTrue();
     }
 
     [Fact]
@@ -277,7 +263,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -295,32 +281,15 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile2);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
     }
 
-    [Theory, CustomAutoData]
-    public async Task Resolve_TwoMatchingUuid_WhenOneIsInsideScannedVar_ShouldReturnExactMatch(VarPackage varPackage)
-    {
-        var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
-        matchedFile.MorphName = _reference.MorphName!;
-        _freeFiles.Add(matchedFile);
 
-        var varFile = CreateVarFile(KnownNames.FemaleMorphsDir + "/morph.vmi", varPackage);
-        varFile.MorphName = _reference.MorphName!;
-        _vars.Add(varPackage);
-        await _resolver.InitLookups(_freeFiles, _vars);
-
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: varPackage, fallBackResolvedAsset: null);
-
-        jsonReference!.ToFile.Should().Be(varFile);
-        isDelayed.Should().BeFalse();
-    }
-
-    [Theory, CustomAutoData]
-    public async Task Resolve_TwoMatchingUuid_ShouldReturnDelayedFlag(VarPackage varPackage)
+    [Fact]
+    public async Task Resolve_TwoMatchingUuid_ShouldReturnDelayedFlag()
     {
         var matchedFile = CreateFile(KnownNames.FemaleMorphsDir + "/morph.vmi");
         matchedFile.MorphName = _reference.MorphName!;
@@ -331,7 +300,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile2);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, sourceVar: varPackage, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeTrue();
@@ -346,7 +315,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -362,7 +331,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -376,7 +345,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -390,7 +359,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -404,7 +373,7 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
@@ -418,12 +387,12 @@ public class UuidReferencesResolverTests
         _freeFiles.Add(matchedFile);
         await _resolver.InitLookups(_freeFiles, _vars);
 
-        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, sourceVar: null, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchVamJsonReferenceById(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference!.ToFile.Should().Be(matchedFile);
         isDelayed.Should().BeFalse();
     }
 
-    private FreeFile CreateFile(string localPath, bool isInVamDir = true) => new("a", localPath, 1, isInVamDir, DateTime.Now);
+    private FreeFile CreateFile(string localPath, bool isInVamDir = true, long size = 1) => new("a", localPath, size, isInVamDir, DateTime.Now);
     private VarPackageFile CreateVarFile(string localPath, VarPackage varPackage, bool isInVamDir = true) => new(localPath, 1, isInVamDir, varPackage, DateTime.Now);
 }

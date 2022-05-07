@@ -70,7 +70,7 @@ public sealed class JsonScannerHelper : IJsonFileParser
 {
     private static readonly HashSet<int> Extensions = new[]{
         "vmi", "vam", "vaj", "vap", "jpg", "jpeg", "tif", "png", "mp3", "ogg", "wav", "assetbundle", "scene",
-        "cs", "cslist", "tiff", "dll"
+        "cs", "cslist", "tiff", "dll", ".audiobundle"
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
 
     //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();

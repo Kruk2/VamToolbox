@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using VamToolbox.Logging;
+﻿using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 using VamToolbox.Sqlite;

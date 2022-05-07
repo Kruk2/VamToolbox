@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Threading.Tasks.Dataflow;
-using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -338,7 +337,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessMorphReference(Reference morphReference)
         {
-            var (jsonReferenceByMorphName, delayedReference) = _uuidReferenceResolver.MatchMorphJsonReferenceByName(jsonFile, morphReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.ToFile);
+            var (jsonReferenceByMorphName, delayedReference) = _uuidReferenceResolver.MatchMorphJsonReferenceByName(jsonFile, morphReference, resolvedReferenceWhenUuidMatchingFails?.ToFile);
             if (jsonReferenceByMorphName != null)
                 jsonFile.AddReference(jsonReferenceByMorphName);
             else if (!delayedReference)
@@ -349,7 +348,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         void ProcessVamReference(Reference vamReference)
         {
-            var (jsonReferenceById, delayedReference) = _uuidReferenceResolver.MatchVamJsonReferenceById(jsonFile, vamReference, potentialJson.Var, resolvedReferenceWhenUuidMatchingFails?.ToFile);
+            var (jsonReferenceById, delayedReference) = _uuidReferenceResolver.MatchVamJsonReferenceById(jsonFile, vamReference, resolvedReferenceWhenUuidMatchingFails?.ToFile);
             if (jsonReferenceById != null)
                 jsonFile.AddReference(jsonReferenceById);
             else if (!delayedReference)

@@ -5,8 +5,8 @@ using VamToolbox.Models;
 namespace VamToolbox.Helpers;
 public interface IUuidReferenceResolver
 {
-    (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
-    (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset);
+    (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, FileReferenceBase? fallBackResolvedAsset);
+    (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, FileReferenceBase? fallBackResolvedAsset);
     Task<List<JsonReference>> ResolveDelayedReferences();
     Task InitLookups(IEnumerable<FreeFile> freeFiles, IEnumerable<VarPackage> varFiles);
 }
@@ -15,7 +15,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
 {
     private ILookup<string, FileReferenceBase> _vamFilesById = null!;
     private ILookup<string, FileReferenceBase> _morphFilesByName = null!;
-    private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, IEnumerable<FileReferenceBase> matchedFiles, string uuidOrName)> _delayedReferencesToResolve = new();
+    private readonly ConcurrentBag<(JsonFile jsonFile, Reference reference, List<FileReferenceBase> matchedAssets, string uuidOrName)> _delayedReferencesToResolve = new();
     private readonly Dictionary<(string uuidOrName, byte femaleOrMale), FileReferenceBase> _cachedDeleyedVam = new(new CustomUuidComparer());
     private readonly Dictionary<(string uuidOrName, byte femaleOrMale), FileReferenceBase> _cachedDeleyedMorphs = new(new CustomUuidComparer());
 
@@ -104,24 +104,10 @@ public class UuidReferencesResolver : IUuidReferenceResolver
                 continue;
             }
 
-            // prefer vars/json with least dependencies outside vam folder
-            var objectsWithDependencies = matchedAssets
-                .Select(t => t is VarPackageFile varFile ? varFile.ParentVar : (IVamObjectWithDependencies)t)
-                .ToList();
-
-            objectsWithDependencies.ForEach(t => _ = t.TrimmedResolvedVarDependencies);
-
-            var dependenciesCount = objectsWithDependencies.Select(t =>
-                t.TrimmedResolvedVarDependencies.Count(t => !t.IsInVaMDir) + t.TrimmedResolvedFreeDependencies.Count(t => !t.IsInVaMDir));
+            // prefer vars/json with least dependencies
+            var dependencies = CalculateDependencies(matchedAssets);
+            var dependenciesCount = dependencies.Select(t => t.TrimmedResolvedVarDependencies.Count + t.TrimmedResolvedFreeDependencies.Count);
             var minCount = dependenciesCount.Min();
-            if (dependenciesCount.All(t => t == 0))
-            {
-                // if they are all 0 then prefer min dependencies overall
-                dependenciesCount = objectsWithDependencies.Select(t =>
-                    t.TrimmedResolvedVarDependencies.Count + t.TrimmedResolvedFreeDependencies.Count);
-                minCount = dependenciesCount.Min();
-            }
-
             var zipped = matchedAssets.Zip(dependenciesCount);
 
             var bestMatches = zipped.Where(t => t.Second == minCount).Select(t => t.First);
@@ -155,81 +141,94 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         return createdReferences;
     }
 
-    public (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
+    private static IVamObjectWithDependencies[] CalculateDependencies(IEnumerable<FileReferenceBase> matchedAssets)
     {
-        return MatchAssetByUuidOrName(jsonFile, reference.InternalId, reference, _vamFilesById, sourceVar, fallBackResolvedAsset);
+        return matchedAssets
+            .Select(t => t is VarPackageFile varFile ? varFile.ParentVar : (IVamObjectWithDependencies)t)
+            .ToArray();
     }
 
-    public (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
+    public (JsonReference? jsonReference, bool isDelayed) MatchVamJsonReferenceById(JsonFile jsonFile, Reference reference, FileReferenceBase? fallBackResolvedAsset)
     {
-        return MatchAssetByUuidOrName(jsonFile, reference.MorphName, reference, _morphFilesByName, sourceVar, fallBackResolvedAsset);
+        return MatchAssetByUuidOrName(jsonFile, reference.InternalId, reference, _vamFilesById, fallBackResolvedAsset);
+    }
+
+    public (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, FileReferenceBase? fallBackResolvedAsset)
+    {
+        return MatchAssetByUuidOrName(jsonFile, reference.MorphName, reference, _morphFilesByName, fallBackResolvedAsset);
     }
 
     private (JsonReference? jsonReference, bool isDelayed) MatchAssetByUuidOrName(JsonFile jsonFile, string? uuidOrName,
-        Reference reference, ILookup<string, FileReferenceBase> lookup, VarPackage? sourceVar, FileReferenceBase? fallBackResolvedAsset)
+        Reference reference, ILookup<string, FileReferenceBase> lookup, FileReferenceBase? fallBackResolvedAsset)
     {
         if (string.IsNullOrWhiteSpace(uuidOrName))
             throw new VamToolboxException("Invalid displayNameOrUuid");
 
-        if (fallBackResolvedAsset is not null)
+        var matchedAssets = lookup[uuidOrName].ToList();
+        if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets.Add(fallBackResolvedAsset);
+        FilterAssetsByGender(reference, matchedAssets);
+
+        if (fallBackResolvedAsset is not null && matchedAssets.Any(t => t.SizeWithChildren != fallBackResolvedAsset.SizeWithChildren))
         {
-            if (fallBackResolvedAsset.IsInVaMDir) 
-                return (new JsonReference(fallBackResolvedAsset, reference), false);
-            if (sourceVar is not null && fallBackResolvedAsset.Var == sourceVar)
-                return (new JsonReference(fallBackResolvedAsset, reference), false);
-            if (reference.EstimatedVarName is not null && (reference.EstimatedVarName.Version != -1 || reference.EstimatedVarName.MinVersion))
-                return (new JsonReference(fallBackResolvedAsset, reference), false);
+            // could be optimized, we can trigger late resolver and see what can be moved to VAM dir
+            // different size, use fallbackAsset
+            return (new JsonReference(fallBackResolvedAsset, reference), false);
         }
 
-        var matchedAssets = lookup[uuidOrName];
-        if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets = matchedAssets.Append(fallBackResolvedAsset);
-
-        var isSupportedType = (reference.EstimatedAssetType & AssetType.ValidClothOrHairOrMorph) != 0;
-        if (isSupportedType)
-        {
-            var isFemaleAsset = reference.EstimatedAssetType.IsFemale();
-            var isMaleAsset = reference.EstimatedAssetType.IsMale();
-
-            if (matchedAssets.Any(x => x.Type.IsFemale() && isFemaleAsset || x.Type.IsMale() && isMaleAsset))
-                matchedAssets = matchedAssets.Where(x => (x.Type & AssetType.Female) != 0 && isFemaleAsset || (x.Type & AssetType.Male) != 0 && isMaleAsset);
-            else if (fallBackResolvedAsset != null)
-                return (new JsonReference(fallBackResolvedAsset, reference), false);
-            else
-                return (null, false);
-        }
-        else
-        {
-            // TODO detect if it's female/male morph/cloth/hair, for not prefer females
-            if (matchedAssets.Any(x => x.Type.IsFemale()))
-                matchedAssets = matchedAssets.Where(x => x.Type.IsFemale());
-        }
-
-        var matchedAsset = matchedAssets.Take(2).ToArray();
-        switch (matchedAsset.Length)
+        switch (matchedAssets.Count)
         {
             case 0:
+                if (fallBackResolvedAsset is not null) return (new JsonReference(fallBackResolvedAsset, reference), false);
                 return (null, false);
             case 1:
-                return (new JsonReference(matchedAsset[0], reference), false);
+                return (new JsonReference(matchedAssets[0], reference), false);
         }
 
         // prefer files inside VAM dir
         if (matchedAssets.Any(t => t.IsInVaMDir))
-            matchedAssets = matchedAssets.Where(t => t.IsInVaMDir);
-
-        matchedAsset = matchedAssets.Take(2).ToArray();
-        if (matchedAsset.Length == 1)
-            return (new JsonReference(matchedAsset[0], reference), false);
-
-        // prefer files that are in var we're scanning
-        var anythingFromSourceVar = matchedAssets.Where(t => t.Var == sourceVar).MinBy(t => t.ToString());
-        if (sourceVar is not null && anythingFromSourceVar is not null)
         {
-            return (new JsonReference(anythingFromSourceVar, reference), false);
+            matchedAssets.RemoveAll(t => !t.IsInVaMDir);
         }
+
+        if (matchedAssets.Count == 1)
+            return (new JsonReference(matchedAssets[0], reference), false);
 
         _delayedReferencesToResolve.Add((jsonFile, reference, matchedAssets, uuidOrName));
 
         return (null, true);
+    }
+
+    private static void FilterAssetsByGender(Reference reference, List<FileReferenceBase> matchedAssets)
+    {
+        var isSupportedType = (reference.EstimatedAssetType & AssetType.ValidClothOrHairOrMorph) != 0;
+        var isFemaleAsset = reference.EstimatedAssetType.IsFemale();
+        var isMaleAsset = reference.EstimatedAssetType.IsMale();
+
+        if (!isSupportedType)
+        {
+            if (reference.EstimatedReferenceLocation.Contains("female", StringComparison.OrdinalIgnoreCase))
+            {
+                isFemaleAsset = true;
+            }
+            else if (reference.EstimatedReferenceLocation.Contains("male", StringComparison.OrdinalIgnoreCase))
+            {
+                isMaleAsset = true;
+            }
+        }
+
+        if (isFemaleAsset)
+        {
+            matchedAssets.RemoveAll(x => x.Type.IsMale());
+        }
+        else if (isMaleAsset)
+        {
+            matchedAssets.RemoveAll(x => x.Type.IsFemale());
+        }
+        else
+        {
+            //very rare case where we don't know the gender, prefer females
+            if (matchedAssets.Any(x => x.Type.IsFemale()))
+                matchedAssets.RemoveAll(x => x.Type.IsMale());
+        }
     }
 }

@@ -76,7 +76,7 @@ public static class KnownNames
             else
                 type |= AssetType.UnknownMorph;
         }
-        else if (ext is ".vaj" or ".vam" or ".vab")
+        else if (ext is ".vaj" or ".vam" or ".vab") // vap files can be in custom/clothing|hair/female
         {
             if (localPath.IsFemaleHair())
                 type |= AssetType.FemaleHair;
