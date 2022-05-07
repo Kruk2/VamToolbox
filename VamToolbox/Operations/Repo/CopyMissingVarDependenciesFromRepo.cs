@@ -5,7 +5,7 @@ using VamToolbox.Operations.Abstract;
 
 namespace VamToolbox.Operations.Repo;
 
-public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenciesFromRepo
+public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependenciesFromRepo
 {
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
@@ -25,8 +25,7 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
         _reporter.InitProgress("Copying missing dependencies from REPO to VAM");
         _context = context;
         await _logger.Init("copy_missing_deps_from_repo.log");
-        if (string.IsNullOrEmpty(_context.RepoDir))
-        {
+        if (string.IsNullOrEmpty(_context.RepoDir)) {
             _reporter.Complete("Missing repo dir. Aborting");
             return;
         }
@@ -36,7 +35,7 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
     }
 
     private void LinkFiles(
-        bool moveVars, 
+        bool moveVars,
         IReadOnlyCollection<FreeFile> existingFiles, IReadOnlyCollection<VarPackage> exitingVars)
     {
         var count = existingFiles.Count + exitingVars.Count;
@@ -46,22 +45,18 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
         if (!_context.DryRun)
             Directory.CreateDirectory(varFolderDestination);
 
-        foreach (var existingVar in exitingVars.OrderBy(t => t.Name.Filename))
-        {
+        foreach (var existingVar in exitingVars.OrderBy(t => t.Name.Filename)) {
             var varDestination = Path.Combine(varFolderDestination, Path.GetFileName(existingVar.FullPath));
-            if (File.Exists(varDestination))
-            {
+            if (File.Exists(varDestination)) {
                 _logger.Log($"Skipping {varDestination} source: {existingVar.FullPath}. Already exists.");
                 _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
                 continue;
             }
             if (moveVars && !_context.DryRun)
                 File.Move(existingVar.FullPath, varDestination);
-            else
-            {
+            else {
                 var success = _linker.SoftLink(varDestination, existingVar.FullPath, _context.DryRun);
-                if (success != 0)
-                {
+                if (success != 0) {
                     _logger.Log($"Error soft-link. Code {success} Dest: {varDestination} source: {existingVar.FullPath}");
                     _reporter.Complete("Failed. Unable to create symlink. Probably missing admin privilege.");
                     continue;
@@ -72,12 +67,10 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
             _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
         }
 
-        foreach (var file in existingFiles.OrderBy(t => t.FilenameLower))
-        {
+        foreach (var file in existingFiles.OrderBy(t => t.FilenameLower)) {
             var relativeToRoot = file.FullPath.RelativeTo(_context.RepoDir!);
             var destinationPath = Path.Combine(_context.VamDir, relativeToRoot);
-            if (File.Exists(destinationPath))
-            {
+            if (File.Exists(destinationPath)) {
                 _logger.Log($"SkippingDest: {destinationPath} source: {file.FullPath}. Already exists.");
                 _reporter.Report(new ProgressInfo(++processed, count, file.FilenameWithoutExt));
                 continue;
@@ -85,15 +78,11 @@ public sealed class CopyMissingVarDependenciesFromRepo :ICopyMissingVarDependenc
             if (!_context.DryRun)
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
-            if (moveVars && !_context.DryRun)
-            {
+            if (moveVars && !_context.DryRun) {
                 File.Move(file.FullPath, destinationPath);
-            }
-            else
-            {
+            } else {
                 var success = _linker.SoftLink(destinationPath, file.FullPath, _context.DryRun);
-                if (success != 0)
-                {
+                if (success != 0) {
                     _logger.Log($"Error soft-link. Code {success} Dest: {destinationPath} source: {file.FullPath}");
                     _reporter.Complete(
                         $"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {success}.");

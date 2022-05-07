@@ -26,14 +26,12 @@ public sealed class RemoveSoftLinks : IRemoveSoftLinks
         int softLinksRemoved = 0;
         var addonDir = Path.Combine(context.VamDir, "AddonPackages");
 
-        await Task.Run(() =>
-        {
+        await Task.Run(() => {
             var softLinks = Directory
                 .EnumerateFiles(context.VamDir, "*.*", SearchOption.AllDirectories)
                 .Where(t => _softLinker.IsSoftLink(t));
 
-            foreach (var softLink in softLinks)
-            {
+            foreach (var softLink in softLinks) {
                 if (!_context.DryRun) File.Delete(softLink);
 
                 Interlocked.Increment(ref softLinksRemoved);
@@ -48,12 +46,10 @@ public sealed class RemoveSoftLinks : IRemoveSoftLinks
 
     private void RemoveEmptyDirs(string startLocation)
     {
-        foreach (var directory in Directory.GetDirectories(startLocation))
-        {
+        foreach (var directory in Directory.GetDirectories(startLocation)) {
             RemoveEmptyDirs(directory);
             if (Directory.GetFiles(directory).Length == 0 &&
-                Directory.GetDirectories(directory).Length == 0)
-            {
+                Directory.GetDirectories(directory).Length == 0) {
                 Directory.Delete(directory, false);
             }
         }

@@ -27,7 +27,7 @@ public sealed class JsonFile
         else
             ((HashSet<FreeFile>)FreeReferences).Add(reference.ToFreeFile);
 
-        if(reference.ToFile != File)
+        if (reference.ToFile != File)
             reference.ToFile.UsedByJsonFiles[this] = true;
     }
     public void AddMissingReference(Reference reference) => _missing.Add(reference);

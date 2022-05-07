@@ -88,10 +88,9 @@ public class AssetTypeTests
         (assetType & AssetType.ValidClothOrHair).Should().NotBe(0);
         (assetType & AssetType.ValidClothOrHairOrMorph).Should().NotBe(0);
 
-        if(isFemale.HasValue)
+        if (isFemale.HasValue)
             AssertFemaleMaleAssetTypes(isFemale.Value, assetType);
-        else
-        {
+        else {
             assetType.IsFemale().Should().BeFalse();
             assetType.IsMale().Should().BeFalse();
         }
@@ -117,13 +116,10 @@ public class AssetTypeTests
 
     private static void AssertFemaleMaleAssetTypes(bool isFemale, AssetType assetType)
     {
-        if (isFemale)
-        {
+        if (isFemale) {
             assetType.IsFemale().Should().BeTrue();
             assetType.IsMale().Should().BeFalse();
-        }
-        else
-        {
+        } else {
             assetType.IsFemale().Should().BeFalse();
             assetType.IsMale().Should().BeTrue();
         }

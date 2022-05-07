@@ -26,10 +26,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private OperationContext _context = null!;
 
     public ScanJsonFilesOperation(
-        IProgressTracker progressTracker, 
-        IFileSystem fs, 
-        ILogger logger, 
-        IJsonFileParser jsonFileParser, 
+        IProgressTracker progressTracker,
+        IFileSystem fs,
+        ILogger logger,
+        IJsonFileParser jsonFileParser,
         IReferenceCacheReader referenceCacheReader,
         IUuidReferenceResolver uuidReferenceResolver,
         IReferencesResolver referencesResolver)
@@ -76,8 +76,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await _uuidReferenceResolver.InitLookups(freeFiles, varFiles);
         await _referencesResolver.InitLookups(freeFiles, varFiles, _errors);
 
-        return await Task.Run(() =>
-        {
+        return await Task.Run(() => {
 
             var varFilesWithScene = varFiles
                 .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
@@ -99,12 +98,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         var dependencies = varFiles.Cast<IVamObjectWithDependencies>().Concat(freeFiles).ToList();
         dependencies.ForEach(t => t.ClearDependencies());
 
-        var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t =>
-            {
-                _ = _context.ShallowDeps ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies;
-            },
-            new ExecutionDataflowBlockOptions
-            {
+        var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t => {
+            _ = _context.ShallowDeps ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies;
+        },
+            new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
             });
 
@@ -119,13 +116,11 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         var scanSceneBlock = new ActionBlock<PotentialJsonFile>(
             ScanJsonAsync,
-            new ExecutionDataflowBlockOptions
-            {
+            new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
             });
 
-        foreach (var potentialScene in potentialScenes)
-        {
+        foreach (var potentialScene in potentialScenes) {
             scanSceneBlock.Post(potentialScene);
         }
 
@@ -141,23 +136,19 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         var uniqueMissingVars = scenes.SelectMany(t => t.Missing)
             .GroupBy(t => t.EstimatedVarName)
-            .Select(t =>
-            {
+            .Select(t => {
                 VarPackageName.TryGet(t.Key + ".var", out var x);
                 return (fromJsonFiles: t.Select(y => y.ForJsonFile).Distinct().ToList(), VarName: x, t.Key);
             });
         var varIndex = varPackages.Select(t => t.Name.PackageNameWithoutVersion).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         _logger.Log("Missing vars:");
-        foreach (var (jsonFiles, varName, key) in uniqueMissingVars.OrderBy(t => t.VarName?.Filename ?? string.Empty))
-        {
-            if (varName is null)
-            {
+        foreach (var (jsonFiles, varName, key) in uniqueMissingVars.OrderBy(t => t.VarName?.Filename ?? string.Empty)) {
+            if (varName is null) {
                 _logger.Log($"Unable to parse: {key} from " + string.Join(" AND ", jsonFiles));
                 continue;
             }
-            if (!varIndex.Contains(varName.PackageNameWithoutVersion))
-            {
+            if (!varIndex.Contains(varName.PackageNameWithoutVersion)) {
                 _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
                 continue;
             }
@@ -169,27 +160,21 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
         _logger.Log("");
         var errors = scenes.SelectMany(t => t.File.IsVar ? t.File.Var.UnresolvedDependencies : t.File.Free.UnresolvedDependencies).Distinct();
-        foreach (var error in errors)
-        {
+        foreach (var error in errors) {
             _logger.Log(error);
         }
     }
 
     private async Task ScanJsonAsync(PotentialJsonFile potentialJson)
     {
-        try 
-        { 
+        try {
             _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _total, potentialJson.Name));
             foreach (var openedJson in potentialJson.OpenJsons())
                 await ScanJsonAsync(openedJson, potentialJson);
 
-        }
-        catch(Exception ex)
-        {
+        } catch (Exception ex) {
             _errors.Add($"[UNKNOWN-ERROR] Unable to process {potentialJson.Name} because: {ex}");
-        }
-        finally
-        {
+        } finally {
             potentialJson.Dispose();
         }
     }
@@ -208,35 +193,27 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         var offset = 0;
         var hasDelayedReferences = false;
 
-        if (openedJson.CachedReferences != null)
-        {
-            foreach (var reference in openedJson.CachedReferences)
-            {
+        if (openedJson.CachedReferences != null) {
+            foreach (var reference in openedJson.CachedReferences) {
                 (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
 
-                if (reference.InternalId != null)
-                {
-                    if(nextScanForUuidOrMorphName is null) throw new ArgumentException("Uuid reference is null but got internal id");
+                if (reference.InternalId != null) {
+                    if (nextScanForUuidOrMorphName is null) throw new ArgumentException("Uuid reference is null but got internal id");
                     ProcessVamReference(reference);
-                }
-                else if (reference.MorphName != null)
-                {
+                } else if (reference.MorphName != null) {
                     if (nextScanForUuidOrMorphName is null) throw new ArgumentException("morph reference is null but got morph name");
                     ProcessMorphReference(reference);
                 }
             }
         }
 
-        while(streamReader is { EndOfStream: false })
-        {
+        while (streamReader is { EndOfStream: false }) {
             var line = await streamReader.ReadLineAsync();
             if (string.IsNullOrEmpty(line))
                 continue;
 
-            if (nextScanForUuidOrMorphName != null)
-            {
-                if (line.Contains("\"internalId\""))
-                {
+            if (nextScanForUuidOrMorphName != null) {
+                if (line.Contains("\"internalId\"")) {
                     var internalId = line.Replace("\"internalId\"", "");
                     nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf('\"') + 1)..internalId.LastIndexOf('\"')];
                     ProcessVamReference(nextScanForUuidOrMorphName);
@@ -247,8 +224,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                     continue;
                 }
 
-                if (line.Contains("\"name\""))
-                {
+                if (line.Contains("\"name\"")) {
                     var morphName = line.Replace("\"name\"", "");
                     nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf('\"') + 1)..morphName.LastIndexOf('\"')];
                     ProcessMorphReference(nextScanForUuidOrMorphName);
@@ -259,13 +235,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                     continue;
                 }
 
-                if (resolvedReferenceWhenUuidMatchingFails != null)
-                {
+                if (resolvedReferenceWhenUuidMatchingFails != null) {
                     jsonFile.AddReference(resolvedReferenceWhenUuidMatchingFails);
                     resolvedReferenceWhenUuidMatchingFails = null;
-                }
-                else
-                {
+                } else {
                     jsonFile.AddMissingReference(nextScanForUuidOrMorphName);
                 }
 
@@ -274,23 +247,17 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
             Reference? reference;
             string? referenceParseError;
-            try
-            {
+            try {
                 reference = _jsonFileParser.GetAsset(line, offset, openedJson.File, out referenceParseError);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 _logger.Log($"[ERROR] {e.Message} Unable to parse asset '{line}' in {openedJson.File}");
                 throw;
-            }
-            finally
-            {
+            } finally {
                 offset += line.Length;
             }
 
-            if (reference is null)
-            {
-                if(referenceParseError != null)
+            if (reference is null) {
+                if (referenceParseError != null)
                     _errors.Add(referenceParseError);
                 continue;
             }
@@ -298,8 +265,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             (nextScanForUuidOrMorphName, resolvedReferenceWhenUuidMatchingFails) = ProcessJsonReference(reference);
         }
 
-        if (jsonFile.References.Count > 0 || jsonFile.Missing.Count > 0 || hasDelayedReferences)
-        {
+        if (jsonFile.References.Count > 0 || jsonFile.Missing.Count > 0 || hasDelayedReferences) {
             _jsonFiles.Add(jsonFile);
             openedJson.File.JsonFile = jsonFile;
         }
@@ -307,18 +273,15 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         (Reference? nextScanForUuidOrMorphName, JsonReference? jsonReference) ProcessJsonReference(Reference reference)
         {
             JsonReference? jsonReference = null;
-            if (reference.Value.Contains(':'))
-            {
+            if (reference.Value.Contains(':')) {
                 jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, reference.Value, localSavesFolder);
             }
 
             if (jsonReference == null && (!reference.Value.Contains(':') ||
-                                          (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal))))
-            {
+                                          (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal)))) {
                 jsonReference = _referencesResolver.ScanFreeFileSceneReference(localSavesFolder, reference);
                 // it can be inside scene in var
-                if (jsonReference == default && potentialJson.IsVar)
-                {
+                if (jsonReference == default && potentialJson.IsVar) {
                     jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localSavesFolder);
                 }
             }

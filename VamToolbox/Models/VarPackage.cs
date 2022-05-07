@@ -44,8 +44,8 @@ public sealed class VarPackage : IVamObjectWithDependencies
         .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
     public VarPackage(
-        VarPackageName name, 
-        string fullPath, 
+        VarPackageName name,
+        string fullPath,
         bool isInVamDir,
         long size)
     {
@@ -61,14 +61,14 @@ public sealed class VarPackage : IVamObjectWithDependencies
 
     private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()
     {
-        if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null) 
+        if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null)
             return (_allResolvedVarDependencies, _allResolvedFreeDependencies);
         return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
     }
 
     private (List<VarPackage> Var, List<FreeFile> Free) CalculateShallowDeps()
     {
-        if (_trimmedResolvedFreeDependencies is not null && _trimmedResolvedVarDependencies is not null) 
+        if (_trimmedResolvedFreeDependencies is not null && _trimmedResolvedVarDependencies is not null)
             return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies);
         return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
     }

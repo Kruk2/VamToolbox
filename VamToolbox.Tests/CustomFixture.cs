@@ -12,8 +12,8 @@ public sealed class CustomFixture : Fixture
     public CustomFixture()
     {
         Customize<OpenedPotentialJson>(c => c.Without(c => c.Stream));
-        Customizations.Add(new TypeRelay( typeof(FileReferenceBase), typeof(FreeFile)));
-        Customizations.Add(new TypeRelay( typeof(FileReferenceBase), typeof(VarPackageFile)));
+        Customizations.Add(new TypeRelay(typeof(FileReferenceBase), typeof(FreeFile)));
+        Customizations.Add(new TypeRelay(typeof(FileReferenceBase), typeof(VarPackageFile)));
         Customizations.Add(new VarNameBuilder());
         Customize(new AutoNSubstituteCustomization { ConfigureMembers = false });
 
@@ -26,12 +26,11 @@ public sealed class CustomFixture : Fixture
     {
         public object Create(object request, ISpecimenContext context)
         {
-            if (request is Type type && type == typeof(VarPackageName))
-            {
+            if (request is Type type && type == typeof(VarPackageName)) {
                 var author = context.Create<string>();
                 var varName = context.Create<string>();
                 var version = context.Create<int>();
-                if(VarPackageName.TryGet($"{author}.{varName}.{version}.var", out var parsedVar))
+                if (VarPackageName.TryGet($"{author}.{varName}.{version}.var", out var parsedVar))
                     return parsedVar;
             }
 

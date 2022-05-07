@@ -16,7 +16,7 @@ public sealed class VarPackageFile : FileReferenceBase
 
     public override void AddChildren(FileReferenceBase children)
     {
-        _children.Add((VarPackageFile) children);
+        _children.Add((VarPackageFile)children);
         children.ParentFile = this;
     }
 

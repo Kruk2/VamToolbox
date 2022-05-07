@@ -37,8 +37,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
         _context = context;
 
         var files = await ScanFolder(_context.VamDir);
-        if(!string.IsNullOrEmpty(_context.RepoDir))
-        {
+        if (!string.IsNullOrEmpty(_context.RepoDir)) {
             files.AddRange(await ScanFolder(_context.RepoDir));
         }
 
@@ -51,8 +50,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     {
         var files = new List<FreeFile>();
 
-        await Task.Run(async () =>
-        {
+        await Task.Run(async () => {
             _uuidCache = _database.ReadFreeFilesCache().ToDictionary(t => t.fullPath, t => (t.size, t.modifiedTime, t.uuid), StringComparer.OrdinalIgnoreCase);
 
             _reporter.Report("Scanning Custom folder", forceShow: true);
@@ -65,7 +63,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             var favMorphs = files
                 .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
                 .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
-                    
+
             Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
             _reporter.Report("Updating local database", forceShow: true);
@@ -108,26 +106,18 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     {
         foreach (var freeFile in files
                      .SelectMany(t => t.SelfAndChildren())
-                     .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower)))
-        {
-            if (!_uuidCache.TryGetValue(freeFile.FullPath, out var uuidEntry))
-            {
+                     .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower))) {
+            if (!_uuidCache.TryGetValue(freeFile.FullPath, out var uuidEntry)) {
                 freeFile.Dirty = true;
                 continue;
             }
 
-            if (freeFile.Size != uuidEntry.size || uuidEntry.modifiedTime != freeFile.ModifiedTimestamp)
-            {
+            if (freeFile.Size != uuidEntry.size || uuidEntry.modifiedTime != freeFile.ModifiedTimestamp) {
                 freeFile.Dirty = true;
-            }
-            else if (!string.IsNullOrEmpty(uuidEntry.uuid))
-            {
-                if (freeFile.ExtLower == ".vmi")
-                {
+            } else if (!string.IsNullOrEmpty(uuidEntry.uuid)) {
+                if (freeFile.ExtLower == ".vmi") {
                     freeFile.MorphName = uuidEntry.uuid;
-                }
-                else if (freeFile.ExtLower == ".vam")
-                {
+                } else if (freeFile.ExtLower == ".vam") {
                     freeFile.InternalId = uuidEntry.uuid;
                 }
             }

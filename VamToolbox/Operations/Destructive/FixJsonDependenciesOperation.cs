@@ -39,22 +39,19 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             .Where(t => t.Missing.Count > 0)
             .ToList();
 
-        foreach (var x in jsonWithMissingReferences)
-        {
+        foreach (var x in jsonWithMissingReferences) {
             await FixReferencesOneAsync(x);
         }
     }
 
     private string ResolveDestDirConflicts(VarPackageFile bestReference, string destDir)
     {
-        lock (_filesToCopy)
-        {
+        lock (_filesToCopy) {
             var index = 0;
             IEnumerable<string> destinations;
             var originalDirName = Path.GetFileName(destDir);
 
-            while (true)
-            {
+            while (true) {
                 destinations = bestReference.SelfAndChildren()
                     .Select(t => Path.GetRelativePath(Path.GetDirectoryName(bestReference.LocalPath)!, t.LocalPath))
                     .Select(t => Path.Combine(destDir, t).NormalizePathSeparators());
@@ -67,11 +64,9 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
                 destDir = Path.Combine(Path.GetDirectoryName(destDir)!, originalDirName + $"_{index++}").NormalizePathSeparators();
             }
 
-            foreach (var dest in destinations)
-            {
+            foreach (var dest in destinations) {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                using (File.Create(dest))
-                {
+                using (File.Create(dest)) {
                 }
             }
         }
@@ -81,8 +76,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
 
     private async Task<string> CopyVarFile(VarPackageFile bestReference)
     {
-        if (_filesToCopy.TryAdd(bestReference.HashWithChildren, string.Empty))
-        {
+        if (_filesToCopy.TryAdd(bestReference.HashWithChildren, string.Empty)) {
             var parentDir = Path.GetDirectoryName(bestReference.LocalPath)!.NormalizePathSeparators();
             var destDir = Path.Combine(_context.VamDir, Path.GetDirectoryName(bestReference.LocalPath)!);
             if (KnownNames.KnownVamDirs.Contains(parentDir, StringComparer.InvariantCultureIgnoreCase))
@@ -94,14 +88,13 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             await using var varFileStream = File.OpenRead(bestReference.ParentVar.FullPath);
             using var varArchive = new ZipArchive(varFileStream);
 
-            foreach (var varFile in withChildren)
-            {
+            foreach (var varFile in withChildren) {
                 var localToParent = Path.GetRelativePath(parentDir, varFile.LocalPath);
                 var destFile = Path.Combine(destDir, localToParent).NormalizePathSeparators();
 
                 var entry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == varFile.LocalPath);
 
-                if(_context.DryRun)
+                if (_context.DryRun)
                     continue;
 
                 await using var stream = entry.Open();
@@ -118,32 +111,28 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
     private async Task FixReferencesOneAsync(JsonFile json)
     {
         var jsonData = await ReadJson(json);
-        foreach (var missing in json.Missing.OrderByDescending(t => t.Index))
-        {
+        foreach (var missing in json.Missing.OrderByDescending(t => t.Index)) {
             var localReferencePath = missing.NormalizedLocalPath;
             var localReferenceFileName = Path.GetFileName(localReferencePath);
 
             FileReferenceBase? bestReference = null;
 
-            if (_filesByPath.Contains(localReferencePath))
-            {
-                bestReference = _filesByPath[localReferencePath].Where(t => t.MissingChildren.Count == 0).OfType<FreeFile>().FirstOrDefault() ??  
+            if (_filesByPath.Contains(localReferencePath)) {
+                bestReference = _filesByPath[localReferencePath].Where(t => t.MissingChildren.Count == 0).OfType<FreeFile>().FirstOrDefault() ??
                                 _filesByPath[localReferencePath].FirstOrDefault(t => t.MissingChildren.Count == 0) ??
                                 _filesByPath[localReferencePath].FirstOrDefault();
             }
 
-            if (bestReference is null && 
+            if (bestReference is null &&
                 json.File.IsVar && _varsByAuthor.TryGetValue(json.File.Var.Name.Author, out var varFiles) &&
-                varFiles.Contains(localReferenceFileName))
-            {
+                varFiles.Contains(localReferenceFileName)) {
                 var varFilesFromTheSameAuthor = varFiles[localReferenceFileName];
                 var localPaths = varFilesFromTheSameAuthor.Select(t => t.LocalPath);
                 var best = Process.ExtractOne(localReferencePath, localPaths);
                 bestReference = varFilesFromTheSameAuthor.ElementAt(best.Index);
             }
 
-            if(bestReference is null && _filesByName.Contains(localReferenceFileName))
-            {
+            if (bestReference is null && _filesByName.Contains(localReferenceFileName)) {
                 var localReferences = _filesByName[localReferenceFileName];
                 var localPaths = localReferences.Select(t => t.LocalPath);
                 var best = Process.ExtractOne(localReferencePath, localPaths);
@@ -160,14 +149,13 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             ApplyFix(jsonData, missing, resolvedLocalPath, json.File.LocalPath);
         }
 
-        if(!_context.DryRun)
+        if (!_context.DryRun)
             await UpdateJson(json, jsonData);
     }
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData)
     {
-        if (json.File.IsVar)
-        {
+        if (json.File.IsVar) {
             await using var varFileStream = File.Open(json.File.Var.FullPath, FileMode.Open, FileAccess.ReadWrite);
             using var varArchive = new ZipArchive(varFileStream, ZipArchiveMode.Update);
             var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.File.LocalPath);
@@ -176,16 +164,12 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
             jsonEntry = varArchive.CreateEntry(json.File.LocalPath, CompressionLevel.Fastest);
             var stream = jsonEntry.Open();
             await using var writer = new StreamWriter(stream, Encoding.UTF8);
-            foreach (var s in jsonData)
-            {
+            foreach (var s in jsonData) {
                 await writer.WriteLineAsync(s);
             }
-        }
-        else
-        {
+        } else {
             await using var writer = new StreamWriter(json.File.Free.FullPath, false);
-            foreach (var s in jsonData)
-            {
+            foreach (var s in jsonData) {
                 await writer.WriteLineAsync(s);
             }
         }
@@ -194,13 +178,11 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
     private static void ApplyFix(List<string> jsonData, Reference missing, string newReferenceLocalPath, string? jsonLocalPath)
     {
         int sum = 0;
-        for (var i = 0; i < jsonData.Count; i++)
-        {
+        for (var i = 0; i < jsonData.Count; i++) {
             sum += jsonData[i].Length;
-            if (sum > missing.Index)
-            {
+            if (sum > missing.Index) {
                 int start = missing.Index - sum + jsonData[i].Length;
-                jsonData[i] = jsonData[i][..start] +  newReferenceLocalPath + jsonData[i][(start+missing.Length)..];
+                jsonData[i] = jsonData[i][..start] + newReferenceLocalPath + jsonData[i][(start + missing.Length)..];
                 return;
             }
         }
@@ -214,24 +196,20 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
 
         async Task ReadJsonInternal(StreamReader reader)
         {
-            while (!reader.EndOfStream)
-            {
+            while (!reader.EndOfStream) {
                 var line = await reader.ReadLineAsync();
-                if(line != null) sb.Add(line);
+                if (line != null) sb.Add(line);
             }
         }
 
-        if (json.File.IsVar)
-        {
+        if (json.File.IsVar) {
             await using var varFileStream = File.OpenRead(json.File.Var.FullPath);
             using var varArchive = new ZipArchive(varFileStream);
             var jsonEntry = varArchive.Entries.First(t => t.FullName.NormalizePathSeparators() == json.File.LocalPath);
             var stream = jsonEntry.Open();
             using var reader = new StreamReader(stream, Encoding.UTF8);
             await ReadJsonInternal(reader);
-        }
-        else
-        {
+        } else {
             using var reader = new StreamReader(json.File.Free.FullPath, Encoding.UTF8);
             await ReadJsonInternal(reader);
         }

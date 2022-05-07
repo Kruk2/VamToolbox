@@ -33,8 +33,7 @@ public sealed class DisableMorphPreloadOperation : IDisableMorphPreloadOperation
 
         _progressTracker.InitProgress("Trusting all vars");
         _total = vars.Count;
-        var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions
-        {
+        var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions {
             MaxDegreeOfParallelism = context.Threads
         });
 
@@ -51,21 +50,16 @@ public sealed class DisableMorphPreloadOperation : IDisableMorphPreloadOperation
     {
         var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
         dynamic json;
-        try
-        {
+        try {
             json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile))! : new ExpandoObject();
-        }
-        catch (JsonReaderException)
-        {
+        } catch (JsonReaderException) {
             return;
         }
 
         var hasPropertyDisabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysDisabled");
         var hasPropertyEnabled = ((IDictionary<string, object>)json).ContainsKey("pluginsAlwaysEnabled");
-        if (!hasPropertyDisabled || (hasPropertyDisabled && json.pluginsAlwaysDisabled != "true"))
-        {
-            if (!hasPropertyEnabled || (hasPropertyEnabled && json.pluginsAlwaysEnabled != "true"))
-            {
+        if (!hasPropertyDisabled || (hasPropertyDisabled && json.pluginsAlwaysDisabled != "true")) {
+            if (!hasPropertyEnabled || (hasPropertyEnabled && json.pluginsAlwaysEnabled != "true")) {
                 json.pluginsAlwaysEnabled = "true";
                 json.pluginsAlwaysDisabled = "false";
 

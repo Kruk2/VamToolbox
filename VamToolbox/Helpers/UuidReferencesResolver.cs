@@ -73,8 +73,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             return new List<JsonReference>();
 
         var createdReferences = new List<JsonReference>(_delayedReferencesToResolve.Count);
-        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve)
-        {
+        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve) {
             var isVam = reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase);
 
             void AddJsonReference(JsonReference referenceToAdd)
@@ -92,14 +91,12 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             var isMaleReference = reference.EstimatedAssetType.IsMale();
             var femaleOrMaleReference = (byte)(isFemaleReference ? 2 : isMaleReference ? 1 : 0);
 
-            if (isVam && _cachedDeleyedVam.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedReference))
-            {
+            if (isVam && _cachedDeleyedVam.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedReference)) {
                 AddReference(cachedReference);
                 continue;
             }
 
-            if (!isVam && _cachedDeleyedMorphs.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedMorphReference))
-            {
+            if (!isVam && _cachedDeleyedMorphs.TryGetValue((uuidOrName, femaleOrMaleReference), out var cachedMorphReference)) {
                 AddReference(cachedMorphReference);
                 continue;
             }
@@ -113,12 +110,9 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             var bestMatches = zipped.Where(t => t.Second == minCount).Select(t => t.First);
             FileReferenceBase bestMatch;
 
-            if (bestMatches.Take(2).Count() == 1)
-            {
+            if (bestMatches.Take(2).Count() == 1) {
                 bestMatch = bestMatches.First();
-            }
-            else
-            {
+            } else {
                 var byMostUsedFile = MoreLinq.MoreEnumerable.MaxBy(bestMatches, t => t.UsedByVarPackagesOrFreeFilesCount);
                 var bySmallestSize = MoreLinq.MoreEnumerable.MinBy(byMostUsedFile,
                     t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren);
@@ -168,15 +162,13 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         if (fallBackResolvedAsset is not null && !matchedAssets.Contains(fallBackResolvedAsset)) matchedAssets.Add(fallBackResolvedAsset);
         FilterAssetsByGender(reference, matchedAssets);
 
-        if (fallBackResolvedAsset is not null && matchedAssets.Any(t => t.SizeWithChildren != fallBackResolvedAsset.SizeWithChildren))
-        {
+        if (fallBackResolvedAsset is not null && matchedAssets.Any(t => t.SizeWithChildren != fallBackResolvedAsset.SizeWithChildren)) {
             // could be optimized, we can trigger late resolver and see what can be moved to VAM dir
             // different size, use fallbackAsset
             return (new JsonReference(fallBackResolvedAsset, reference), false);
         }
 
-        switch (matchedAssets.Count)
-        {
+        switch (matchedAssets.Count) {
             case 0:
                 if (fallBackResolvedAsset is not null) return (new JsonReference(fallBackResolvedAsset, reference), false);
                 return (null, false);
@@ -185,8 +177,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         }
 
         // prefer files inside VAM dir
-        if (matchedAssets.Any(t => t.IsInVaMDir))
-        {
+        if (matchedAssets.Any(t => t.IsInVaMDir)) {
             matchedAssets.RemoveAll(t => !t.IsInVaMDir);
         }
 
@@ -204,28 +195,19 @@ public class UuidReferencesResolver : IUuidReferenceResolver
         var isFemaleAsset = reference.EstimatedAssetType.IsFemale();
         var isMaleAsset = reference.EstimatedAssetType.IsMale();
 
-        if (!isSupportedType)
-        {
-            if (reference.EstimatedReferenceLocation.Contains("female", StringComparison.OrdinalIgnoreCase))
-            {
+        if (!isSupportedType) {
+            if (reference.EstimatedReferenceLocation.Contains("female", StringComparison.OrdinalIgnoreCase)) {
                 isFemaleAsset = true;
-            }
-            else if (reference.EstimatedReferenceLocation.Contains("male", StringComparison.OrdinalIgnoreCase))
-            {
+            } else if (reference.EstimatedReferenceLocation.Contains("male", StringComparison.OrdinalIgnoreCase)) {
                 isMaleAsset = true;
             }
         }
 
-        if (isFemaleAsset)
-        {
+        if (isFemaleAsset) {
             matchedAssets.RemoveAll(x => x.Type.IsMale());
-        }
-        else if (isMaleAsset)
-        {
+        } else if (isMaleAsset) {
             matchedAssets.RemoveAll(x => x.Type.IsFemale());
-        }
-        else
-        {
+        } else {
             //very rare case where we don't know the gender, prefer females
             if (matchedAssets.Any(x => x.Type.IsFemale()))
                 matchedAssets.RemoveAll(x => x.Type.IsMale());

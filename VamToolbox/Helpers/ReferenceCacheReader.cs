@@ -43,11 +43,9 @@ public class ReferenceCacheReader : IReferenceCacheReader
         var bulkInsertFiles = new Dictionary<FileReferenceBase, long>();
         var bulkInsertReferences = new List<(FileReferenceBase file, IEnumerable<Reference> references)>();
 
-        foreach (var file in jsonFiles)
-        {
+        foreach (var file in jsonFiles) {
             bulkInsertFiles[file] = 0;
-            if (file.JsonFile is not null)
-            {
+            if (file.JsonFile is not null) {
                 var references = file.JsonFile.References.Select(t => t.Reference).Concat(file.JsonFile.Missing);
                 bulkInsertReferences.Add((file, references));
             }
@@ -75,10 +73,8 @@ public class ReferenceCacheReader : IReferenceCacheReader
             .GroupBy(t => t.FilePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
 
-        foreach (var json in potentialScenes)
-        {
-            switch (json.IsVar)
-            {
+        foreach (var json in potentialScenes) {
+            switch (json.IsVar) {
                 case true when processedVars.Add(json.Var):
                 case false when processedFreeFiles.Add(json.Free):
                     ReadReferenceCache(json);
@@ -93,25 +89,19 @@ public class ReferenceCacheReader : IReferenceCacheReader
     {
         if (_globalReferenceCache is null) throw new InvalidOperationException("Cache not initialized");
 
-        if (potentialJsonFile.IsVar)
-        {
+        if (potentialJsonFile.IsVar) {
             foreach (var varFile in potentialJsonFile.Var.Files
                          .SelectMany(t => t.SelfAndChildren())
                          .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
-                         .Where(t => !t.Dirty))
-            {
-                if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath))
-                {
+                         .Where(t => !t.Dirty)) {
+                if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath)) {
                     var mappedReferences = references[varFile.LocalPath].Where(x => x.Value is not null).Select(t => new Reference(t, varFile)).ToList();
                     potentialJsonFile.AddCachedReferences(varFile.LocalPath, mappedReferences);
                 }
             }
-        }
-        else if (!potentialJsonFile.IsVar && !potentialJsonFile.Free.Dirty)
-        {
+        } else if (!potentialJsonFile.IsVar && !potentialJsonFile.Free.Dirty) {
             var free = potentialJsonFile.Free;
-            if (_globalReferenceCache.TryGetValue(free.FullPath, out var references))
-            {
+            if (_globalReferenceCache.TryGetValue(free.FullPath, out var references)) {
                 var mappedReferences = references[null].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
                 potentialJsonFile.AddCachedReferences(mappedReferences);
             }

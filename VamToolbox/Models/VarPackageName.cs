@@ -18,14 +18,13 @@ public sealed class VarPackageName : IEquatable<VarPackageName>
     public static bool TryGet(string? filename, [NotNullWhen(true)] out VarPackageName? name)
     {
         var match = filename is not null ? ExtractRegex.Match(filename) : Match.Empty;
-        if (!match.Success)
-        {
+        if (!match.Success) {
             name = null;
             return false;
         }
 
-        name = new VarPackageName(filename!, 
-            match.Groups["Author"].Value, 
+        name = new VarPackageName(filename!,
+            match.Groups["Author"].Value,
             match.Groups["Name"].Value, match.Groups["Version"].Value is "*" or "latest" ? -1 : int.Parse(match.Groups["Version"].Value, CultureInfo.InvariantCulture),
             match.Groups["Min"].Success);
         return true;

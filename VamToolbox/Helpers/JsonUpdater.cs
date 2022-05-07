@@ -32,7 +32,7 @@ public sealed class JsonUpdater : IJsonUpdater
         var jsonData = await ReadJson(json);
         ApplyFixes(jsonData, changes, json);
 
-        if(!DryRun)
+        if (!DryRun)
             await UpdateJson(json, jsonData);
     }
 
@@ -47,7 +47,7 @@ public sealed class JsonUpdater : IJsonUpdater
 
     private static async Task UpdateJson(JsonFile json, IEnumerable<string> jsonData, ZipArchive varArchive, Dictionary<string, ZipArchiveEntry> entries)
     {
-        if(!json.File.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
+        if (!json.File.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
         var jsonEntry = entries[json.File.LocalPath];
         var date = jsonEntry.LastWriteTime;
         jsonEntry.Delete();
@@ -58,8 +58,7 @@ public sealed class JsonUpdater : IJsonUpdater
         {
             var stream = jsonEntry.Open();
             await using var writer = new StreamWriter(stream, Encoding.UTF8);
-            foreach (var s in jsonData)
-            {
+            foreach (var s in jsonData) {
                 await writer.WriteLineAsync(s);
             }
         }
@@ -72,8 +71,7 @@ public sealed class JsonUpdater : IJsonUpdater
         if (json.File.IsVar) throw new ArgumentException($"Json file expected to be free file {json}", nameof(json));
 
         await using var writer = new StreamWriter(json.File.Free.FullPath, false, Encoding.UTF8);
-        foreach (var s in jsonData)
-        {
+        foreach (var s in jsonData) {
             await writer.WriteLineAsync(s);
         }
     }
@@ -83,14 +81,11 @@ public sealed class JsonUpdater : IJsonUpdater
         int sum = 0;
         int i = 0;
 
-        foreach (var updateDto in changes.OrderBy(t => t.ReferenceToUpdate.Index))
-        {
+        foreach (var updateDto in changes.OrderBy(t => t.ReferenceToUpdate.Index)) {
             bool updated = false;
-            for (; i < jsonData.Count; i++)
-            {
+            for (; i < jsonData.Count; i++) {
                 sum += jsonData[i].Length;
-                if (sum > updateDto.ReferenceToUpdate.Index)
-                {
+                if (sum > updateDto.ReferenceToUpdate.Index) {
                     int start = updateDto.ReferenceToUpdate.Index - sum + jsonData[i].Length;
                     jsonData[i] = jsonData[i][..start] + BuildReference(updateDto.NewReference) + jsonData[i][(start + updateDto.ReferenceToUpdate.Length)..];
                     updated = true;
@@ -99,19 +94,16 @@ public sealed class JsonUpdater : IJsonUpdater
                 }
             }
 
-            if(!updated)
+            if (!updated)
                 throw new InvalidOperationException($"Unable to find reference {updateDto.ReferenceToUpdate.Value} in json file {jsonFile}");
         }
     }
 
     private static string BuildReference(FileReferenceBase file)
     {
-        if (file is VarPackageFile varFile)
-        {
+        if (file is VarPackageFile varFile) {
             return $"{varFile.ParentVar.Name.Author}.{varFile.ParentVar.Name.Name}.latest:/{varFile.LocalPath}";
-        }
-        else
-        {
+        } else {
             return $"{file.LocalPath}";
         }
     }
@@ -124,7 +116,7 @@ public sealed class JsonUpdater : IJsonUpdater
         return await ReadJsonInternal(reader);
     }
 
-    private static async Task<List<string>> ReadJson(JsonFile json,  Dictionary<string, ZipArchiveEntry> entries)
+    private static async Task<List<string>> ReadJson(JsonFile json, Dictionary<string, ZipArchiveEntry> entries)
     {
         if (!json.File.IsVar) throw new ArgumentException($"Json file expected to be in var {json}", nameof(json));
 
@@ -137,10 +129,9 @@ public sealed class JsonUpdater : IJsonUpdater
     private static async Task<List<string>> ReadJsonInternal(StreamReader reader)
     {
         var sb = new List<string>();
-        while(!reader.EndOfStream)
-        {
+        while (!reader.EndOfStream) {
             var line = await reader.ReadLineAsync();
-            if(line is not null) sb.Add(line);
+            if (line is not null) sb.Add(line);
         }
 
         return sb;

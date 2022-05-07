@@ -24,13 +24,11 @@ public partial class ManageProfiles : Form
 
     private void deleteBtn_Click(object sender, System.EventArgs e)
     {
-        if (SelectedProfile != null && MessageBox.Show("Do you want to delete profile?", SelectedProfile.Name, MessageBoxButtons.YesNo) == DialogResult.Yes)
-        {
+        if (SelectedProfile != null && MessageBox.Show("Do you want to delete profile?", SelectedProfile.Name, MessageBoxButtons.YesNo) == DialogResult.Yes) {
             profileList.Items.Remove(SelectedProfile);
         }
 
-        if (profileList.Items.Count == 0)
-        {
+        if (profileList.Items.Count == 0) {
             filesList.Items.Clear();
             dirList.Items.Clear();
         }
@@ -38,7 +36,7 @@ public partial class ManageProfiles : Form
 
     private void cancelBtn_Click(object sender, System.EventArgs e)
     {
-        if(MessageBox.Show("Are you sure you want to quit without saving?", "", MessageBoxButtons.YesNoCancel) == DialogResult.Yes)
+        if (MessageBox.Show("Are you sure you want to quit without saving?", "", MessageBoxButtons.YesNoCancel) == DialogResult.Yes)
             Close();
     }
 
@@ -51,7 +49,7 @@ public partial class ManageProfiles : Form
     private void addNewBtn_Click(object sender, System.EventArgs e)
     {
         var name = AskForName();
-        if(string.IsNullOrWhiteSpace(name)) return;
+        if (string.IsNullOrWhiteSpace(name)) return;
         var id = profileList.Items.Add(new ProfileModel(new(), new(), name));
         profileList.SelectedIndex = id;
     }
@@ -60,7 +58,7 @@ public partial class ManageProfiles : Form
     {
         if (SelectedProfile is null) return;
 
-        using var odf = new FolderBrowserDialog {SelectedPath = _repoDir};
+        using var odf = new FolderBrowserDialog { SelectedPath = _repoDir };
         var result = odf.ShowDialog();
         if (result != DialogResult.OK) return;
 
@@ -75,8 +73,7 @@ public partial class ManageProfiles : Form
 
     private bool ValidatePaths(params string[] paths)
     {
-        if (paths.Any(t => !t.StartsWith(_repoDir, StringComparison.Ordinal)))
-        {
+        if (paths.Any(t => !t.StartsWith(_repoDir, StringComparison.Ordinal))) {
             MessageBox.Show($"Invalid paths. Verify if they are located in {_repoDir}");
             return false;
         }
@@ -88,7 +85,7 @@ public partial class ManageProfiles : Form
     {
         if (SelectedProfile is null) return;
 
-        using var odf = new OpenFileDialog { InitialDirectory = _repoDir, Filter = "Var Files|*.var", Multiselect = true};
+        using var odf = new OpenFileDialog { InitialDirectory = _repoDir, Filter = "Var Files|*.var", Multiselect = true };
         var result = odf.ShowDialog();
         if (result != DialogResult.OK) return;
 
@@ -108,8 +105,7 @@ public partial class ManageProfiles : Form
     {
         if (SelectedProfile is null) return;
 
-        while (listBox.SelectedItems.Count > 0)
-        {
+        while (listBox.SelectedItems.Count > 0) {
             var selected = listBox.SelectedItems[0];
             listBox.Items.Remove(selected);
 
@@ -123,17 +119,17 @@ public partial class ManageProfiles : Form
         filesList.Items.Clear();
         dirList.Items.Clear();
 
-        if(SelectedProfile is null) return;
+        if (SelectedProfile is null) return;
         SelectedProfile.Files.ForEach(t => filesList.Items.Add(t));
         SelectedProfile.Dirs.ForEach(t => dirList.Items.Add(t));
     }
 
     private void renameBtn_Click(object sender, System.EventArgs e)
     {
-        if(SelectedProfile is null) return;
+        if (SelectedProfile is null) return;
 
         var name = AskForName(SelectedProfile.Name);
-        if(string.IsNullOrWhiteSpace(name)) return;
+        if (string.IsNullOrWhiteSpace(name)) return;
 
         var selectedIndex = profileList.SelectedIndex;
         var profile = SelectedProfile;
@@ -152,16 +148,14 @@ public partial class ManageProfiles : Form
     private static string? AskForName(string initialValue = "")
     {
         var size = new Size(200, 70);
-        var inputBox = new Form {FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = size, Text = "Name", StartPosition = FormStartPosition.CenterScreen};
+        var inputBox = new Form { FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = size, Text = "Name", StartPosition = FormStartPosition.CenterScreen };
 
-        var profileNameTxt = new TextBox
-        {
+        var profileNameTxt = new TextBox {
             Size = new Size(size.Width - 10, 23), Location = new Point(5, 5), Text = initialValue
         };
         inputBox.Controls.Add(profileNameTxt);
 
-        var okButton = new Button
-        {
+        var okButton = new Button {
             DialogResult = DialogResult.OK,
             Size = new Size(75, 23),
             Text = "OK",
@@ -169,8 +163,7 @@ public partial class ManageProfiles : Form
         };
         inputBox.Controls.Add(okButton);
 
-        var cancelButton = new Button
-        {
+        var cancelButton = new Button {
             DialogResult = DialogResult.Cancel,
             Size = new Size(75, 23),
             Text = "Cancel",

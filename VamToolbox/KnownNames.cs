@@ -63,8 +63,7 @@ public static class KnownNames
     public static AssetType ClassifyType(this string ext, string localPath)
     {
         AssetType type = AssetType.Unknown;
-        if (ext is ".vmi" or ".vmb")
-        {
+        if (ext is ".vmi" or ".vmb") {
             if (localPath.IsFemaleGenMorph())
                 type |= AssetType.FemaleGenMorph;
             else if (localPath.IsMaleGenMorph())
@@ -75,9 +74,8 @@ public static class KnownNames
                 type |= AssetType.MaleNormalMorph;
             else
                 type |= AssetType.UnknownMorph;
-        }
-        else if (ext is ".vaj" or ".vam" or ".vab") // vap files can be in custom/clothing|hair/female
-        {
+        } else if (ext is ".vaj" or ".vam" or ".vab") // vap files can be in custom/clothing|hair/female
+          {
             if (localPath.IsFemaleHair())
                 type |= AssetType.FemaleHair;
             else if (localPath.IsMaleHair())

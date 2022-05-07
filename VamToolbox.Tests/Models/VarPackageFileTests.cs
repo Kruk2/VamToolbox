@@ -32,7 +32,7 @@ public class VarPackageFileTests
         file.Free.Should().BeNull();
         file.ParentFile.Should().BeNull();
         file.ToString().Should().Be($@"q/e/smtH.assetbundlE Var: {varPackage.FullPath}");
-        file.ParentVar.Files.Should().BeEquivalentTo(new[] {file});
+        file.ParentVar.Files.Should().BeEquivalentTo(new[] { file });
     }
 
     [Theory, CustomAutoData]

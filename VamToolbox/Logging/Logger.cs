@@ -9,7 +9,7 @@ public sealed class Logger : ILogger
     public void Log(string message) => _writer?.Write(message);
     public async ValueTask Init(string filename)
     {
-        if(_writer != null)
+        if (_writer != null)
             await _writer.DisposeAsync();
 
         _writer = new ThreadSafeFileBuffer(Path.Combine(Environment.CurrentDirectory, filename));
@@ -53,8 +53,7 @@ public sealed class ThreadSafeFileBuffer : IAsyncDisposable
 
     private void TimerCallback(object? _ = null)
     {
-        if (_requestStop)
-        {
+        if (_requestStop) {
             _stopped.Set();
             return;
         }
@@ -66,8 +65,7 @@ public sealed class ThreadSafeFileBuffer : IAsyncDisposable
 
     private void FlushBuffer()
     {
-        while (_buffer.TryDequeue(out var current))
-        {
+        while (_buffer.TryDequeue(out var current)) {
             _writer.WriteLine(current);
         }
     }

@@ -91,17 +91,14 @@ public sealed class SoftLinker : ISoftLinker
 
         SymbolicLinkReparseData reparseDataBuffer;
 
-        using (var fileHandle = GetFileHandle(file))
-        {
-            if (fileHandle.IsInvalid)
-            {
+        using (var fileHandle = GetFileHandle(file)) {
+            if (fileHandle.IsInvalid) {
                 Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
             }
 
             int outBufferSize = Marshal.SizeOf(typeof(SymbolicLinkReparseData));
             var outBuffer = IntPtr.Zero;
-            try
-            {
+            try {
                 outBuffer = Marshal.AllocHGlobal(outBufferSize);
                 bool success = DeviceIoControl(
                     fileHandle.DangerousGetHandle(), ioctlCommandGetReparsePoint, IntPtr.Zero, 0,
@@ -109,10 +106,8 @@ public sealed class SoftLinker : ISoftLinker
 
                 fileHandle.Close();
 
-                if (!success)
-                {
-                    if (((uint)Marshal.GetHRForLastWin32Error()) == pathNotAReparsePointError)
-                    {
+                if (!success) {
+                    if (((uint)Marshal.GetHRForLastWin32Error()) == pathNotAReparsePointError) {
                         return null;
                     }
 
@@ -121,15 +116,12 @@ public sealed class SoftLinker : ISoftLinker
 
                 reparseDataBuffer = (SymbolicLinkReparseData)Marshal.PtrToStructure(
                     outBuffer, typeof(SymbolicLinkReparseData))!;
-            }
-            finally
-            {
+            } finally {
                 Marshal.FreeHGlobal(outBuffer);
             }
         }
 
-        if (reparseDataBuffer.ReparseTag != symLinkTag)
-        {
+        if (reparseDataBuffer.ReparseTag != symLinkTag) {
             return null;
         }
 

@@ -24,38 +24,28 @@ public sealed class PotentialJsonFile : IDisposable
 
     public IEnumerable<OpenedPotentialJson> OpenJsons()
     {
-        if (IsVar)
-        {
+        if (IsVar) {
             var potentialJsonFiles = Var.Files
                 .SelectMany(t => t.SelfAndChildren())
                 .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower));
             IDictionary<string, ZipArchiveEntry>? entries = null;
 
-            foreach (var potentialJsonFile in potentialJsonFiles)
-            {
-                if (_varFilesReferenceCache.ContainsKey(potentialJsonFile.LocalPath))
-                {
+            foreach (var potentialJsonFile in potentialJsonFiles) {
+                if (_varFilesReferenceCache.ContainsKey(potentialJsonFile.LocalPath)) {
                     yield return new OpenedPotentialJson(potentialJsonFile) { CachedReferences = _varFilesReferenceCache[potentialJsonFile.LocalPath] };
-                }
-                else
-                {
+                } else {
                     if (!potentialJsonFile.Dirty) throw new InvalidOperationException($"Tried to read not-dirty var file {potentialJsonFile}");
                     _varFileStream ??= File.OpenRead(Var.FullPath);
                     _varArchive ??= new ZipArchive(_varFileStream);
-                    entries ??=_varArchive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
+                    entries ??= _varArchive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
 
                     yield return new OpenedPotentialJson(potentialJsonFile) { Stream = entries[potentialJsonFile.LocalPath].Open() };
                 }
             }
-        }
-        else
-        {
-            if (_freeFileReferenceCache is not null)
-            {
+        } else {
+            if (_freeFileReferenceCache is not null) {
                 yield return new OpenedPotentialJson(Free) { CachedReferences = _freeFileReferenceCache };
-            }
-            else if (KnownNames.IsPotentialJsonFile(Free.ExtLower))
-            {
+            } else if (KnownNames.IsPotentialJsonFile(Free.ExtLower)) {
                 if (!Free.Dirty) throw new InvalidOperationException($"Tried to read not-dirty file {Free}");
                 yield return new OpenedPotentialJson(Free) { Stream = File.OpenRead(Free.FullPath) };
             }

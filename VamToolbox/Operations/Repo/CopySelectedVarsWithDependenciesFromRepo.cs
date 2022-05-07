@@ -22,25 +22,21 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
     {
         _reporter.InitProgress("Applying profile");
         await _logger.Init("copy_vars_from_repo.log");
-        if (string.IsNullOrEmpty(context.RepoDir))
-        {
+        if (string.IsNullOrEmpty(context.RepoDir)) {
             _reporter.Complete("Unable to complete. Missing repo dir");
             return;
         }
 
-        await Task.Run(() =>
-        {
+        await Task.Run(() => {
             var varsToCopy = FindVarsToCopy(vars, varFilters, context.ShallowDeps);
             var missingDependencies = varsToCopy.SelectMany(t => t.UnresolvedDependencies).Distinct().ToList();
             var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
 
-            foreach (var var in varsToCopy)
-            {
+            foreach (var var in varsToCopy) {
                 var destination = Path.Combine(addonPackages, Path.GetRelativePath(context.RepoDir, var.FullPath));
 
                 var result = _linker.SoftLink(destination, var.FullPath, context.DryRun);
-                if (result != 0)
-                {
+                if (result != 0) {
                     _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
                     return;
                 }

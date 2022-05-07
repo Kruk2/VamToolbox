@@ -19,7 +19,7 @@ public enum AssetType
     MaleHair = 1 << 6,
     ValidHair = FemaleHair | MaleHair,
 
-    FemaleCloth= 1 << 7,
+    FemaleCloth = 1 << 7,
     MaleCloth = 1 << 8,
     OtherCloth = 1 << 9,
     ValidCloth = FemaleCloth | MaleCloth | OtherCloth,

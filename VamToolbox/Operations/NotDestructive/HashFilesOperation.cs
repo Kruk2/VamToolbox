@@ -59,8 +59,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
 
         await _database.AddHashes(_newHashes);
 
-        foreach (var error in _errors)
-        {
+        foreach (var error in _errors) {
             _logger.Log(error);
         }
 
@@ -71,8 +70,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
     {
         var scanPackageBlock = new ActionBlock<FreeFile>(
             ExecuteFreeFileOneAsync,
-            new ExecutionDataflowBlockOptions
-            {
+            new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
             });
         return scanPackageBlock;
@@ -81,12 +79,9 @@ public sealed class HashFilesOperation : IHashFilesOperation
     private async Task ExecuteFreeFileOneAsync(FreeFile freeFile)
     {
         var key = (fullPath: freeFile.FullPath, localAssetPath: "");
-        if (_hashes.TryGetValue(key, out var hash))
-        {
+        if (_hashes.TryGetValue(key, out var hash)) {
             freeFile.Hash = hash;
-        }
-        else
-        {
+        } else {
             await using var stream = _fs.File.OpenRead(freeFile.FullPath);
             freeFile.Hash = await _hasher.GetHash(stream);
             _newHashes[key] = freeFile.Hash;
@@ -99,8 +94,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
     {
         var scanPackageBlock = new ActionBlock<VarPackage>(
             ExecuteOneAsync,
-            new ExecutionDataflowBlockOptions
-            {
+            new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
             });
         return scanPackageBlock;
@@ -108,21 +102,17 @@ public sealed class HashFilesOperation : IHashFilesOperation
 
     private async Task ExecuteOneAsync(VarPackage var)
     {
-        try
-        {
+        try {
             await using var stream = File.OpenRead(var.FullPath);
             using var archive = new ZipArchive(stream);
 
             var archiveDict = archive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
-            foreach (var entry in var.Files.SelectMany(t => t.SelfAndChildren()).Distinct())
-            {
+            foreach (var entry in var.Files.SelectMany(t => t.SelfAndChildren()).Distinct()) {
                 entry.Hash = await HashFileAsync(entry, archiveDict[entry.LocalPath]);
             }
 
             _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _scanned), _totalFiles, var.Name.Filename));
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             _errors.Add($"Unable to scan file {var.FullPath}. {e.Message}");
         }
     }
@@ -130,8 +120,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
     private async Task<string> HashFileAsync(VarPackageFile file, ZipArchiveEntry entry)
     {
         var key = (fullPath: file.ParentVar.FullPath, localAssetPath: file.LocalPath);
-        if (_hashes.TryGetValue(key, out var hash))
-        {
+        if (_hashes.TryGetValue(key, out var hash)) {
             return hash;
         }
 

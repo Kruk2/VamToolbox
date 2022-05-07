@@ -41,7 +41,7 @@ public sealed class Reference
     private string? _estimatedExtension;
     public string EstimatedExtension => _estimatedExtension ??= '.' + Value.Split('.').Last().ToLower(CultureInfo.InvariantCulture);
     private AssetType? _estimatedAssetType;
-    public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation); 
+    public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation);
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= Value.Split(':').Last().NormalizeAssetPath();
     public FileReferenceBase ForJsonFile { get; internal set; }
 
@@ -54,7 +54,7 @@ public sealed class Reference
         if (_estimatedVarNameCalculated) return _estimatedVarName;
 
         _estimatedVarNameCalculated = true;
-        if(Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':')) return null;
+        if (Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':')) return null;
         var name = Value.Split(':').First();
         VarPackageName.TryGet(name + ".var", out _estimatedVarName);
         return _estimatedVarName;
@@ -88,17 +88,13 @@ public sealed class JsonScannerHelper : IJsonFileParser
             return null;
 
         var okToParse = false;
-        if (prevQuoteIndex - 3 >= 0 && line[prevQuoteIndex - 1] == ' ')
-        {
-            if (line[prevQuoteIndex - 2] == ':')
-            {
+        if (prevQuoteIndex - 3 >= 0 && line[prevQuoteIndex - 1] == ' ') {
+            if (line[prevQuoteIndex - 2] == ':') {
                 // '" : ' OR '": '
                 if (line[prevQuoteIndex - 3] == '"' || (prevQuoteIndex - 4 >= 0 && line[prevQuoteIndex - 3] == ' ' && line[prevQuoteIndex - 4] == '"'))
                     okToParse = true;
             }
-        }
-        else if (prevQuoteIndex - 2 >= 0 && line[prevQuoteIndex - 1] == ':')
-        {
+        } else if (prevQuoteIndex - 2 >= 0 && line[prevQuoteIndex - 1] == ':') {
             // '":' OR '" :'
             if (line[prevQuoteIndex - 2] == '"' || (prevQuoteIndex - 3 >= 0 && line[prevQuoteIndex - 2] == ' ' && line[prevQuoteIndex - 3] == '"'))
                 okToParse = true;
@@ -131,34 +127,23 @@ public sealed class JsonScannerHelper : IJsonFileParser
             return false;
 
         bool isURL;
-        if (reference.Contains("\"simTexture\"", c))
-        {
+        if (reference.Contains("\"simTexture\"", c)) {
             return false;
-        }
-        else if (reference.EndsWith(".vam", c))
-        {
+        } else if (reference.EndsWith(".vam", c)) {
             isURL = line.Contains("\"id\"", c);
-        }
-        else if (reference.EndsWith(".vap", c))
-        {
+        } else if (reference.EndsWith(".vap", c)) {
             isURL = line.Contains("\"presetFilePath\"", c);
-        }
-        else if (reference.EndsWith(".vmi", c))
-        {
+        } else if (reference.EndsWith(".vmi", c)) {
             isURL = line.Contains("\"uid\"", c);
-        }
-        else
-        {
+        } else {
             isURL = line.Contains("tex\"", c) || line.Contains("texture\"", c) || line.Contains("url\"", c) ||
                     line.Contains("bumpmap\"", c) || line.Contains("\"url", c) || line.Contains("LUT\"", c) ||
                     line.Contains("\"plugin#", c);
         }
 
-        if (!isURL)
-        {
+        if (!isURL) {
             if (line.Contains("\"displayName\"", c) || line.Contains("\"audioClip\"", c) ||
-                line.Contains("\"selected\"", c) || line.Contains("\"audio\"", c))
-            {
+                line.Contains("\"selected\"", c) || line.Contains("\"audio\"", c)) {
                 return false;
             }
 

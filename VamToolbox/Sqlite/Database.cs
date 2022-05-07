@@ -9,7 +9,7 @@ namespace VamToolbox.Sqlite;
 public sealed class Database : IDatabase
 {
     private const string FilesTable = "Files";
-    private const string RefTable= "JsonReferences";
+    private const string RefTable = "JsonReferences";
     private readonly SqliteConnection _connection;
 
     public Database(string rootDir)
@@ -108,8 +108,7 @@ public sealed class Database : IDatabase
         command.Parameters.Add(parameterHash);
 
         // Insert a lot of data
-        foreach (var hash in hashes)
-        {
+        foreach (var hash in hashes) {
             parameterFullPath.Value = hash.Key.fullPath;
             parameterAsset.Value = hash.Key.localAssetPath;
             parameterHash.Value = hash.Value;
@@ -138,7 +137,7 @@ public sealed class Database : IDatabase
             $"select Path, FileSize, ModifiedTime, Uuid from {FilesTable} where LocalPath is null");
     }
 
-    public void UpdateReferences(Dictionary<FileReferenceBase, long> batch,  List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles)
+    public void UpdateReferences(Dictionary<FileReferenceBase, long> batch, List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles)
     {
         using var transaction = _connection.BeginTransaction();
         var command = _connection.CreateCommand();
@@ -165,10 +164,8 @@ public sealed class Database : IDatabase
         paramFileId.ParameterName = "$fileId";
         command.Parameters.Add(paramFileId);
 
-        foreach (var (file, references) in jsonFiles)
-        {
-            foreach (var reference in references)
-            {
+        foreach (var (file, references) in jsonFiles) {
+            foreach (var reference in references) {
                 paramFileId.Value = batch[file];
                 parameterValue.Value = reference.Value;
                 parameterIndex.Value = reference.Index;
@@ -211,8 +208,7 @@ public sealed class Database : IDatabase
         paramTimestamp.ParameterName = "$timestamp";
         commandInsert.Parameters.Add(paramTimestamp);
 
-        foreach (var file in files.Keys)
-        {
+        foreach (var file in files.Keys) {
             paramFullPath.Value = file.IsVar ? file.Var.FullPath : file.Free.FullPath;
             localPath.Value = (object?)(file.IsVar ? file.VarFile.LocalPath : null) ?? DBNull.Value;
             uuid.Value = (object?)(file.MorphName ?? file.InternalId) ?? DBNull.Value;

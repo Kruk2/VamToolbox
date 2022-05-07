@@ -44,19 +44,16 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
         var (missingMorphs, allMorphsByName) = GetMissingMorphsAndLookup();
         int fixedMorphs = 0;
 
-        foreach (var missingMorph in missingMorphs)
-        {
+        foreach (var missingMorph in missingMorphs) {
             _progressTracker.Report($"Processing: {missingMorph.LocalPath}");
 
             var missingMorphName = GetOppositeMorphName(missingMorph);
 
             var matchingMorphs = allMorphsByName[missingMorphName].DistinctBy(t => t.Size).ToList();
-            if (matchingMorphs.Count == 1)
-            {
+            if (matchingMorphs.Count == 1) {
                 _logger.Log($"Found match for {missingMorph.LocalPath} as {matchingMorphs[0].LocalPath}");
                 var destPath = _fs.Path.Combine(_fs.Path.GetDirectoryName(missingMorph.FullPath), missingMorphName);
-                if (_fs.File.Exists(destPath))
-                {
+                if (_fs.File.Exists(destPath)) {
                     _logger.Log($"ERROR: Dest path already exists for: {destPath}");
                     continue;
                 }
@@ -78,19 +75,16 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
         if (!_context.DryRun)
             _fs.Directory.CreateDirectory(invalidMorphsDirectory);
 
-        foreach (var missingMorph in missingMorphs)
-        {
+        foreach (var missingMorph in missingMorphs) {
             _progressTracker.Report($"Processing: {missingMorph.LocalPath}");
 
             var missingMorphName = GetOppositeMorphName(missingMorph);
             var matchingMorphs = allMorphsByName[missingMorphName].DistinctBy(t => t.Size).ToList();
-            if (matchingMorphs.Count is 0 or > 1)
-            {
+            if (matchingMorphs.Count is 0 or > 1) {
                 _logger.Log($"Unable to find {(matchingMorphs.Count > 1 ? "unique " : "")} match for {missingMorph.LocalPath}");
 
                 unableToFix++;
-                if (!_context.DryRun)
-                {
+                if (!_context.DryRun) {
                     var relativePath = _fs.Path.GetRelativePath(_context.VamDir, missingMorph.FullPath);
                     var destPath = _fs.Path.Combine(invalidMorphsDirectory, relativePath);
                     Directory.CreateDirectory(_fs.Path.GetDirectoryName(destPath));
@@ -125,4 +119,3 @@ public interface IFixMissingMorphsOperation : IOperation
 {
     Task ExecuteAsync(OperationContext context, IList<FreeFile> files, IList<VarPackage> vars);
 }
- 

@@ -218,7 +218,7 @@
 //            var freeFiles = fileReferences.OfType<ToFreeFile>();
 //            if (freeFiles.Any())
 //                filesToScan = freeFiles;
-                    
+
 //            var fileToKeep = MoreEnumerable
 //                .MaxBy(filesToScan, t => t.JsonReferences.Count)
 //                .OrderBy(t => t.LocalPath)

@@ -13,7 +13,7 @@ public class TrustAllVarsOperationTests
 {
     private const string FakeVamDir = "C:/VAM/";
     private const string PrefsDirPath = FakeVamDir + "AddonPackagesUserPrefs";
-    private readonly CustomFixture _fixture = new ();
+    private readonly CustomFixture _fixture = new();
     private readonly TrustAllVarsOperation _operation;
     private readonly MockFileSystem _fs;
 

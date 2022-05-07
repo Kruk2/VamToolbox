@@ -45,13 +45,10 @@ public partial class MainWindow : Form, IProgressTracker
         var (selected, vamDir) = AskFirDirectory();
         if (!selected)
             return;
-        if (!Directory.Exists(Path.Combine(vamDir, "AddonPackages")))
-        {
+        if (!Directory.Exists(Path.Combine(vamDir, "AddonPackages"))) {
             MessageBox.Show("VaM dir doesn't contain AddonPackages");
             vamDirTxt.Text = string.Empty;
-        }
-        else
-        {
+        } else {
             vamDirTxt.Text = vamDir;
         }
     }
@@ -59,8 +56,7 @@ public partial class MainWindow : Form, IProgressTracker
     private void additionalVarsBtn_Click(object sender, EventArgs e)
     {
         var (selected, dir) = AskFirDirectory();
-        if (selected)
-        {
+        if (selected) {
             additionalVarsDir.Text = dir;
         }
     }
@@ -78,8 +74,7 @@ public partial class MainWindow : Form, IProgressTracker
             .ExecuteAsync(ctx, vars, freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
 
         if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
-                MessageBoxButtons.YesNo) == DialogResult.Yes)
-        {
+                MessageBoxButtons.YesNo) == DialogResult.Yes) {
             _totalStages++;
             await scope.Resolve<IDownloadMissingVars>().ExecuteAsync(ctx, vars, freeFiles);
         }
@@ -92,8 +87,7 @@ public partial class MainWindow : Form, IProgressTracker
         if (!ValidateSettings()) return;
 
         if (profilesListBox.CheckedItems.Count == 0 &&
-            MessageBox.Show("Nothing was selected, everything from repo will be linked. Continue?", "", MessageBoxButtons.YesNo) == DialogResult.No)
-        {
+            MessageBox.Show("Nothing was selected, everything from repo will be linked. Continue?", "", MessageBoxButtons.YesNo) == DialogResult.No) {
             return;
         }
 
@@ -116,8 +110,7 @@ public partial class MainWindow : Form, IProgressTracker
         return (result == DialogResult.OK, odf.SelectedPath.NormalizePathSeparators());
     }
 
-    public void InitProgress(string startingMessage) => RunInvokedInvoke(() =>
-    {
+    public void InitProgress(string startingMessage) => RunInvokedInvoke(() => {
         _stopwatch.Start();
         progressBar.Value = 0;
         progressBar.Style = ProgressBarStyle.Blocks;
@@ -127,22 +120,17 @@ public partial class MainWindow : Form, IProgressTracker
 
     public void Report(ProgressInfo progress)
     {
-        if (_stopwatch.ElapsedTicks <= _nextReport && !progress.ForceShow)
-        {
+        if (_stopwatch.ElapsedTicks <= _nextReport && !progress.ForceShow) {
             return;
         }
 
         _nextReport = _stopwatch.ElapsedTicks + ReportEveryTicks;
-        RunInvokedInvoke(() =>
-        {
+        RunInvokedInvoke(() => {
             operationStatusLabel.Text = progress.Current;
-            if (progress.Total == 0)
-            {
+            if (progress.Total == 0) {
                 progressBar.Style = ProgressBarStyle.Marquee;
                 return;
-            }
-            else if (progressBar.Style != ProgressBarStyle.Blocks)
-            {
+            } else if (progressBar.Style != ProgressBarStyle.Blocks) {
                 progressBar.Style = ProgressBarStyle.Blocks;
             }
 
@@ -154,8 +142,7 @@ public partial class MainWindow : Form, IProgressTracker
 
     public void Report(string message, bool forceShow) => Report(new ProgressInfo(message, forceShow));
 
-    public void Complete(string endingMessage) => RunInvokedInvoke(() =>
-    {
+    public void Complete(string endingMessage) => RunInvokedInvoke(() => {
         progressBar.Style = ProgressBarStyle.Blocks;
         progressBar.Value = progressBar.Maximum;
         operationStatusLabel.Text = endingMessage;
@@ -165,8 +152,7 @@ public partial class MainWindow : Form, IProgressTracker
     void SwitchUI(bool working)
     {
         if (_working == working) return;
-        if (working)
-        {
+        if (working) {
             operationStatusLabel.Text = string.Empty;
             _sw.Restart();
         }
@@ -180,20 +166,16 @@ public partial class MainWindow : Form, IProgressTracker
         if (_buttonsState.Count > 0 && working)
             throw new InvalidOperationException();
 
-        if (working)
-        {
+        if (working) {
             _buttonsState = controls
                 .ToDictionary(t => t.Name, t => t.Enabled);
             controls.ForEach(t => t.Enabled = false);
-        }
-        else
-        {
+        } else {
             controls.ForEach(t => t.Enabled = _buttonsState[t.Name]);
             _buttonsState.Clear();
         }
 
-        if (!working)
-        {
+        if (!working) {
             _sw.Stop();
             stageTxt.Text = $"Finished in {_sw.Elapsed.Minutes}min and {_sw.Elapsed.Seconds}s";
         }
@@ -204,8 +186,7 @@ public partial class MainWindow : Form, IProgressTracker
         _totalStages = stages;
         _stage = 0;
 
-        var ctx = new OperationContext
-        {
+        var ctx = new OperationContext {
             DryRun = dryRunCheckbox.Checked,
             Threads = (int)comboThreads.SelectedItem,
             RepoDir = additionalVarsDir.Text,
@@ -243,8 +224,7 @@ public partial class MainWindow : Form, IProgressTracker
         removeAllSoftLinkBeforeChk.Checked = Properties.Settings.Default.removeSoftLinksBefore;
         shallowChk.Checked = Properties.Settings.Default.shallow;
 
-        if (!string.IsNullOrEmpty(Properties.Settings.Default.profiles))
-        {
+        if (!string.IsNullOrEmpty(Properties.Settings.Default.profiles)) {
             _profiles = JsonConvert.DeserializeObject<List<ProfileModel>>(Properties.Settings.Default.profiles)!;
         }
 
@@ -282,13 +262,11 @@ public partial class MainWindow : Form, IProgressTracker
 
     private bool ValidateSettings()
     {
-        if (string.IsNullOrEmpty(vamDirTxt.Text) || !Directory.Exists(vamDirTxt.Text))
-        {
+        if (string.IsNullOrEmpty(vamDirTxt.Text) || !Directory.Exists(vamDirTxt.Text)) {
             MessageBox.Show("Select VAM dir first");
             return false;
         }
-        if (!string.IsNullOrEmpty(additionalVarsDir.Text) && !Directory.Exists(additionalVarsDir.Text))
-        {
+        if (!string.IsNullOrEmpty(additionalVarsDir.Text) && !Directory.Exists(additionalVarsDir.Text)) {
             MessageBox.Show("REPO dir doesn't exist");
             return false;
         }
@@ -298,15 +276,13 @@ public partial class MainWindow : Form, IProgressTracker
 
     private void manageProfilesBtn_Click(object sender, EventArgs e)
     {
-        if(string.IsNullOrEmpty(additionalVarsDir.Text))
-        {
+        if (string.IsNullOrEmpty(additionalVarsDir.Text)) {
             MessageBox.Show("Select repo dir virs");
             return;
         }
 
         using var manageProfiles = new ManageProfiles(_profiles, additionalVarsDir.Text);
-        if (manageProfiles.ShowDialog() == DialogResult.OK)
-        {
+        if (manageProfiles.ShowDialog() == DialogResult.OK) {
             _profiles = manageProfiles.Profiles;
             ReloadProfiles();
         }
@@ -366,8 +342,7 @@ public partial class MainWindow : Form, IProgressTracker
 
     private Task RemoveOldLinks(ILifetimeScope scope, OperationContext ctx)
     {
-        if (!removeAllSoftLinkBeforeChk.Checked)
-        {
+        if (!removeAllSoftLinkBeforeChk.Checked) {
             _stage++;
             return Task.CompletedTask;
         }
@@ -381,8 +356,8 @@ public partial class MainWindow : Form, IProgressTracker
         var ctx = GetContext(stages: 4);
 
         await using var scope = _ctx.BeginLifetimeScope();
-        var (vars, freeFiles) =  await ScanJsonFiles(scope, ctx);
-        await scope.Resolve<IDownloadMissingVars>() .ExecuteAsync(ctx, vars, freeFiles);
+        var (vars, freeFiles) = await ScanJsonFiles(scope, ctx);
+        await scope.Resolve<IDownloadMissingVars>().ExecuteAsync(ctx, vars, freeFiles);
         SwitchUI(false);
     }
 
@@ -390,7 +365,7 @@ public partial class MainWindow : Form, IProgressTracker
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
         await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars);
-        
+
         return (vars, freeFiles);
     }
 

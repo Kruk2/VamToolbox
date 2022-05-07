@@ -29,7 +29,7 @@ public class UuidReferencesResolverTests
     [Fact]
     public void Resolve_NoMatchingUuids_ShouldReturnNothing()
     {
-        var (jsonReference, isDelayed) =_resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
+        var (jsonReference, isDelayed) = _resolver.MatchMorphJsonReferenceByName(_jsonFile, _reference, fallBackResolvedAsset: null);
 
         jsonReference.Should().BeNull();
         isDelayed.Should().BeFalse();
@@ -306,7 +306,8 @@ public class UuidReferencesResolverTests
         isDelayed.Should().BeTrue();
     }
 
-    [Fact] public async Task ResolvePreset_MaleHairReferenceMatchedInFemaleHairDirectory_ShouldReturnNothing()
+    [Fact]
+    public async Task ResolvePreset_MaleHairReferenceMatchedInFemaleHairDirectory_ShouldReturnNothing()
     {
         var matchedFile = CreateFile(KnownNames.MaleHairDir + "/hair.vam");
         var reference = new Reference(KnownNames.FemaleHairDir + "hair.vam", 0, 0, _freeFiles.First());

@@ -27,42 +27,33 @@ public sealed class MorphGrouper : IMorphGrouper
     {
         var filesMovedAsChildren = new HashSet<T>();
         var pairs = GroupMorphs(files, favMorphs);
-        foreach (var (vmi, vmb, fav) in pairs)
-        {
+        foreach (var (vmi, vmb, fav) in pairs) {
             var notNullPreset = vmi ?? vmb;
-            if(notNullPreset == null)
+            if (notNullPreset == null)
                 continue;
 
-            if (vmi is not null && vmi.MorphName is null)
-            {
+            if (vmi is not null && vmi.MorphName is null) {
                 vmi.MorphName = await ReadVmiName(vmi, openFileStream);
             }
 
             var localDir = _fs.Path.Combine(_fs.Path.GetDirectoryName(notNullPreset.LocalPath), _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
-            if (vmi == null)
-            {
+            if (vmi == null) {
                 _logger.Log($"[MISSING-MORPH-FILE] Missing vmi for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vmi");
-            }
-            else if(notNullPreset != vmi)
-            {
+            } else if (notNullPreset != vmi) {
                 notNullPreset.AddChildren(vmi);
                 filesMovedAsChildren.Add(vmi);
             }
 
-            if (vmb == null)
-            {
+            if (vmb == null) {
                 _logger.Log($"[MISSING-MORPH-FILE] Missing vmb for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
                 notNullPreset.AddMissingChildren(localDir + ".vmb");
-            }
-            else if(notNullPreset != vmb)
-            {
+            } else if (notNullPreset != vmb) {
                 notNullPreset.AddChildren(vmb);
                 filesMovedAsChildren.Add(vmb);
             }
 
-            if (fav != null)
-            {
+            if (fav != null) {
                 notNullPreset.AddChildren(fav);
                 filesMovedAsChildren.Add((T)fav);
             }
@@ -71,16 +62,14 @@ public sealed class MorphGrouper : IMorphGrouper
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
     }
 
-    private IEnumerable<(T?, T?, FileReferenceBase?)> GroupMorphs<T>(IEnumerable<T> files, ILookup<string, (string basePath, FileReferenceBase file)> favs) where T: FileReferenceBase
+    private IEnumerable<(T?, T?, FileReferenceBase?)> GroupMorphs<T>(IEnumerable<T> files, ILookup<string, (string basePath, FileReferenceBase file)> favs) where T : FileReferenceBase
     {
         return files
             .Where(f => f.ExtLower is ".vmi" or ".vmb")
             .Select(f => (basePath: f.LocalPath[..^f.ExtLower.Length], file: f))
             .GroupBy(x => x.basePath)
-            .Select(g =>
-            {
-                if (g.Count() is 1 or 2)
-                {
+            .Select(g => {
+                if (g.Count() is 1 or 2) {
                     var firstFile = g.First().file;
                     var fav = favs[firstFile.FilenameWithoutExt]
                         .FirstOrDefault(t => firstFile.LocalPath.StartsWith(t.basePath, StringComparison.Ordinal));
@@ -98,8 +87,7 @@ public sealed class MorphGrouper : IMorphGrouper
     {
         using var streamReader = new StreamReader(openFileStream(vam.LocalPath));
 
-        while (!streamReader.EndOfStream)
-        {
+        while (!streamReader.EndOfStream) {
             var line = await streamReader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line) || !line.Contains("\"displayName\"")) continue;
 

@@ -6,6 +6,6 @@ public sealed class CustomAutoDataAttribute : AutoDataAttribute
 {
     public CustomAutoDataAttribute() : base(() => new CustomFixture())
     {
-        
+
     }
 }

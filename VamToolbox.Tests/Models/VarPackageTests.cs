@@ -23,7 +23,7 @@ public class VarPackageTests
     {
         var varFile1 = new VarPackageFile("a", 1, false, varPackage, DateTime.Now);
         var varFile2 = new VarPackageFile("A", 1, false, varPackage, DateTime.Now);
-        
+
         using var _ = new AssertionScope();
         varPackage.Files.Should().BeEquivalentTo(new[] { varFile1, varFile2 });
         varPackage.FilesDict.Should().HaveCount(1);

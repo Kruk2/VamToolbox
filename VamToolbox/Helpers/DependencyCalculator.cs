@@ -12,8 +12,7 @@ public static class DependencyCalculator
         var varDeps = new HashSet<VarPackage>();
         var freeFileDeps = new HashSet<FreeFile>();
 
-        while (queue.Count > 0)
-        {
+        while (queue.Count > 0) {
             var item = queue[^1];
             queue.RemoveAt(queue.Count - 1);
 
@@ -29,7 +28,7 @@ public static class DependencyCalculator
             if (processedFiles.Contains(item.ToFile))
                 continue;
 
-            if(item.ToFile.JsonFile is not null)
+            if (item.ToFile.JsonFile is not null)
                 queue.AddRange(item.ToFile.JsonFile.References);
             processedFiles.Add(item.ToFile);
         }
@@ -44,8 +43,7 @@ public static class DependencyCalculator
         var varDeps = new HashSet<VarPackage>();
         var freeFileDeps = new HashSet<FreeFile>();
 
-        while (queue.Count > 0)
-        {
+        while (queue.Count > 0) {
             var item = queue[^1];
             queue.RemoveAt(queue.Count - 1);
 
@@ -58,8 +56,7 @@ public static class DependencyCalculator
             item.VarReferences.Where(t => t.AlreadyCalculatedDeps).SelectMany(t => t.AllResolvedVarDependencies).ForEach(t => varDeps.Add(t));
             item.FreeReferences.Where(t => t.AlreadyCalculatedDeps).SelectMany(t => t.AllResolvedFreeDependencies).ForEach(t => freeFileDeps.Add(t));
 
-            foreach (var jsonFile in jsonFilesToScan)
-            {
+            foreach (var jsonFile in jsonFilesToScan) {
                 if (queued.Contains(jsonFile))
                     continue;
 

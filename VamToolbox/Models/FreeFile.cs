@@ -29,7 +29,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 
     public override void AddChildren(FileReferenceBase children)
     {
-        _children.Add((FreeFile) children);
+        _children.Add((FreeFile)children);
         children.ParentFile = this;
     }
 
@@ -37,7 +37,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
     {
         if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null)
             return (_allResolvedVarDependencies, _allResolvedFreeDependencies);
-        if(JsonFile is null)
+        if (JsonFile is null)
             return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = (Enumerable.Empty<VarPackage>().ToList(), Enumerable.Empty<FreeFile>().ToList());
 
         return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(new List<JsonFile> { JsonFile });
@@ -50,7 +50,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
         if (JsonFile is null)
             return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = (Enumerable.Empty<VarPackage>().ToList(), Enumerable.Empty<FreeFile>().ToList());
 
-        return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(new List<JsonFile>{JsonFile});
+        return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(new List<JsonFile> { JsonFile });
     }
 
     public void ClearDependencies()
