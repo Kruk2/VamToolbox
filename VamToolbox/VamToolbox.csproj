@@ -18,9 +18,9 @@
 		<PackageReference Include="FuzzySharp" Version="2.0.2" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.3" />
 		<PackageReference Include="morelinq" Version="3.3.2" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 		<PackageReference Include="RestEase" Version="1.5.5" />
 		<PackageReference Include="System.IO.Abstractions" Version="16.1.20" />
+		<PackageReference Include="System.Text.Json" Version="6.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>

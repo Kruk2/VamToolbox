@@ -1,4 +1,6 @@
 ﻿using System.IO.Abstractions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -85,17 +87,26 @@ public sealed class MorphGrouper : IMorphGrouper
 
     private async Task<string?> ReadVmiName<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
-        using var streamReader = new StreamReader(openFileStream(vam.LocalPath));
-
-        while (!streamReader.EndOfStream) {
-            var line = await streamReader.ReadLineAsync();
-            if (string.IsNullOrWhiteSpace(line) || !line.Contains("\"displayName\"")) continue;
-
-            var uuid = line.Replace("\"displayName\"", "");
-            return uuid[(uuid.IndexOf('\"') + 1)..uuid.LastIndexOf('\"')];
+        await using var streamReader = openFileStream(vam.LocalPath);
+        try {
+            var reader = await JsonSerializer.DeserializeAsync<VamFile>(streamReader, new JsonSerializerOptions {
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+            if (!string.IsNullOrWhiteSpace(reader?.DisplayName)) {
+                return reader.DisplayName;
+            }
+        } catch (Exception ex) {
+            _logger.Log(ex.ToString());
         }
 
-        _logger.Log($"[MISSING-DISPLAYNAME-VMI] missing name in {vam.LocalPath} {(vam is VarPackageFile varFile ? varFile.ParentVar.Name : string.Empty)}");
+        _logger.Log($"[MISSING-DISPLAYNAME-VMI] missing name in {vam}");
         return null;
+    }
+
+    private class VamFile
+    {
+        [JsonPropertyName("displayName")]
+        public string DisplayName { get; set; } = null!;
     }
 }
