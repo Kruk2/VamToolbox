@@ -134,34 +134,29 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     {
         _progressTracker.Report("Saving logs", forceShow: true);
 
-        var uniqueMissingVars = scenes.SelectMany(t => t.Missing)
-            .GroupBy(t => t.EstimatedVarName)
-            .Select(t => {
-                VarPackageName.TryGet(t.Key + ".var", out var x);
-                return (fromJsonFiles: t.Select(y => y.ForJsonFile).Distinct().ToList(), VarName: x, t.Key);
-            });
-        var varIndex = varPackages.Select(t => t.Name.PackageNameWithoutVersion).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        _logger.Log("Missing vars:");
-        foreach (var (jsonFiles, varName, key) in uniqueMissingVars.OrderBy(t => t.VarName?.Filename ?? string.Empty)) {
-            if (varName is null) {
-                _logger.Log($"Unable to parse: {key} from " + string.Join(" AND ", jsonFiles));
-                continue;
-            }
-            if (!varIndex.Contains(varName.PackageNameWithoutVersion)) {
-                _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
-                continue;
-            }
-            if (varName.Version == -1)
-                continue;
-
-            _logger.Log(varName.Filename + " from " + string.Join(" AND ", jsonFiles));
+        _logger.Log("Unable to parse var:");
+        var unableToParseVarNames = scenes
+            .SelectMany(t => t.Missing)
+            .Where(t => t.EstimatedVarName is null && t.Value.Contains(':') && !t.Value.StartsWith("SELF", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        foreach (var unableToParseVarName in unableToParseVarNames.OrderBy(t => t.Value)) {
+            _logger.Log($"'{unableToParseVarName.Value}' in {unableToParseVarName.ForJsonFile}");
         }
 
-        _logger.Log("");
-        var errors = scenes.SelectMany(t => t.File.IsVar ? t.File.Var.UnresolvedDependencies : t.File.Free.UnresolvedDependencies).Distinct();
+        _logger.Log("Unresolved references");
+        foreach (var unableToParseVarName in scenes.SelectMany(t => t.Missing).Except(unableToParseVarNames).OrderBy(t => t.Value)) {
+            _logger.Log($"'{unableToParseVarName.Value}' in {unableToParseVarName.ForJsonFile}");
+        }
+
+        _logger.Log("Missing vars");
+        var errors = scenes.SelectMany(t => t.File.IsVar ? t.File.Var.UnresolvedDependencies : t.File.Free.UnresolvedDependencies).Distinct().OrderBy(t => t);
         foreach (var error in errors) {
             _logger.Log(error);
+        }
+
+        _logger.Log("Extensions");
+        foreach (var seenExtensionsKey in JsonScannerHelper.SeenExtensions.Keys) {
+            _logger.Log(seenExtensionsKey);
         }
     }
 
@@ -182,9 +177,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private async Task ScanJsonAsync(OpenedPotentialJson openedJson, PotentialJsonFile potentialJson)
     {
         using var streamReader = openedJson.Stream == null ? null : new StreamReader(openedJson.Stream);
-        string? localSavesFolder = _fs.Path.GetDirectoryName(openedJson.File.LocalPath).NormalizePathSeparators();
-        if (!localSavesFolder.StartsWith("Saves", StringComparison.OrdinalIgnoreCase))
-            localSavesFolder = null;
+        var localJsonPath = _fs.Path.GetDirectoryName(openedJson.File.LocalPath).NormalizePathSeparators();
 
         Reference? nextScanForUuidOrMorphName = null;
         JsonReference? resolvedReferenceWhenUuidMatchingFails = null;
@@ -274,15 +267,15 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         {
             JsonReference? jsonReference = null;
             if (reference.Value.Contains(':')) {
-                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, reference.Value, localSavesFolder);
+                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, reference.Value, localJsonPath);
             }
 
             if (jsonReference == null && (!reference.Value.Contains(':') ||
                                           (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal)))) {
-                jsonReference = _referencesResolver.ScanFreeFileSceneReference(localSavesFolder, reference);
+                jsonReference = _referencesResolver.ScanFreeFileSceneReference(localJsonPath, reference);
                 // it can be inside scene in var
                 if (jsonReference == default && potentialJson.IsVar) {
-                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localSavesFolder);
+                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localJsonPath);
                 }
             }
 

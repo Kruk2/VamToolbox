@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO.Abstractions;
 using MoreLinq;
 using VamToolbox.Models;
@@ -7,8 +8,8 @@ namespace VamToolbox.Helpers;
 
 public interface IReferencesResolver
 {
-    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string? localSceneFolder);
-    JsonReference? ScanFreeFileSceneReference(string? localSceneFolder, Reference reference);
+    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string localSceneFolder);
+    JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference);
     Task InitLookups(IList<FreeFile> freeFiles, IList<VarPackage> varFiles, ConcurrentBag<string> errors);
 }
 
@@ -30,7 +31,7 @@ public class ReferencesResolver : IReferencesResolver
         _errors = errors;
     }
 
-    public JsonReference? ScanFreeFileSceneReference(string? localSceneFolder, Reference reference)
+    public JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference)
     {
         if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:", StringComparison.Ordinal))
             throw new VamToolboxException($"{reference.ForJsonFile} {reference.Value} refers to var but processing free file reference");
@@ -38,7 +39,7 @@ public class ReferencesResolver : IReferencesResolver
         var refPath = reference.Value.Split(':').Last();
         refPath = refPath.NormalizeAssetPath();
         // searching in localSceneFolder for var json files is handled in ScanPackageSceneReference
-        if (!reference.ForJsonFile.IsVar && localSceneFolder is not null && _freeFilesIndex[_fs.Path.Combine(localSceneFolder, refPath).NormalizePathSeparators()] is var f1 && f1.Any()) {
+        if (!reference.ForJsonFile.IsVar && _freeFilesIndex[_fs.SimplifyRelativePath(localSceneFolder, refPath)] is var f1 && f1.Any()) {
             f1 = f1.OrderByDescending(t => t.UsedByVarPackagesOrFreeFilesCount).ThenBy(t => t.FullPath);
             var x = f1.FirstOrDefault(t => t.IsInVaMDir) ?? f1.First();
             return new JsonReference(x, reference);
@@ -52,7 +53,7 @@ public class ReferencesResolver : IReferencesResolver
         return default;
     }
 
-    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string? localSceneFolder)
+    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string localSceneFolder)
     {
         var refPathSplit = refPath.Split(':');
         var assetName = refPathSplit[1];
@@ -88,8 +89,8 @@ public class ReferencesResolver : IReferencesResolver
             var varAssets = varToSearch.FilesDict;
             assetName = assetName.NormalizeAssetPath();
 
-            if (potentialJson.Var == varToSearch && localSceneFolder is not null) {
-                var refInScene = _fs.Path.Combine(localSceneFolder, assetName).NormalizePathSeparators();
+            if (potentialJson.Var == varToSearch) {
+                var refInScene = _fs.SimplifyRelativePath(localSceneFolder, assetName);
                 if (varAssets.TryGetValue(refInScene, out var f1)) {
                     //_logger.Log($"[RESOLVER] Found f1 {f1.ToParentVar.Name.Filename} for reference {refer}")}");ence.Value} from {(potentialJson.IsVar ? $"var: {potentialJson.Var.Name.Filename}" : $"file: {potentialJson.Free.FullPath
                     return new JsonReference(f1, reference);

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using VamToolbox.Models;
@@ -73,7 +74,7 @@ public sealed class JsonScannerHelper : IJsonFileParser
         "cs", "cslist", "tiff", "dll", ".audiobundle"
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
 
-    //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
+    public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Reference? GetAsset(ReadOnlySpan<char> line, int offset, FileReferenceBase fromFile, out string? outputError)
@@ -108,8 +109,8 @@ public sealed class JsonScannerHelper : IJsonFileParser
         if (lastDot == -1 || lastDot == assetName.Length - 1)
             return null;
         var assetExtension = assetName[^(assetName.Length - lastDot - 1)..];
-        //var ext = assetExtension.ToString();
-        //SeenExtensions.GetOrAdd(ext, ext);
+        var ext = assetExtension.ToString();
+        SeenExtensions.GetOrAdd(ext, ext);
 
         var endsWithExtension = Extensions.Contains(string.GetHashCode(assetExtension, StringComparison.OrdinalIgnoreCase));
         if (!endsWithExtension || !IsUrl(assetName, line, ref outputError))
