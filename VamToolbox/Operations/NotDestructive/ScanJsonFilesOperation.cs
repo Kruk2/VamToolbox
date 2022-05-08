@@ -274,16 +274,15 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         (Reference? nextScanForUuidOrMorphName, JsonReference? jsonReference) ProcessJsonReference(Reference reference)
         {
             JsonReference? jsonReference = null;
-            if (reference.Value.Contains(':')) {
-                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, reference.Value, localJsonPath);
+            if (reference.HasSemiColon) {
+                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, forceSelf: false, localJsonPath);
             }
 
-            if (jsonReference == null && (!reference.Value.Contains(':') ||
-                                          (reference.Value.Contains(':') && reference.Value.StartsWith("SELF:", StringComparison.Ordinal)))) {
+            if (jsonReference == null && (!reference.HasSemiColon || reference.HasSelfKeyword)) {
                 jsonReference = _referencesResolver.ScanFreeFileSceneReference(localJsonPath, reference);
                 // it can be inside scene in var
                 if (jsonReference == default && potentialJson.IsVar) {
-                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, "SELF:" + reference.Value, localJsonPath);
+                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, forceSelf: true, localJsonPath);
                 }
             }
 

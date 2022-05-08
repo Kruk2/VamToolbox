@@ -33,7 +33,7 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
 
     public IEnumerable<string> UnresolvedDependencies => JsonFiles
-        .SelectMany(t => t.Missing.Select(x => x.Value + " from " + t))
+        .SelectMany(t => t.Missing.Select(x => x.EstimatedReferenceLocation + " from " + t))
         .Distinct();
 
     private Dictionary<string, VarPackageFile>? _filesDict;

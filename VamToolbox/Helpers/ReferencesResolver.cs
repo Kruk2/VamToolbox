@@ -7,7 +7,7 @@ namespace VamToolbox.Helpers;
 
 public interface IReferencesResolver
 {
-    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string localSceneFolder);
+    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, bool forceSelf, string localSceneFolder);
     JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference);
     Task InitLookups(IList<FreeFile> freeFiles, IList<VarPackage> varFiles, ConcurrentBag<string> errors);
 }
@@ -32,11 +32,10 @@ public class ReferencesResolver : IReferencesResolver
 
     public JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference)
     {
-        if (reference.Value.Contains(':') && !reference.Value.StartsWith("SELF:", StringComparison.Ordinal))
+        if (reference.HasSemiColon && !reference.HasSelfKeyword)
             throw new VamToolboxException($"{reference.ForJsonFile} {reference.Value} refers to var but processing free file reference");
 
-        var refPath = reference.Value.Split(':').Last();
-        refPath = refPath.NormalizeAssetPath();
+        var refPath = reference.EstimatedReferenceLocation;
         // searching in localSceneFolder for var json files is handled in ScanPackageSceneReference
         if (!reference.ForJsonFile.IsVar && _freeFilesIndex[_fs.SimplifyRelativePath(localSceneFolder, refPath)] is var f1 && f1.Any()) {
             f1 = f1.OrderByDescending(t => t.UsedByVarPackagesOrFreeFilesCount).ThenBy(t => t.FullPath);
@@ -52,13 +51,12 @@ public class ReferencesResolver : IReferencesResolver
         return default;
     }
 
-    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, string refPath, string localSceneFolder)
+    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, bool forceSelf, string localSceneFolder)
     {
-        var refPathSplit = refPath.Split(':');
-        var assetName = refPathSplit[1];
+        var assetName = reference.EstimatedReferenceLocation;
 
         VarPackage? varToSearch;
-        if (refPathSplit[0] == "SELF") {
+        if (forceSelf || reference.HasSelfKeyword) {
             if (!potentialJson.IsVar)
                 return default;
 
@@ -66,7 +64,7 @@ public class ReferencesResolver : IReferencesResolver
         } else {
             var varFile = reference.EstimatedVarName;
             if (varFile is null) {
-                _errors.Add($"[ASSET-PARSE-ERROR] {refPath} was neither a SELF reference or VAR in {potentialJson}");
+                _errors.Add($"[ASSET-PARSE-ERROR] {reference.Value} was neither a SELF reference or VAR in {potentialJson}");
                 return default;
             }
 
@@ -87,7 +85,6 @@ public class ReferencesResolver : IReferencesResolver
 
         if (varToSearch != null) {
             var varAssets = varToSearch.FilesDict;
-            assetName = assetName.NormalizeAssetPath();
 
             if (potentialJson.Var == varToSearch) {
                 var refInScene = _fs.SimplifyRelativePath(localSceneFolder, assetName);

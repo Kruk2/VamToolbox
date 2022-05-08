@@ -1,12 +1,11 @@
 using System.Globalization;
-using VamToolbox.Models;
 using VamToolbox.Sqlite;
+using VamToolbox.Helpers;
 
-namespace VamToolbox.Helpers;
+namespace VamToolbox.Models;
 
 public sealed class Reference
 {
-    public string NormalizedLocalPath => Value.Split(':').Last().NormalizeAssetPath();
     public string Value { get; }
     public int Index { get; }
     public int Length { get; }
@@ -15,6 +14,7 @@ public sealed class Reference
     public string? MorphName { get; set; }
     public string? InternalId { get; set; }
 
+    public FileReferenceBase ForJsonFile { get; internal set; }
     public override string ToString() => $"{Value} at index {Index}";
 
     public Reference(string value, int index, int length, FileReferenceBase forJsonFile)
@@ -35,13 +35,17 @@ public sealed class Reference
         ForJsonFile = forJsonFile;
     }
 
+    private bool? _hasSelfKeyword;
+    public bool HasSelfKeyword => _hasSelfKeyword ??= Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase);
+    private bool? _containsSemiColon;
+    public bool HasSemiColon => _containsSemiColon ??= Value.Contains(':');
+
     private string? _estimatedExtension;
     public string EstimatedExtension => _estimatedExtension ??= '.' + Value.Split('.').Last().ToLower(CultureInfo.InvariantCulture);
     private AssetType? _estimatedAssetType;
     public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation);
     private string? _estimatedReferenceLocation;
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= Value.Split(':').Last().NormalizeAssetPath();
-    public FileReferenceBase ForJsonFile { get; internal set; }
 
     private bool _estimatedVarNameCalculated;
     private VarPackageName? _estimatedVarName;
@@ -52,14 +56,23 @@ public sealed class Reference
         if (_estimatedVarNameCalculated) return _estimatedVarName;
 
         _estimatedVarNameCalculated = true;
-        if (Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':')) return null;
+        if (HasSelfKeyword || !HasSemiColon) return null;
 
-        string varName;
+        string? varName = null;
         var refPathSplit = Value.Split(':');
         if (refPathSplit[0].StartsWith("AddonPackages/", StringComparison.OrdinalIgnoreCase)) {
             varName = refPathSplit[0].Replace("AddonPackages/", "");
+        } else if (refPathSplit.Length == 3) {
+            if (refPathSplit[0].Equals("clothing", StringComparison.OrdinalIgnoreCase) ||
+                refPathSplit[0].Equals("toggle", StringComparison.OrdinalIgnoreCase)) {
+                varName = refPathSplit[1];
+            }
         } else {
             varName = refPathSplit[0];
+        }
+
+        if (varName is null) {
+            return null;
         }
 
         if (!varName.EndsWith(".var", StringComparison.OrdinalIgnoreCase)) {

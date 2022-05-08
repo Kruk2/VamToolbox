@@ -15,7 +15,7 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
     public IReadOnlyList<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
     public IReadOnlyList<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
     public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
-    public IEnumerable<string> UnresolvedDependencies => JsonFile?.Missing.Select(x => x.Value + " from " + this) ?? Enumerable.Empty<string>();
+    public IEnumerable<string> UnresolvedDependencies => JsonFile?.Missing.Select(x => x.EstimatedReferenceLocation + " from " + this) ?? Enumerable.Empty<string>();
 
     public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
         : base(localPath, size, isInVamDir, modifiedTimestamp)

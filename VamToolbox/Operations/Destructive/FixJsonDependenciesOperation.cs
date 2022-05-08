@@ -112,7 +112,7 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
     {
         var jsonData = await ReadJson(json);
         foreach (var missing in json.Missing.OrderByDescending(t => t.Index)) {
-            var localReferencePath = missing.NormalizedLocalPath;
+            var localReferencePath = missing.EstimatedReferenceLocation;
             var localReferenceFileName = Path.GetFileName(localReferencePath);
 
             FileReferenceBase? bestReference = null;
