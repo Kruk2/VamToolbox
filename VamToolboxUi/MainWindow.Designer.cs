@@ -55,7 +55,6 @@ namespace VamToolboxUi
             this.comboThreads = new System.Windows.Forms.ComboBox();
             this.clearRepoDirBtn = new System.Windows.Forms.Button();
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
-            this.shallowChk = new System.Windows.Forms.CheckBox();
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.downloadFromHubBtn = new System.Windows.Forms.Button();
@@ -246,7 +245,6 @@ namespace VamToolboxUi
             this.groupBox3.Controls.Add(this.profilesListBox);
             this.groupBox3.Controls.Add(this.manageProfilesBtn);
             this.groupBox3.Controls.Add(this.copyVarsFromRepoBtn);
-            this.groupBox3.Enabled = false;
             this.groupBox3.Location = new System.Drawing.Point(3, 276);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(337, 155);
@@ -275,7 +273,7 @@ namespace VamToolboxUi
             // removeAllSoftLinkBeforeChk
             // 
             this.removeAllSoftLinkBeforeChk.AutoSize = true;
-            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(237, 47);
+            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(237, 22);
             this.removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
             this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(259, 19);
             this.removeAllSoftLinkBeforeChk.TabIndex = 18;
@@ -320,16 +318,6 @@ namespace VamToolboxUi
             this.moveMissingDepsChk.Text = "Move files instead of doing soft-link";
             this.moveMissingDepsChk.UseVisualStyleBackColor = true;
             // 
-            // shallowChk
-            // 
-            this.shallowChk.AutoSize = true;
-            this.shallowChk.Location = new System.Drawing.Point(237, 22);
-            this.shallowChk.Name = "shallowChk";
-            this.shallowChk.Size = new System.Drawing.Size(200, 19);
-            this.shallowChk.TabIndex = 25;
-            this.shallowChk.Text = "Use shallow dependency resolver";
-            this.shallowChk.UseVisualStyleBackColor = true;
-            // 
             // stageTxt
             // 
             this.stageTxt.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -347,7 +335,6 @@ namespace VamToolboxUi
             // groupBox4
             // 
             this.groupBox4.Controls.Add(this.moveMissingDepsChk);
-            this.groupBox4.Controls.Add(this.shallowChk);
             this.groupBox4.Controls.Add(this.clearCacheBtn);
             this.groupBox4.Controls.Add(this.removeAllSoftLinkBeforeChk);
             this.groupBox4.Controls.Add(this.dryRunCheckbox);
@@ -434,7 +421,6 @@ namespace VamToolboxUi
         private System.Windows.Forms.Button clearRepoDirBtn;
         private System.Windows.Forms.CheckBox moveMissingDepsChk;
         private System.Windows.Forms.Button trustAllVarsBtn;
-        private System.Windows.Forms.CheckBox shallowChk;
         private System.Windows.Forms.Label stageTxt;
         private System.Windows.Forms.GroupBox groupBox4;
         private System.Windows.Forms.Button downloadFromHubBtn;

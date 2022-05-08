@@ -6,6 +6,7 @@ using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
+using VamToolbox.Operations.Repo;
 
 namespace VamToolbox.Operations.NotDestructive;
 
@@ -24,6 +25,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private int _total;
 
     private OperationContext _context = null!;
+    private IVarFilters? _filters;
 
     public ScanJsonFilesOperation(
         IProgressTracker progressTracker,
@@ -43,12 +45,13 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         _referencesResolver = referencesResolver;
     }
 
-    public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles)
+    public async Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles, IVarFilters? filters = null)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
         _context = context;
+        _filters = filters;
         await _logger.Init("scan_json_files.log");
         _progressTracker.InitProgress("Scanning scenes/presets references");
 
@@ -56,7 +59,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await _referenceCacheReader.ReadCache(potentialScenes);
 
         _total = potentialScenes.Count;
-        await RunScenesScan(potentialScenes);
+        await RunScenesScan(potentialScenes, varFiles, freeFiles);
 
         _total = varFiles.Count + freeFiles.Count;
         await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
@@ -99,7 +102,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         dependencies.ForEach(t => t.ClearDependencies());
 
         var depScanBlock = new ActionBlock<IVamObjectWithDependencies>(t => {
-            _ = _context.ShallowDeps ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies;
+            _ = t.ResolvedVarDependencies;
         },
             new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
@@ -112,7 +115,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await depScanBlock.Completion;
     }
 
-    private async Task RunScenesScan(IEnumerable<PotentialJsonFile> potentialScenes)
+    private async Task RunScenesScan(IEnumerable<PotentialJsonFile> potentialScenes, IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
     {
         var scanSceneBlock = new ActionBlock<PotentialJsonFile>(
             ScanJsonAsync,
@@ -127,6 +130,18 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         scanSceneBlock.Complete();
         await scanSceneBlock.Completion;
 
+        await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
+
+        if (_filters is not null) {
+            var (varsToMove, filesToMove) = _filters.GetFilesToMove(varFiles);
+            var files = varsToMove.SelectMany(t => t.Files).SelectMany(t => t.SelfAndChildren())
+                .Concat(filesToMove.SelectMany(t => t.SelfAndChildren().Cast<FileReferenceBase>()));
+
+            foreach (var file in files) {
+                file.MatchesProfile = true;
+            }
+
+        }
         await _uuidReferenceResolver.ResolveDelayedReferences();
     }
 
@@ -324,5 +339,5 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
 
 public interface IScanJsonFilesOperation : IOperation
 {
-    Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles);
+    Task<List<JsonFile>> ExecuteAsync(OperationContext context, IList<FreeFile> freeFiles, IList<VarPackage> varFiles, IVarFilters? filters = null);
 }

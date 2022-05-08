@@ -27,43 +27,62 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
             return;
         }
 
-        await Task.Run(() => {
-            var varsToCopy = FindVarsToCopy(vars, varFilters, context.ShallowDeps);
-            var missingDependencies = varsToCopy.SelectMany(t => t.UnresolvedDependencies).Distinct().ToList();
-            var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
-
-            foreach (var var in varsToCopy) {
-                var destination = Path.Combine(addonPackages, Path.GetRelativePath(context.RepoDir, var.FullPath));
-
-                var result = _linker.SoftLink(destination, var.FullPath, context.DryRun);
-                if (result != 0) {
-                    _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
-                    return;
-                }
-
-                _logger.Log($"Sym-link: {destination}");
-            }
-
-            foreach (var error in missingDependencies.OrderBy(e => e))
-                _logger.Log($"Var soft-link missing dependency: " + error);
-
-            _reporter.Complete(
-                $"Copied {varsToCopy.Count} vars. Unresolved dependencies: {missingDependencies.Count}. Check copy_vars_from_repo.log");
-        });
+        await Task.Run(() => ApplyProfiles(context, vars, varFilters));
     }
 
-    private static List<VarPackage> FindVarsToCopy(IEnumerable<VarPackage> vars, IVarFilters varFilters, bool useShallowDependencies)
+    private void ApplyProfiles(OperationContext context, IList<VarPackage> vars, IVarFilters varFilters)
     {
-        var repoVars = vars.Where(t => !t.IsInVaMDir);
-        var toCopy = repoVars.Where(t => varFilters.Matches(t.FullPath)).ToList();
+        var filesToCopy = varFilters.GetFilesToMove(vars);
+        var missingDependencies = filesToCopy
+            .freeFiles.SelectMany(t => t.UnresolvedDependencies)
+            .Concat(filesToCopy.vars.SelectMany(t => t.UnresolvedDependencies))
+            .Distinct();
 
-        // optimize? if there is already free file with the same uuid we could skip this var
-        var dependencies = toCopy.SelectMany(t => useShallowDependencies ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies);
-        return toCopy
-            .Concat(dependencies)
-            .DistinctBy(t => t.FullPath)
-            .Where(t => !t.IsInVaMDir)
-            .ToList();
+        int copied = 0, unresolved = 0;
+        var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
+        var addonPackagesInRepo = Path.Combine(context.RepoDir!, "AddonPackages");
+
+        foreach (var varPackage in filesToCopy.vars) 
+        {
+            var relativeToRepo = Path.GetRelativePath(context.RepoDir!, varPackage.FullPath);
+            if (relativeToRepo.StartsWith("AddonPackages", StringComparison.OrdinalIgnoreCase)) {
+                relativeToRepo = Path.GetRelativePath(addonPackagesInRepo, varPackage.FullPath);
+            }
+
+            var destination = Path.Combine(addonPackages, relativeToRepo);
+            var result = _linker.SoftLink(destination, varPackage.FullPath, context.DryRun);
+            if (result != 0)
+            {
+                _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
+                return;
+            }
+
+            _logger.Log($"Sym-link: {destination}");
+            copied++;
+        }
+
+        foreach (var freeFile in filesToCopy.freeFiles) 
+        {
+            var destination = Path.Combine(context.VamDir, freeFile.LocalPath);
+
+            var result = _linker.SoftLink(destination, freeFile.FullPath, context.DryRun);
+            if (result != 0) {
+                _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
+                return;
+            }
+
+            _logger.Log($"Sym-link: {destination}");
+            copied++;
+        }
+
+        foreach (var error in missingDependencies.OrderBy(e => e)) 
+        {
+            _logger.Log($"Var soft-link missing dependency: {error}");
+            unresolved++;
+        }
+
+        _reporter.Complete(
+            $"Copied {copied} files. Unresolved dependencies: {unresolved}. Check copy_vars_from_repo.log");
     }
 }
 

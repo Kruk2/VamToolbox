@@ -2,10 +2,8 @@ namespace VamToolbox.Models;
 
 public interface IVamObjectWithDependencies
 {
-    IReadOnlyList<VarPackage> TrimmedResolvedVarDependencies { get; }
-    IReadOnlyList<VarPackage> AllResolvedVarDependencies { get; }
-    IReadOnlyList<FreeFile> TrimmedResolvedFreeDependencies { get; }
-    IReadOnlyList<FreeFile> AllResolvedFreeDependencies { get; }
+    IReadOnlyList<VarPackage> ResolvedVarDependencies { get; }
+    IReadOnlyList<FreeFile> ResolvedFreeDependencies { get; }
     IEnumerable<string> UnresolvedDependencies { get; }
     bool AlreadyCalculatedDeps { get; }
 

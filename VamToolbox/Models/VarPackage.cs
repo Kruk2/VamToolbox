@@ -24,13 +24,11 @@ public sealed class VarPackage : IVamObjectWithDependencies
         .Select(t => t.JsonFile!)
         .ToList();
 
-    private List<VarPackage>? _trimmedResolvedVarDependencies, _allResolvedVarDependencies;
-    private List<FreeFile>? _trimmedResolvedFreeDependencies, _allResolvedFreeDependencies;
-    public IReadOnlyList<VarPackage> TrimmedResolvedVarDependencies => CalculateShallowDeps().Var;
-    public IReadOnlyList<VarPackage> AllResolvedVarDependencies => CalculateDeps().Var;
-    public IReadOnlyList<FreeFile> TrimmedResolvedFreeDependencies => CalculateShallowDeps().Free;
-    public IReadOnlyList<FreeFile> AllResolvedFreeDependencies => CalculateDeps().Free;
-    public bool AlreadyCalculatedDeps => _allResolvedVarDependencies is not null || _trimmedResolvedVarDependencies is not null;
+    private List<VarPackage>? _trimmedResolvedVarDependencies;
+    private List<FreeFile>? _trimmedResolvedFreeDependencies;
+    public IReadOnlyList<VarPackage> ResolvedVarDependencies => CalculateDeps().Var;
+    public IReadOnlyList<FreeFile> ResolvedFreeDependencies => CalculateDeps().Free;
+    public bool AlreadyCalculatedDeps => _trimmedResolvedVarDependencies is not null;
 
     public IEnumerable<string> UnresolvedDependencies => JsonFiles
         .SelectMany(t => t.Missing.Select(x => x.EstimatedReferenceLocation + " from " + t))
@@ -61,13 +59,6 @@ public sealed class VarPackage : IVamObjectWithDependencies
 
     private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()
     {
-        if (_allResolvedFreeDependencies is not null && _allResolvedVarDependencies is not null)
-            return (_allResolvedVarDependencies, _allResolvedFreeDependencies);
-        return (_allResolvedVarDependencies, _allResolvedFreeDependencies) = DependencyCalculator.CalculateAllVarRecursiveDeps(JsonFiles);
-    }
-
-    private (List<VarPackage> Var, List<FreeFile> Free) CalculateShallowDeps()
-    {
         if (_trimmedResolvedFreeDependencies is not null && _trimmedResolvedVarDependencies is not null)
             return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies);
         return (_trimmedResolvedVarDependencies, _trimmedResolvedFreeDependencies) = DependencyCalculator.CalculateTrimmedDeps(JsonFiles);
@@ -75,8 +66,6 @@ public sealed class VarPackage : IVamObjectWithDependencies
 
     public void ClearDependencies()
     {
-        _allResolvedFreeDependencies = null;
-        _allResolvedVarDependencies = null;
         _trimmedResolvedFreeDependencies = null;
         _trimmedResolvedVarDependencies = null;
     }

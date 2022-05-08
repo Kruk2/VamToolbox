@@ -71,7 +71,7 @@ public partial class MainWindow : Form, IProgressTracker
         await RemoveOldLinks(scope, ctx);
         var (vars, freeFiles) = await ScanJsonFiles(scope, ctx);
         await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
-            .ExecuteAsync(ctx, vars, freeFiles, moveMissingDepsChk.Checked, shallowChk.Checked);
+            .ExecuteAsync(ctx, vars, freeFiles, moveMissingDepsChk.Checked);
 
         if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
                 MessageBoxButtons.YesNo) == DialogResult.Yes) {
@@ -94,9 +94,10 @@ public partial class MainWindow : Form, IProgressTracker
         var ctx = GetContext(stages: 5);
         await using var scope = _ctx.BeginLifetimeScope();
         await RemoveOldLinks(scope, ctx);
-        var (vars, _) = await ScanJsonFiles(scope, ctx);
+        var filters = BuildFilters();
+        var (vars, _) = await ScanJsonFiles(scope, ctx, filters);
         await scope.Resolve<ICopySelectedVarsWithDependenciesFromRepo>()
-            .ExecuteAsync(ctx, vars, BuildFilters());
+            .ExecuteAsync(ctx, vars, filters);
 
         SwitchUI(false);
     }
@@ -190,8 +191,7 @@ public partial class MainWindow : Form, IProgressTracker
             DryRun = dryRunCheckbox.Checked,
             Threads = (int)comboThreads.SelectedItem,
             RepoDir = additionalVarsDir.Text,
-            VamDir = vamDirTxt.Text,
-            ShallowDeps = shallowChk.Checked
+            VamDir = vamDirTxt.Text
         };
         return ctx;
     }
@@ -212,7 +212,6 @@ public partial class MainWindow : Form, IProgressTracker
             VamDir = vamDirTxt.Text,
             Threads = (int)comboThreads.SelectedItem,
             RemoveSoftLinksBefore = removeAllSoftLinkBeforeChk.Checked,
-            ShallowDependencies = shallowChk.Checked,
             Profiles = _profiles
         };
 
@@ -235,7 +234,6 @@ public partial class MainWindow : Form, IProgressTracker
         vamDirTxt.Text = appSettings.VamDir;
         comboThreads.SelectedItem = appSettings.Threads == 0 ? Environment.ProcessorCount : appSettings.Threads;
         removeAllSoftLinkBeforeChk.Checked = appSettings.RemoveSoftLinksBefore;
-        shallowChk.Checked = appSettings.ShallowDependencies;
         _profiles = appSettings.Profiles;
 
         ReloadProfiles();
@@ -371,10 +369,10 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx)
+    private static async Task<(List<VarPackage> vars, List<FreeFile> freeFiles)> ScanJsonFiles(ILifetimeScope scope, OperationContext ctx, IVarFilters? filters = null)
     {
         var (vars, freeFiles) = await RunIndexing(scope, ctx);
-        await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars);
+        await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);
 
         return (vars, freeFiles);
     }

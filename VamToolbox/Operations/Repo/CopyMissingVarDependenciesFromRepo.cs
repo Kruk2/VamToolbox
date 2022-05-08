@@ -20,7 +20,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
     }
 
     public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles,
-        bool moveVars, bool shallow)
+        bool moveVars)
     {
         _reporter.InitProgress("Copying missing dependencies from REPO to VAM");
         _context = context;
@@ -30,7 +30,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
             return;
         }
 
-        var (exitingVars, existingFiles) = await Task.Run(() => FindFilesToLink(vars, freeFiles, shallow));
+        var (exitingVars, existingFiles) = await Task.Run(() => FindFilesToLink(vars, freeFiles));
         await Task.Run(() => LinkFiles(moveVars, existingFiles, exitingVars));
     }
 
@@ -98,32 +98,29 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
         _reporter.Complete($"Copied {count} vars/files. Check copy_missing_deps_from_repo.log");
     }
 
-    private static (List<VarPackage> exitingVars, List<FreeFile> existingFiles) FindFilesToLink(IList<VarPackage> vars, IList<FreeFile> freeFiles, bool shallow)
+    private static (List<VarPackage> exitingVars, List<FreeFile> existingFiles) FindFilesToLink(IList<VarPackage> vars, IList<FreeFile> freeFiles)
     {
         var exitingVars = vars
             .Where(t => t.IsInVaMDir)
-            .SelectMany(t => shallow ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies)
-            .Concat(freeFiles.Where(t => t.IsInVaMDir)
-                .SelectMany(t => shallow ? t.TrimmedResolvedVarDependencies : t.AllResolvedVarDependencies))
+            .SelectMany(t => t.ResolvedVarDependencies).SelectMany(t => t.ResolvedVarDependencies)
             .Where(t => !t.IsInVaMDir)
             .Distinct()
             .ToList();
 
         var existingFiles = vars
             .Where(t => t.IsInVaMDir)
-            .SelectMany(t => shallow ? t.TrimmedResolvedFreeDependencies : t.AllResolvedFreeDependencies)
-            .Concat(freeFiles.Where(t => t.IsInVaMDir)
-                .SelectMany(t => shallow ? t.TrimmedResolvedFreeDependencies : t.AllResolvedFreeDependencies))
+            .SelectMany(t => t.ResolvedFreeDependencies)
+            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies))
             .Where(t => !t.IsInVaMDir)
             .SelectMany(t => t.SelfAndChildren())
             .Distinct()
             .ToList();
+
         return (exitingVars, existingFiles);
     }
 }
 
 public interface ICopyMissingVarDependenciesFromRepo : IOperation
 {
-    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, bool moveVars,
-        bool shallow);
+    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, bool moveVars);
 }

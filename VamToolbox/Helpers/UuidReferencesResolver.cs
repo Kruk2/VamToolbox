@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
@@ -72,18 +73,14 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             return new List<JsonReference>();
 
         var createdReferences = new List<JsonReference>(_delayedReferencesToResolve.Count);
-        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve) {
+        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve.OrderByDescending(t => t.jsonFile.File.MatchesProfile)) {
             var isVam = reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase);
-
-            void AddJsonReference(JsonReference referenceToAdd)
-            {
-                jsonFile.AddReference(referenceToAdd);
-            }
-
+           
             void AddReference(FileReferenceBase fileToAdd)
             {
                 var referenceToAdd = new JsonReference(fileToAdd, reference);
-                AddJsonReference(referenceToAdd);
+                jsonFile.AddReference(referenceToAdd);
+                fileToAdd.MatchesProfile |= jsonFile.File.MatchesProfile;
             }
 
             var isFemaleReference = reference.EstimatedAssetType.IsFemale();
@@ -100,9 +97,14 @@ public class UuidReferencesResolver : IUuidReferenceResolver
                 continue;
             }
 
+            // prefer files that will be moved anyway because of the profile
+            if (matchedAssets.Any(t => t.MatchesProfile)) {
+                matchedAssets.RemoveAll(t => !t.MatchesProfile);
+            }
+
             // prefer vars/json with least dependencies
             var dependencies = CalculateDependencies(matchedAssets);
-            var dependenciesCount = dependencies.Select(t => t.TrimmedResolvedVarDependencies.Count + t.TrimmedResolvedFreeDependencies.Count);
+            var dependenciesCount = dependencies.Select(t => t.ResolvedVarDependencies.Count + t.ResolvedFreeDependencies.Count);
             var minCount = dependenciesCount.Min();
             var zipped = matchedAssets.Zip(dependenciesCount);
 

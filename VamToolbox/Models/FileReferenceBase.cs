@@ -44,6 +44,7 @@ public abstract class FileReferenceBase
 
     private long? _sizeWithChildren;
     public long SizeWithChildren => _sizeWithChildren ??= Size + Children.Sum(t => t.SizeWithChildren);
+    public bool MatchesProfile { get; internal set; }
 
     protected FileReferenceBase(string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
     {
