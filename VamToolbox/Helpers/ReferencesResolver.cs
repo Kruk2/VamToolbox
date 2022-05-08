@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.IO.Abstractions;
 using MoreLinq;
 using VamToolbox.Models;
@@ -58,15 +57,16 @@ public class ReferencesResolver : IReferencesResolver
         var refPathSplit = refPath.Split(':');
         var assetName = refPathSplit[1];
 
-        VarPackage? varToSearch = null;
+        VarPackage? varToSearch;
         if (refPathSplit[0] == "SELF") {
             if (!potentialJson.IsVar)
                 return default;
 
             varToSearch = potentialJson.Var;
         } else {
-            if (!VarPackageName.TryGet(refPathSplit[0] + ".var", out var varFile)) {
-                _errors.Add($"[INTERNAL-ERROR] {refPath} was neither a SELF reference or VAR in {potentialJson}");
+            var varFile = reference.EstimatedVarName;
+            if (varFile is null) {
+                _errors.Add($"[ASSET-PARSE-ERROR] {refPath} was neither a SELF reference or VAR in {potentialJson}");
                 return default;
             }
 

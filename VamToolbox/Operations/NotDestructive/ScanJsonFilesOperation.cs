@@ -133,31 +133,39 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private void PrintWarnings(List<JsonFile> scenes, IList<VarPackage> varPackages)
     {
         _progressTracker.Report("Saving logs", forceShow: true);
-
-        _logger.Log("Unable to parse var:");
-        var unableToParseVarNames = scenes
-            .SelectMany(t => t.Missing)
-            .Where(t => t.EstimatedVarName is null && t.Value.Contains(':') && !t.Value.StartsWith("SELF", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        foreach (var unableToParseVarName in unableToParseVarNames.OrderBy(t => t.Value)) {
-            _logger.Log($"'{unableToParseVarName.Value}' in {unableToParseVarName.ForJsonFile}");
+        _logger.Log("Errors");
+        foreach (var error in _errors.OrderBy(t => t)) {
+            _logger.Log(error);
         }
 
         _logger.Log("Unresolved references");
-        foreach (var unableToParseVarName in scenes.SelectMany(t => t.Missing).Except(unableToParseVarNames).OrderBy(t => t.Value)) {
+        foreach (var unableToParseVarName in scenes.SelectMany(t => t.Missing).OrderBy(t => t.Value)) {
             _logger.Log($"'{unableToParseVarName.Value}' in {unableToParseVarName.ForJsonFile}");
         }
 
         _logger.Log("Missing vars");
-        var errors = scenes.SelectMany(t => t.File.IsVar ? t.File.Var.UnresolvedDependencies : t.File.Free.UnresolvedDependencies).Distinct().OrderBy(t => t);
-        foreach (var error in errors) {
-            _logger.Log(error);
+        var varIndex = varPackages.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.OrdinalIgnoreCase);
+        var missingVars = scenes
+            .SelectMany(t => t.Missing.Where(x => x.EstimatedVarName != null).Select(x => x.EstimatedVarName!))
+            .Distinct()
+            .OrderBy(t => t.Filename);
+        foreach (var varName in missingVars) {
+            if (!varIndex.Contains(varName.PackageNameWithoutVersion)) {
+                _logger.Log(varName.Filename);
+                continue;
+            }
+
+            if (varName.Version == -1) continue; // we have and we want anything, ignore
+            if (varIndex[varName.PackageNameWithoutVersion].Any(x => x.Name.Version == varName.Version)) continue; // we have it, ignore
+            if (varName.MinVersion && varIndex[varName.PackageNameWithoutVersion].Any(x => x.Name.Version >= varName.Version)) continue; // we have it, ignore
+
+            _logger.Log(varName.Filename);
         }
 
-        _logger.Log("Extensions");
-        foreach (var seenExtensionsKey in JsonScannerHelper.SeenExtensions.Keys) {
-            _logger.Log(seenExtensionsKey);
-        }
+        //_logger.Log("Extensions");
+        //foreach (var seenExtensionsKey in JsonScannerHelper.SeenExtensions.Keys) {
+        //    _logger.Log(seenExtensionsKey);
+        //}
     }
 
     private async Task ScanJsonAsync(PotentialJsonFile potentialJson)

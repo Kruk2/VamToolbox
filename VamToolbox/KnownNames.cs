@@ -4,7 +4,7 @@ namespace VamToolbox;
 
 public static class KnownNames
 {
-    public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" }; // can it even be json?
+    public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" };
 
     public static readonly string[] KnownVamDirs = {
         "Custom",

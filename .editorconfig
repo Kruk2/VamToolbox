@@ -2,7 +2,6 @@ root = true
 [*.cs]
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = error
-dotnet_diagnostic.IDE0055.severity = error
 
 # New line preferences
 csharp_new_line_before_open_brace = methods, types

@@ -19,8 +19,6 @@ public sealed class Reference
 
     public override string ToString() => $"{Value} at index {Index}";
 
-    private string? _estimatedReferenceLocation;
-
     public Reference(string value, int index, int length, FileReferenceBase forJsonFile)
     {
         Value = value;
@@ -43,6 +41,7 @@ public sealed class Reference
     public string EstimatedExtension => _estimatedExtension ??= '.' + Value.Split('.').Last().ToLower(CultureInfo.InvariantCulture);
     private AssetType? _estimatedAssetType;
     public AssetType EstimatedAssetType => _estimatedAssetType ??= EstimatedExtension.ClassifyType(EstimatedReferenceLocation);
+    private string? _estimatedReferenceLocation;
     public string EstimatedReferenceLocation => _estimatedReferenceLocation ??= Value.Split(':').Last().NormalizeAssetPath();
     public FileReferenceBase ForJsonFile { get; internal set; }
 
@@ -56,8 +55,20 @@ public sealed class Reference
 
         _estimatedVarNameCalculated = true;
         if (Value.StartsWith("SELF:", StringComparison.OrdinalIgnoreCase) || !Value.Contains(':')) return null;
-        var name = Value.Split(':').First();
-        VarPackageName.TryGet(name + ".var", out _estimatedVarName);
+
+        string varName;
+        var refPathSplit = Value.Split(':');
+        if (refPathSplit[0].StartsWith("AddonPackages/", StringComparison.OrdinalIgnoreCase)) {
+            varName = refPathSplit[0].Replace("AddonPackages/", "");
+        } else {
+            varName = refPathSplit[0];
+        }
+
+        if (!varName.EndsWith(".var", StringComparison.OrdinalIgnoreCase)) {
+            varName += ".var";
+        }
+
+        VarPackageName.TryGet(varName, out _estimatedVarName);
         return _estimatedVarName;
     }
 }
@@ -71,10 +82,10 @@ public sealed class JsonScannerHelper : IJsonFileParser
 {
     private static readonly HashSet<int> Extensions = new[]{
         "vmi", "vam", "vaj", "vap", "jpg", "jpeg", "tif", "png", "mp3", "ogg", "wav", "assetbundle", "scene",
-        "cs", "cslist", "tiff", "dll", ".audiobundle"
+        "cs", "cslist", "tiff", "dll", "audiobundle", "voicebundle", "json"
     }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
 
-    public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
+    //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Reference? GetAsset(ReadOnlySpan<char> line, int offset, FileReferenceBase fromFile, out string? outputError)
@@ -109,50 +120,103 @@ public sealed class JsonScannerHelper : IJsonFileParser
         if (lastDot == -1 || lastDot == assetName.Length - 1)
             return null;
         var assetExtension = assetName[^(assetName.Length - lastDot - 1)..];
-        var ext = assetExtension.ToString();
-        SeenExtensions.GetOrAdd(ext, ext);
+        //var ext = assetExtension.ToString();
+        //if (ext.All(char.IsLetterOrDigit) && !ext.All(char.IsDigit))
+        //    SeenExtensions.GetOrAdd(ext, ext);
 
         var endsWithExtension = Extensions.Contains(string.GetHashCode(assetExtension, StringComparison.OrdinalIgnoreCase));
-        if (!endsWithExtension || !IsUrl(assetName, line, ref outputError))
+        if (!endsWithExtension || !IsUrl(assetName, line, assetExtension, fromFile, ref outputError))
             return null;
+
 
         return new Reference(assetName.ToString(), index: offset + prevQuoteIndex + 1, length: lastQuoteIndex - prevQuoteIndex - 1, fromFile);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static bool IsUrl(ReadOnlySpan<char> reference, ReadOnlySpan<char> line, ref string? error)
+    private static bool IsUrl(ReadOnlySpan<char> reference, ReadOnlySpan<char> line, ReadOnlySpan<char> ext, FileReferenceBase fromFile, ref string? error)
     {
         const StringComparison c = StringComparison.OrdinalIgnoreCase;
 
         if (reference.StartsWith("http://") || reference.StartsWith("https://"))
             return false;
 
-        bool isURL;
-        if (reference.Contains("\"simTexture\"", c)) {
-            return false;
-        } else if (reference.EndsWith(".vam", c)) {
-            isURL = line.Contains("\"id\"", c);
-        } else if (reference.EndsWith(".vap", c)) {
-            isURL = line.Contains("\"presetFilePath\"", c);
-        } else if (reference.EndsWith(".vmi", c)) {
-            isURL = line.Contains("\"uid\"", c);
-        } else {
-            isURL = line.Contains("tex\"", c) || line.Contains("texture\"", c) || line.Contains("url\"", c) ||
-                    line.Contains("bumpmap\"", c) || line.Contains("\"url", c) || line.Contains("LUT\"", c) ||
-                    line.Contains("\"plugin#", c);
-        }
-
-        if (!isURL) {
-            if (line.Contains("\"displayName\"", c) || line.Contains("\"audioClip\"", c) ||
-                line.Contains("\"selected\"", c) || line.Contains("\"audio\"", c)) {
-                return false;
+        // TODO handle assets for scripts better, maybe some kind of static mapping for more popular ones?
+        if (fromFile.ExtLower == ".json") {
+            if(ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
+                if ((fromFile.LocalPath.Contains("VAMMoan", c) || line.Contains("VAMMoan", c)) && line.Contains("\"audio\"", c)) {
+                    return false;
+                }
+                if ((fromFile.LocalPath.Contains("VAMDeluxe", c) || line.Contains("VAMDeluxe", c)) && line.Contains("\"audio\"", c)) {
+                    return false;
+                }
             }
 
-            error = string.Concat("Invalid type in json scanner: ", line);
-            return false;
-            //throw new VamToolboxException("Invalid type in json scanner: " + line);
+            //cotyounoyume.ExpressionBlushingAndTears
+            if (ext.Equals("png", c) && line.Contains("\"File\"", c) && fromFile.LocalPath.Contains("ExpressionBlushingAndTears", c)) {
+                return false;
+            }
         }
 
-        return true;
+        if (fromFile.ExtLower == ".uiap" && line.Contains("filePath\"", c)) {
+            return true;
+        }
+
+        if (ext.Equals("vam", c) && (line.Contains("\"id\"", c) || line.Contains("\"receiverTargetName\"", c))) {
+            return true;
+        }
+        if (ext.Equals("vmi", c) && line.Contains("\"uid\"", c)) {
+            return true;
+        }
+        if ((ext.Equals("cs", c) || ext.Equals("cslist", c) || ext.Equals("dll", c)) &&
+            (line.Contains("\"plugin#", c) || line.Contains("\"assetDllUrl\"", c))) {
+            return true;
+        }
+        if (ext.Equals("vap", c) && line.Contains("\"presetFilePath\"", c)) {
+            return true;
+        }
+        if (ext.Equals("json", c)) {
+            if (line.Contains("\"storePath\"", c) || line.Contains("\"sceneFilePath\"", c) ||
+                line.Contains("\"presetFilePath\"", c) || line.Contains("\"Additional Button Scene\"", c)) {
+                return true;
+            }
+
+            if (line.Contains("\"expression_", c) || line.Contains("\"receiverTargetName\"", c)) {
+                return false;
+            }
+        }
+        if ((ext.Equals("png", c) || ext.Equals("jpg", c) || ext.Equals("jpeg", c) || ext.Equals("tiff", c) || ext.Equals("tif", c)) &&
+            (line.Contains("\"simTexture\"", c) || line.Contains("\"customTexture_", c) || 
+             line.Contains("Url\"", c) || line.Contains("\"urlValue\"", c) || line.Contains("\"Path\"", c) || line.Contains("\"File\"", c) ||
+             line.Contains("\"Spectral LUT\"", c) || line.Contains("\"Light Texture\"", c) ||
+             line.Contains("Subdermis Texture\"", c) || line.Contains("\"UserLUT\"", c) || line.Contains("\"LensDirt Texture\"", c))) {
+            return true;
+        }
+        if (ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
+            if (line.Contains("\"sourcePath\"", c) || line.Contains("\"url\"", c)) {
+                return true;
+            }
+            if (line.Contains("\"uid\"", c) || line.Contains("\"displayName\"", c) || 
+                line.Contains("\"audioClip\"", c) || line.Contains("\"sourceClip\"", c) ||
+                line.Contains("\"stringValue\"", c) || line.Contains("\"clip_", c) ||
+                line.Contains("\"selected\"", c) || line.Contains("\"receiverTargetName\"", c) ||
+                line.Contains("\"backgroundMusicClip\"", c) || line.Contains("\"Audio Clips\"", c) ||
+                line.Contains("\"Action1\\nAudio", c) ||
+                (line.Contains("\"act", c) && line.Contains("Target", c) && line.Contains("ValueName\"", c))) {
+                return false;
+            }
+        }
+
+        if (ext.Equals("audiobundle", c) && (line.Contains("\"AudioBundle\"", c) || line.Contains("\"AssetBundle\"", c))) {
+            return true;
+        }
+        if (ext.Equals("assetbundle", c)) {
+            return true;
+        }
+        if (ext.Equals("scene", c) && line.Contains("\"assetUrl\"", c)) {
+            return true;
+        }
+
+        error = string.Concat("Invalid type in json scanner: ", line, " in ", fromFile.ToString());
+        return false;
     }
 }
