@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Dapper;
 using Microsoft.Data.Sqlite;
-using VamToolbox.Helpers;
 using VamToolbox.Models;
 
 namespace VamToolbox.Sqlite;
@@ -10,6 +9,8 @@ public sealed class Database : IDatabase
 {
     private const string FilesTable = "Files";
     private const string RefTable = "JsonReferences";
+    private const string AppSettingsTable = "AppSettings";
+    private const int SettingsVersion = 1;
     private readonly SqliteConnection _connection;
 
     public Database(string rootDir)
@@ -26,7 +27,15 @@ public sealed class Database : IDatabase
         CreateHashTable();
         CreateFilesTable();
         CreateJsonReferencesTable();
+        CreateSettingsTable();
         CreateIndexes();
+    }
+
+    private void CreateSettingsTable()
+    {
+        if (!TableExists(AppSettingsTable)) return;
+
+        _connection.Execute($"Create Table {AppSettingsTable} (Version INTEGER NOT NULL PRIMARY KEY, Data JSON NOT NULL)");
     }
 
     private void CreateIndexes()
@@ -221,4 +230,20 @@ public sealed class Database : IDatabase
     }
 
     public void Dispose() => _connection.Dispose();
+
+    public void SaveSettings(AppSettings appSettings)
+    {
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(appSettings)!;
+        _connection.Execute($"insert or replace into {AppSettingsTable} values (@SettingsVersion, @Data)", new { SettingsVersion, Data=json });
+    }
+
+    public AppSettings LoadSettings()
+    {
+        var json = _connection.ExecuteScalar<string?>($"select data from {AppSettingsTable} where Version = @SettingsVersion", new { SettingsVersion});
+        if (json is null) {
+            return new AppSettings();
+        }
+
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<AppSettings>(json);
+    }
 }

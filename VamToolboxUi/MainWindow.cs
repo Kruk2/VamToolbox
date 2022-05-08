@@ -206,27 +206,37 @@ public partial class MainWindow : Form, IProgressTracker
 
     private void MainWindow_FormClosing(object sender, FormClosingEventArgs e)
     {
-        Properties.Settings.Default.additionalVars = additionalVarsDir.Text;
-        Properties.Settings.Default.vamDir = vamDirTxt.Text;
-        Properties.Settings.Default.numberOfThreads = (int)comboThreads.SelectedItem;
-        Properties.Settings.Default.removeSoftLinksBefore = removeAllSoftLinkBeforeChk.Checked;
-        Properties.Settings.Default.shallow = shallowChk.Checked;
-        Properties.Settings.Default.profiles = JsonConvert.SerializeObject(_profiles);
-        Properties.Settings.Default.Save();
+        var appSettings = new AppSettings 
+        {
+            AdditionalVars = additionalVarsDir.Text,
+            VamDir = vamDirTxt.Text,
+            Threads = (int)comboThreads.SelectedItem,
+            RemoveSoftLinksBefore = removeAllSoftLinkBeforeChk.Checked,
+            ShallowDependencies = shallowChk.Checked,
+            Profiles = _profiles
+        };
+
+        {
+            using var scope = _ctx.BeginLifetimeScope();
+            var database = scope.Resolve<IDatabase>();
+            database.SaveSettings(appSettings);
+        }
+        
         _ctx.Dispose();
     }
 
     private void LoadSettings()
     {
-        additionalVarsDir.Text = Properties.Settings.Default.additionalVars;
-        vamDirTxt.Text = Properties.Settings.Default.vamDir;
-        comboThreads.SelectedItem = Properties.Settings.Default.numberOfThreads == 0 ? Environment.ProcessorCount : Properties.Settings.Default.numberOfThreads;
-        removeAllSoftLinkBeforeChk.Checked = Properties.Settings.Default.removeSoftLinksBefore;
-        shallowChk.Checked = Properties.Settings.Default.shallow;
+        using var scope = _ctx.BeginLifetimeScope();
+        var database = scope.Resolve<IDatabase>();
+        var appSettings = database.LoadSettings();
 
-        if (!string.IsNullOrEmpty(Properties.Settings.Default.profiles)) {
-            _profiles = JsonConvert.DeserializeObject<List<ProfileModel>>(Properties.Settings.Default.profiles)!;
-        }
+        additionalVarsDir.Text = appSettings.AdditionalVars;
+        vamDirTxt.Text = appSettings.VamDir;
+        comboThreads.SelectedItem = appSettings.Threads == 0 ? Environment.ProcessorCount : appSettings.Threads;
+        removeAllSoftLinkBeforeChk.Checked = appSettings.RemoveSoftLinksBefore;
+        shallowChk.Checked = appSettings.ShallowDependencies;
+        _profiles = appSettings.Profiles;
 
         ReloadProfiles();
     }

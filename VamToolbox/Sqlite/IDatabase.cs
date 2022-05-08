@@ -14,6 +14,10 @@ public interface IDatabase : IDisposable
 
     public void SaveFiles(Dictionary<FileReferenceBase, long> files);
     void UpdateReferences(Dictionary<FileReferenceBase, long> batch, List<(FileReferenceBase file, IEnumerable<Reference> references)> jsonFiles);
+
     Task ClearCache();
     void EnsureCreated();
+
+    void SaveSettings(AppSettings appSettings);
+    AppSettings LoadSettings();
 }
