@@ -7,7 +7,7 @@ using Xunit;
 namespace VamToolbox.Tests.Helpers;
 public class JsonScannerTests
 {
-    private readonly JsonScannerHelper _scanner = new();
+    private readonly JsonFileParser _scanner = new();
 
     [Theory]
     [InlineData(@"  ""uid"" : ""a.b.latest:whatever.vmi"", ", "a.b.latest:whatever.vmi")]

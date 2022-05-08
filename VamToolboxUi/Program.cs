@@ -53,7 +53,7 @@ static class Program
 
         builder.RegisterType<FileSystem>().As<IFileSystem>().SingleInstance();
         builder.RegisterType<SoftLinker>().As<ISoftLinker>().SingleInstance();
-        builder.RegisterType<JsonScannerHelper>().As<IJsonFileParser>().SingleInstance();
+        builder.RegisterType<JsonFileParser>().As<IJsonFileParser>().SingleInstance();
         builder.RegisterType<MainWindow>().As<IProgressTracker>().AsSelf().SingleInstance();
 
         builder.RegisterType<Logger>().As<ILogger>().InstancePerLifetimeScope();

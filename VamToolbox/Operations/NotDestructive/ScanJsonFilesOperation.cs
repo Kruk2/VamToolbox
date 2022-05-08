@@ -163,7 +163,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         }
 
         //_logger.Log("Extensions");
-        //foreach (var seenExtensionsKey in JsonScannerHelper.SeenExtensions.Keys) {
+        //foreach (var seenExtensionsKey in JsonFileParser.SeenExtensions.Keys) {
         //    _logger.Log(seenExtensionsKey);
         //}
     }
