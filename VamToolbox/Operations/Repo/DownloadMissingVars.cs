@@ -24,7 +24,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
         int processed = 0;
         var unresolvedVars = await Task.Run(() => FindMissingReferences(vars, freeFiles));
 
-        var vamResult = await QueryVam(unresolvedVars, vars.Select(t => t.Name).ToHashSet());
+        var vamResult = await QueryVam(unresolvedVars);
         if (vamResult.Count == 0) {
             _reporter.Complete("Downloaded 0 packages");
             return;
@@ -83,58 +83,47 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
         return true;
     }
 
-    private static List<string> FindMissingReferences(IList<VarPackage> vars, IList<FreeFile> freeFiles)
+    private static List<VarPackageName> FindMissingReferences(IList<VarPackage> vars, IList<FreeFile> freeFiles)
     {
         var jsonFiles = vars.Where(t => t.IsInVaMDir).SelectMany(t => t.JsonFiles)
             .Concat(freeFiles.Where(t => t.IsInVaMDir && t.JsonFile != null).Select(t => t.JsonFile!));
-
+        var varIndex = vars.ToLookup(t => t.Name.PackageNameWithoutVersion, StringComparer.OrdinalIgnoreCase);
         var unresolvedVars = jsonFiles
             .SelectMany(t => t.Missing)
-            .Select(t => t.EstimatedVarName?.Filename)
+            .Select(t => t.EstimatedVarName)
             .Where(t => t != null)
             .Select(t => t!)
-            .Distinct()
+            .DistinctBy(t => t.Filename)
+            .Where(t => {
+                if (!varIndex.Contains(t.PackageNameWithoutVersion)) return true; // we don't have it at all
+                if (t.Version == -1) return false; // we have and we want anything, ignore
+                if (varIndex[t.PackageNameWithoutVersion].Any(x => x.Name.Version == t.Version)) return false; // we have it, ignore
+                if (t.MinVersion && varIndex[t.PackageNameWithoutVersion].Any(x => x.Name.Version >= t.Version)) return false; // we have it, ignore
+
+                return true;
+
+            })
             .ToList();
         return unresolvedVars;
     }
 
-    private async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<string> unresolvedVars,
-        HashSet<VarPackageName> existingVars)
+    private static async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<VarPackageName> unresolvedVars)
     {
         var service = RestClient.For<IVamService>();
-        var query = new VamQuery { Packages = string.Join(',', unresolvedVars) };
+        var query = new VamQuery { Packages = string.Join(',', unresolvedVars.Select(t => t.Filename)) };
         var result = await service.FindPackages(query);
-        var parsedVars = unresolvedVars.Select(t => {
-            if (!VarPackageName.TryGet(t + ".var", out var name)) {
-                _logger.Log($"Unable to parse package name for unresolved reference: {t}");
-                return null;
-            }
-            return name;
-        })
-            .Where(t => t != null)
-            .Select(t => t!)
-            .ToLookup(t => t.PackageNameWithoutVersion, StringComparer.OrdinalIgnoreCase);
-        var packagesToDownload = new List<PackageInfo>();
+        var packagesToDownload = result.Packages.Values
+            .Where(t => !string.IsNullOrEmpty(t.DownloadUrl) && t.DownloadUrl != "null")
+            .ToList();
+        var validDownloads = packagesToDownload.Where(t => !t.DownloadUrl.EndsWith("?file=", StringComparison.OrdinalIgnoreCase)).ToList();
+        var invalidDownloadsToReQuery = packagesToDownload.Except(validDownloads).Select(t => t.Filename).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct();
 
-        foreach (var packageInfo in result.Packages.Values.Where(t => !string.IsNullOrEmpty(t.DownloadUrl) && t.DownloadUrl != "null")) {
-            if (!VarPackageName.TryGet(packageInfo.Filename, out var packageName)) {
-                _logger.Log($"Unable to parse package name from VaM service: {packageInfo.Filename} url: {packageInfo.DownloadUrl}");
-                continue;
-            }
-
-            var matchedVars = parsedVars[packageName.PackageNameWithoutVersion];
-            if (!matchedVars.Any()) {
-                _logger.Log($"Unable to find matching package for {packageInfo.Filename}");
-                continue;
-            }
-
-            var shouldBeDownloaded = !existingVars.Contains(packageName) && matchedVars.Any(t => t.Version == -1 ||
-                t.Version == packageName.Version ||
-                (t.MinVersion && t.Version < packageName.Version));
-
-            if (shouldBeDownloaded)
-                packagesToDownload.Add(packageInfo);
-        }
+        query = new VamQuery { Packages = string.Join(',', invalidDownloadsToReQuery) };
+        result = await service.FindPackages(query);
+        packagesToDownload = result.Packages.Values
+            .Where(t => !string.IsNullOrEmpty(t.DownloadUrl) && t.DownloadUrl != "null")
+            .ToList();
+        validDownloads.AddRange(packagesToDownload.Where(t => !t.DownloadUrl.EndsWith("?file=", StringComparison.OrdinalIgnoreCase)));
 
         return packagesToDownload.DistinctBy(t => t.DownloadUrl).ToList();
     }
