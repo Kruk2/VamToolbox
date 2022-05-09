@@ -102,7 +102,8 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
     {
         var exitingVars = vars
             .Where(t => t.IsInVaMDir)
-            .SelectMany(t => t.ResolvedVarDependencies).SelectMany(t => t.ResolvedVarDependencies)
+            .SelectMany(t => t.ResolvedVarDependencies)
+            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedVarDependencies))
             .Where(t => !t.IsInVaMDir)
             .Distinct()
             .ToList();
@@ -115,7 +116,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
             .SelectMany(t => t.SelfAndChildren())
             .Distinct()
             .ToList();
-
+        var tmp = freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies).ToList();
         return (exitingVars, existingFiles);
     }
 }
