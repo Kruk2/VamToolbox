@@ -24,7 +24,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
         int processed = 0;
         var unresolvedVars = await Task.Run(() => FindMissingReferences(vars, freeFiles));
 
-        var vamResult = await QueryVam(unresolvedVars);
+        var vamResult = await QueryVam(unresolvedVars, vars.Select(t => t.Name));
         if (vamResult.Count == 0) {
             _reporter.Complete("Downloaded 0 packages");
             return;
@@ -107,7 +107,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
         return unresolvedVars;
     }
 
-    private static async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<VarPackageName> unresolvedVars)
+    private static async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<VarPackageName> unresolvedVars, IEnumerable<VarPackageName> existingVarsList)
     {
         var service = RestClient.For<IVamService>();
         var query = new VamQuery { Packages = string.Join(',', unresolvedVars.Select(t => t.Filename)) };
@@ -125,7 +125,10 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             .ToList();
         validDownloads.AddRange(packagesToDownload.Where(t => !t.DownloadUrl.EndsWith("?file=", StringComparison.OrdinalIgnoreCase)));
 
-        return packagesToDownload.DistinctBy(t => t.DownloadUrl).ToList();
+        var existingVarsSet = new HashSet<string>(existingVarsList.Select(t => t.Filename), StringComparer.OrdinalIgnoreCase);
+        validDownloads.RemoveAll(t => existingVarsSet.Contains(t.Filename));
+
+        return validDownloads.DistinctBy(t => t.DownloadUrl).ToList();
     }
 }
 
