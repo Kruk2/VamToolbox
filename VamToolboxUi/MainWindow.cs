@@ -249,15 +249,6 @@ public partial class MainWindow : Form, IProgressTracker
         return (vars, freeFiles);
     }
 
-    private async void scanInvalidVars_Btn_Click(object sender, EventArgs e)
-    {
-        if (!ValidateSettings()) return;
-
-        await using var scope = _ctx.BeginLifetimeScope();
-        await RunIndexing(scope, GetContext(stages: 2));
-        SwitchUI(false);
-    }
-
     private async void scanJsonFilesBtn_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;

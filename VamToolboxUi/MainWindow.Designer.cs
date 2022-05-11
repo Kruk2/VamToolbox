@@ -40,7 +40,6 @@ namespace VamToolboxUi
             this.copyVarsFromRepoBtn = new System.Windows.Forms.Button();
             this.dryRunCheckbox = new System.Windows.Forms.CheckBox();
             this.copyMissingDepsFromRepoBtn = new System.Windows.Forms.Button();
-            this.scanInvalidVars_Btn = new System.Windows.Forms.Button();
             this.scanJsonFilesBtn = new System.Windows.Forms.Button();
             this.fixMissingMorphsBtn = new System.Windows.Forms.Button();
             this.clearCacheBtn = new System.Windows.Forms.Button();
@@ -168,23 +167,13 @@ namespace VamToolboxUi
             this.copyMissingDepsFromRepoBtn.UseVisualStyleBackColor = true;
             this.copyMissingDepsFromRepoBtn.Click += new System.EventHandler(this.copyMissingDepsFromRepoBtn_Click);
             // 
-            // scanInvalidVars_Btn
-            // 
-            this.scanInvalidVars_Btn.Location = new System.Drawing.Point(6, 22);
-            this.scanInvalidVars_Btn.Name = "scanInvalidVars_Btn";
-            this.scanInvalidVars_Btn.Size = new System.Drawing.Size(85, 65);
-            this.scanInvalidVars_Btn.TabIndex = 14;
-            this.scanInvalidVars_Btn.Text = "Scan for invalid vars";
-            this.scanInvalidVars_Btn.UseVisualStyleBackColor = true;
-            this.scanInvalidVars_Btn.Click += new System.EventHandler(this.scanInvalidVars_Btn_Click);
-            // 
             // scanJsonFilesBtn
             // 
-            this.scanJsonFilesBtn.Location = new System.Drawing.Point(98, 22);
+            this.scanJsonFilesBtn.Location = new System.Drawing.Point(54, 22);
             this.scanJsonFilesBtn.Name = "scanJsonFilesBtn";
             this.scanJsonFilesBtn.Size = new System.Drawing.Size(86, 65);
             this.scanJsonFilesBtn.TabIndex = 15;
-            this.scanJsonFilesBtn.Text = "Scan for missing or invalid assets";
+            this.scanJsonFilesBtn.Text = "Scan";
             this.scanJsonFilesBtn.UseVisualStyleBackColor = true;
             this.scanJsonFilesBtn.Click += new System.EventHandler(this.scanJsonFilesBtn_Click);
             // 
@@ -210,7 +199,6 @@ namespace VamToolboxUi
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.scanInvalidVars_Btn);
             this.groupBox1.Controls.Add(this.scanJsonFilesBtn);
             this.groupBox1.Location = new System.Drawing.Point(3, 169);
             this.groupBox1.Name = "groupBox1";
@@ -232,7 +220,7 @@ namespace VamToolboxUi
             // 
             // trustAllVarsBtn
             // 
-            this.trustAllVarsBtn.Location = new System.Drawing.Point(229, 22);
+            this.trustAllVarsBtn.Location = new System.Drawing.Point(114, 22);
             this.trustAllVarsBtn.Name = "trustAllVarsBtn";
             this.trustAllVarsBtn.Size = new System.Drawing.Size(73, 65);
             this.trustAllVarsBtn.TabIndex = 18;
@@ -406,7 +394,6 @@ namespace VamToolboxUi
         private System.Windows.Forms.Button copyVarsFromRepoBtn;
         private System.Windows.Forms.CheckBox dryRunCheckbox;
         private System.Windows.Forms.Button copyMissingDepsFromRepoBtn;
-        private System.Windows.Forms.Button scanInvalidVars_Btn;
         private System.Windows.Forms.Button scanJsonFilesBtn;
         private System.Windows.Forms.Button fixMissingMorphsBtn;
         private System.Windows.Forms.Button clearCacheBtn;
