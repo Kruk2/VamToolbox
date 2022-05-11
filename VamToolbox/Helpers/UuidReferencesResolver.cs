@@ -73,14 +73,20 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             return new List<JsonReference>();
 
         var createdReferences = new List<JsonReference>(_delayedReferencesToResolve.Count);
-        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve.OrderByDescending(t => t.jsonFile.File.MatchesProfile)) {
+        foreach (var (jsonFile, reference, matchedAssets, uuidOrName) in _delayedReferencesToResolve.OrderByDescending(t => t.jsonFile.File.PreferredForDelayedResolver)) {
             var isVam = reference.Value.EndsWith(".vam", StringComparison.OrdinalIgnoreCase);
            
             void AddReference(FileReferenceBase fileToAdd)
             {
                 var referenceToAdd = new JsonReference(fileToAdd, reference);
                 jsonFile.AddReference(referenceToAdd);
-                fileToAdd.MatchesProfile |= jsonFile.File.MatchesProfile;
+                fileToAdd.PreferredForDelayedResolver |= jsonFile.File.PreferredForDelayedResolver;
+                if (fileToAdd.IsVar && jsonFile.File.PreferredForDelayedResolver) {
+                    foreach (var varPackageFile in fileToAdd.Var.Files.SelectMany(t => t.SelfAndChildren())) {
+                        // mark all files in current var as preferred
+                        varPackageFile.PreferredForDelayedResolver |= jsonFile.File.PreferredForDelayedResolver;
+                    }
+                }
             }
 
             var isFemaleReference = reference.EstimatedAssetType.IsFemale();
@@ -98,8 +104,8 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             }
 
             // prefer files that will be moved anyway because of the profile
-            if (matchedAssets.Any(t => t.MatchesProfile)) {
-                matchedAssets.RemoveAll(t => !t.MatchesProfile);
+            if (matchedAssets.Any(t => t.PreferredForDelayedResolver)) {
+                matchedAssets.RemoveAll(t => !t.PreferredForDelayedResolver);
             }
 
             // prefer vars/json with least dependencies

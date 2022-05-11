@@ -1,5 +1,5 @@
-﻿using MoreLinq;
-using VamToolbox.Models;
+﻿using VamToolbox.Models;
+using VamToolbox.Operations.Repo;
 
 namespace VamToolbox.Helpers;
 
@@ -34,5 +34,47 @@ public static class DependencyCalculator
         }
 
         return (varDeps.ToList(), freeFileDeps.ToList());
+    }
+
+    public static (IEnumerable<VarPackage> vars, IEnumerable<FreeFile> freeFiles) GetFilesToMove(IVarFilters filters, IList<VarPackage> vars)
+    {
+        var repoVars = vars.Where(t => !t.IsInVaMDir);
+        var toCopy = repoVars.Where(t => filters.Matches(t.FullPath)).ToList();
+
+        var varDeps = toCopy
+            .SelectMany(t => t.ResolvedVarDependencies)
+            .Concat(toCopy)
+            .DistinctBy(t => t.FullPath)
+            .Where(t => !t.IsInVaMDir);
+
+        var freeFilesDeps = toCopy
+            .SelectMany(t => t.ResolvedFreeDependencies)
+            .SelectMany(t => t.SelfAndChildren())
+            .DistinctBy(t => t.FullPath)
+            .Where(t => !t.IsInVaMDir);
+
+        return (varDeps, freeFilesDeps);
+    }
+
+    public static (IEnumerable<VarPackage> vars, IEnumerable<FreeFile> freeFiles) GetFilesToMove(IList<VarPackage> vars, IList<FreeFile> freeFiles)
+    {
+        var dependedVarsToMove = vars
+            .Where(t => t.IsInVaMDir)
+            .SelectMany(t => t.ResolvedVarDependencies)
+            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedVarDependencies))
+            .Where(t => !t.IsInVaMDir)
+            .Distinct()
+            .ToList();
+
+        var dependedFreeFilesToMove = vars
+            .Where(t => t.IsInVaMDir)
+            .SelectMany(t => t.ResolvedFreeDependencies)
+            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies))
+            .Where(t => !t.IsInVaMDir)
+            .SelectMany(t => t.SelfAndChildren())
+            .Distinct()
+            .ToList();
+
+        return (dependedVarsToMove, dependedFreeFilesToMove);
     }
 }

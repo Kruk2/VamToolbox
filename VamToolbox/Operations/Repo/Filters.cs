@@ -25,7 +25,6 @@ public interface IVarFilters
 {
     bool Matches(string path);
     void FromProfile(ProfileModel profile);
-    (IEnumerable<VarPackage> vars, IEnumerable<FreeFile> freeFiles) GetFilesToMove(IList<VarPackage> vars);
 }
 
 public class VarFilters : IVarFilters
@@ -40,26 +39,6 @@ public class VarFilters : IVarFilters
     {
         _dirs.AddRange(profile.Dirs.Select(t => t.NormalizePathSeparators()));
         _files.AddRange(profile.Files.Select(t => t.NormalizePathSeparators()));
-    }
-
-    public (IEnumerable<VarPackage> vars, IEnumerable<FreeFile> freeFiles) GetFilesToMove(IList<VarPackage> vars)
-    {
-        var repoVars = vars.Where(t => !t.IsInVaMDir);
-        var toCopy = repoVars.Where(t => Matches(t.FullPath)).ToList();
-
-        var varDeps = toCopy
-            .SelectMany(t => t.ResolvedVarDependencies)
-            .Concat(toCopy)
-            .DistinctBy(t => t.FullPath)
-            .Where(t => !t.IsInVaMDir);
-
-        var freeFilesDeps = toCopy
-            .SelectMany(t => t.ResolvedFreeDependencies)
-            .SelectMany(t => t.SelfAndChildren())
-            .DistinctBy(t => t.FullPath)
-            .Where(t => !t.IsInVaMDir);
-
-        return (varDeps, freeFilesDeps);
     }
 
     public bool Matches(string path)

@@ -30,8 +30,10 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
             return;
         }
 
-        var (exitingVars, existingFiles) = await Task.Run(() => FindFilesToLink(vars, freeFiles));
-        await Task.Run(() => LinkFiles(moveVars, existingFiles, exitingVars));
+        await Task.Run(() => {
+            var (varsToMove, filesToMove) = DependencyCalculator.GetFilesToMove(vars, freeFiles);
+            LinkFiles(moveVars, filesToMove.ToList(), varsToMove.ToList());
+        });
     }
 
     private void LinkFiles(
@@ -96,28 +98,6 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
         }
 
         _reporter.Complete($"Copied {count} vars/files. Check copy_missing_deps_from_repo.log");
-    }
-
-    private static (List<VarPackage> exitingVars, List<FreeFile> existingFiles) FindFilesToLink(IList<VarPackage> vars, IList<FreeFile> freeFiles)
-    {
-        var exitingVars = vars
-            .Where(t => t.IsInVaMDir)
-            .SelectMany(t => t.ResolvedVarDependencies)
-            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedVarDependencies))
-            .Where(t => !t.IsInVaMDir)
-            .Distinct()
-            .ToList();
-
-        var existingFiles = vars
-            .Where(t => t.IsInVaMDir)
-            .SelectMany(t => t.ResolvedFreeDependencies)
-            .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies))
-            .Where(t => !t.IsInVaMDir)
-            .SelectMany(t => t.SelfAndChildren())
-            .Distinct()
-            .ToList();
-        var tmp = freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies).ToList();
-        return (exitingVars, existingFiles);
     }
 }
 

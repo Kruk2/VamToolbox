@@ -131,18 +131,27 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         await scanSceneBlock.Completion;
 
         await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
-
-        if (_filters is not null) {
-            var (varsToMove, filesToMove) = _filters.GetFilesToMove(varFiles);
-            var files = varsToMove.SelectMany(t => t.Files).SelectMany(t => t.SelfAndChildren())
-                .Concat(filesToMove.SelectMany(t => t.SelfAndChildren().Cast<FileReferenceBase>()));
-
-            foreach (var file in files) {
-                file.MatchesProfile = true;
-            }
-
-        }
+        AnnotatePreferredVarsForDelayedResolver(varFiles, freeFiles);
         await _uuidReferenceResolver.ResolveDelayedReferences();
+    }
+
+    private void AnnotatePreferredVarsForDelayedResolver(IList<VarPackage> varFiles, IList<FreeFile> freeFiles)
+    {
+        IEnumerable<VarPackage>? varsToMove;
+        IEnumerable<FreeFile>? filesToMove;
+        if (_filters is not null) {
+            (varsToMove, filesToMove) = DependencyCalculator.GetFilesToMove(_filters, varFiles);
+           
+        } else {
+            (varsToMove, filesToMove) = DependencyCalculator.GetFilesToMove(varFiles, freeFiles);
+        }
+
+        var files = varsToMove.SelectMany(t => t.Files).SelectMany(t => t.SelfAndChildren())
+            .Concat(filesToMove.SelectMany(t => t.SelfAndChildren().Cast<FileReferenceBase>()));
+
+        foreach (var file in files) {
+            file.PreferredForDelayedResolver = true;
+        }
     }
 
     private void PrintWarnings(List<JsonFile> scenes, IList<VarPackage> varPackages)

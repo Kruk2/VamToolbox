@@ -32,7 +32,7 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
 
     private void ApplyProfiles(OperationContext context, IList<VarPackage> vars, IVarFilters varFilters)
     {
-        var filesToCopy = varFilters.GetFilesToMove(vars);
+        var filesToCopy = DependencyCalculator.GetFilesToMove(varFilters, vars);
         var missingDependencies = filesToCopy
             .freeFiles.SelectMany(t => t.UnresolvedDependencies)
             .Concat(filesToCopy.vars.SelectMany(t => t.UnresolvedDependencies))
