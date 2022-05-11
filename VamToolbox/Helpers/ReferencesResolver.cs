@@ -7,7 +7,7 @@ namespace VamToolbox.Helpers;
 
 public interface IReferencesResolver
 {
-    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, bool forceSelf, string localSceneFolder);
+    JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, VarPackage? varToSearch, string localSceneFolder);
     JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference);
     Task InitLookups(IList<FreeFile> freeFiles, IList<VarPackage> varFiles, ConcurrentBag<string> errors);
 }
@@ -32,9 +32,6 @@ public class ReferencesResolver : IReferencesResolver
 
     public JsonReference? ScanFreeFileSceneReference(string localSceneFolder, Reference reference)
     {
-        if (reference.HasSemiColon && !reference.HasSelfKeyword)
-            throw new VamToolboxException($"{reference.ForJsonFile} {reference.Value} refers to var but processing free file reference");
-
         var refPath = reference.EstimatedReferenceLocation;
         // searching in localSceneFolder for var json files is handled in ScanPackageSceneReference
         if (!reference.ForJsonFile.IsVar && _freeFilesIndex[_fs.SimplifyRelativePath(localSceneFolder, refPath)] is var f1 && f1.Any()) {
@@ -51,17 +48,9 @@ public class ReferencesResolver : IReferencesResolver
         return default;
     }
 
-    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, bool forceSelf, string localSceneFolder)
+    public JsonReference? ScanPackageSceneReference(PotentialJsonFile potentialJson, Reference reference, VarPackage? varToSearch, string localSceneFolder)
     {
-        var assetName = reference.EstimatedReferenceLocation;
-
-        VarPackage? varToSearch;
-        if (forceSelf || reference.HasSelfKeyword) {
-            if (!potentialJson.IsVar)
-                return default;
-
-            varToSearch = potentialJson.Var;
-        } else {
+        if (varToSearch is null) {
             var varFile = reference.EstimatedVarName;
             if (varFile is null) {
                 _errors.Add($"[ASSET-PARSE-ERROR] {reference.Value} was neither a SELF reference or VAR in {potentialJson}");
@@ -85,6 +74,7 @@ public class ReferencesResolver : IReferencesResolver
 
         if (varToSearch != null) {
             var varAssets = varToSearch.FilesDict;
+            var assetName = reference.EstimatedReferenceLocation;
 
             if (potentialJson.Var == varToSearch) {
                 var refInScene = _fs.SimplifyRelativePath(localSceneFolder, assetName);

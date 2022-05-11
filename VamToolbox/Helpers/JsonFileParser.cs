@@ -70,14 +70,21 @@ public sealed class JsonFileParser : IJsonFileParser
 
         if (reference.StartsWith("http://") || reference.StartsWith("https://"))
             return false;
+        if (reference.Contains("Custom/", c) || reference.Contains("Custom\\", c) ||
+            reference.Contains("Saves/", c) || reference.Contains("Saves\\", c)) {
+            return true;
+        }
 
         // TODO handle assets for scripts better, maybe some kind of static mapping for more popular ones?
         if (fromFile.ExtLower == ".json") {
-            if(ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
+            if (ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
                 if ((fromFile.LocalPath.Contains("VAMMoan", c) || line.Contains("VAMMoan", c)) && line.Contains("\"audio\"", c)) {
                     return false;
                 }
                 if ((fromFile.LocalPath.Contains("VAMDeluxe", c) || line.Contains("VAMDeluxe", c)) && line.Contains("\"audio\"", c)) {
+                    return false;
+                }
+                if ((fromFile.LocalPath.Contains("Dollmaster", c) || line.Contains("Dollmaster", c)) && line.Contains("\"audio\"", c)) {
                     return false;
                 }
             }
@@ -88,45 +95,8 @@ public sealed class JsonFileParser : IJsonFileParser
             }
         }
 
-        if (fromFile.ExtLower == ".uiap" && line.Contains("filePath\"", c)) {
-            return true;
-        }
-
-        if (ext.Equals("vam", c) && (line.Contains("\"id\"", c) || line.Contains("\"receiverTargetName\"", c))) {
-            return true;
-        }
-        if (ext.Equals("vmi", c) && line.Contains("\"uid\"", c)) {
-            return true;
-        }
-        if ((ext.Equals("cs", c) || ext.Equals("cslist", c) || ext.Equals("dll", c)) &&
-            (line.Contains("\"plugin#", c) || line.Contains("\"assetDllUrl\"", c))) {
-            return true;
-        }
-        if (ext.Equals("vap", c) && line.Contains("\"presetFilePath\"", c)) {
-            return true;
-        }
-        if (ext.Equals("json", c)) {
-            if (line.Contains("\"storePath\"", c) || line.Contains("\"sceneFilePath\"", c) ||
-                line.Contains("\"presetFilePath\"", c) || line.Contains("\"Additional Button Scene\"", c)) {
-                return true;
-            }
-
-            if (line.Contains("\"expression_", c) || line.Contains("\"receiverTargetName\"", c)) {
-                return false;
-            }
-        }
-        if ((ext.Equals("png", c) || ext.Equals("jpg", c) || ext.Equals("jpeg", c) || ext.Equals("tiff", c) || ext.Equals("tif", c)) &&
-            (line.Contains("\"simTexture\"", c) || line.Contains("\"customTexture_", c) || 
-             line.Contains("Url\"", c) || line.Contains("\"urlValue\"", c) || line.Contains("\"Path\"", c) || line.Contains("\"File\"", c) ||
-             line.Contains("\"Spectral LUT\"", c) || line.Contains("\"Light Texture\"", c) ||
-             line.Contains("Subdermis Texture\"", c) || line.Contains("\"UserLUT\"", c) || line.Contains("\"LensDirt Texture\"", c))) {
-            return true;
-        }
         if (ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
-            if (line.Contains("\"sourcePath\"", c) || line.Contains("\"url\"", c)) {
-                return true;
-            }
-            if (line.Contains("\"uid\"", c) || line.Contains("\"displayName\"", c) || 
+            if (line.Contains("\"uid\"", c) || line.Contains("\"displayName\"", c) ||
                 line.Contains("\"audioClip\"", c) || line.Contains("\"sourceClip\"", c) ||
                 line.Contains("\"stringValue\"", c) || line.Contains("\"clip_", c) ||
                 line.Contains("\"selected\"", c) || line.Contains("\"receiverTargetName\"", c) ||
@@ -135,19 +105,107 @@ public sealed class JsonFileParser : IJsonFileParser
                 (line.Contains("\"act", c) && line.Contains("Target", c) && line.Contains("ValueName\"", c))) {
                 return false;
             }
+
+            if (line.Contains("\"sourcePath\"", c) || line.Contains("\"url\"", c)) {
+                return true;
+            }
         }
 
-        if (ext.Equals("audiobundle", c) && (line.Contains("\"AudioBundle\"", c) || line.Contains("\"AssetBundle\"", c))) {
-            return true;
+        if (ext.Equals("json", c)) {
+            if (line.Contains("\"sceneFilePath\"", c) || line.Contains("\"storePath\"", c)) {
+                return true;
+            }
+            if (line.Contains("\"expression_", c) || line.Contains("\"receiverTargetName\"", c)) {
+                return false;
+            }
         }
-        if (ext.Equals("assetbundle", c)) {
-            return true;
+
+        if (ext.Equals("png", c) || ext.Equals("jpg", c) || ext.Equals("jpeg", c) || ext.Equals("tiff", c) || ext.Equals("tif", c)) {
+            if (line.Contains("\"simTexture\"", c) || line.Contains("\"customTexture_", c) ||
+                line.Contains("Url\"", c) || line.Contains("\"urlValue\"", c) || line.Contains("\"Path\"", c) || line.Contains("\"File\"", c) ||
+                line.Contains("\"Spectral LUT\"", c) || line.Contains("\"Light Texture\"", c) || line.Contains("\"UserLUT\"", c) ||
+                line.Contains("Subdermis Texture\"", c) || line.Contains("\"UserLUT\"", c) || line.Contains("\"LensDirt Texture\"", c) ||
+                line.Contains("\"decalTexturePath\"", c)) {
+                return true;
+            }
         }
-        if (ext.Equals("scene", c) && line.Contains("\"assetUrl\"", c)) {
+
+        if ((ext.Equals("cs", c) || ext.Equals("cslist", c) || ext.Equals("dll", c)) &&
+            (line.Contains("\"plugin#", c) || line.Contains("\"assetDllUrl\"", c) ||
+             line.Contains("\"filePath\"", c) || line.Contains("\"pluginPath\"", c) ||
+             line.Contains("\"auto#", c))) {
             return true;
         }
 
-        error = string.Concat("Invalid type in json scanner: ", line, " in ", fromFile.ToString());
+        if (line.Contains("\"presetFilePath\"", c) || line.Contains("\"assetUrl\"", c)) {
+            return true;
+        }
+
+        // old stuff, not needed
+        //if (fromFile.ExtLower == ".uiap" && line.Contains("filePath\"", c)) {
+        //    return true;
+        //}
+
+        //if (ext.Equals("vam", c) && (line.Contains("\"id\"", c) || line.Contains("\"receiverTargetName\"", c))) {
+        //    return true;
+        //}
+        //if (ext.Equals("vmi", c) && line.Contains("\"uid\"", c)) {
+        //    return true;
+        //}
+        //if ((ext.Equals("cs", c) || ext.Equals("cslist", c) || ext.Equals("dll", c)) &&
+        //    (line.Contains("\"plugin#", c) || line.Contains("\"assetDllUrl\"", c) || 
+        //     line.Contains("\"filePath\"", c) || line.Contains("\"pluginPath\"", c) ||
+        //     line.Contains("\"auto#", c))) {
+        //    return true;
+        //}
+        //if (ext.Equals("vap", c) && line.Contains("\"presetFilePath\"", c)) {
+        //    return true;
+        //}
+        //if (ext.Equals("json", c)) {
+        //    if (line.Contains("\"storePath\"", c) || line.Contains("\"sceneFilePath\"", c) ||
+        //        line.Contains("\"presetFilePath\"", c) || line.Contains("\"Additional Button Scene\"", c) ||
+        //        line.Contains("\"urlValue\"", c) || line.Contains("\"Path\"", c)) {
+        //        return true;
+        //    }
+
+        //    if (line.Contains("\"expression_", c) || line.Contains("\"receiverTargetName\"", c)) {
+        //        return false;
+        //    }
+        //}
+        //if ((ext.Equals("png", c) || ext.Equals("jpg", c) || ext.Equals("jpeg", c) || ext.Equals("tiff", c) || ext.Equals("tif", c)) &&
+        //    (line.Contains("\"simTexture\"", c) || line.Contains("\"customTexture_", c) || 
+        //     line.Contains("Url\"", c) || line.Contains("\"urlValue\"", c) || line.Contains("\"Path\"", c) || line.Contains("\"File\"", c) ||
+        //     line.Contains("\"Spectral LUT\"", c) || line.Contains("\"Light Texture\"", c) ||
+        //     line.Contains("Subdermis Texture\"", c) || line.Contains("\"UserLUT\"", c) || line.Contains("\"LensDirt Texture\"", c) ||
+        //     line.Contains("\"decalTexturePath\"", c))) {
+        //    return true;
+        //}
+        //if (ext.Equals("wav", c) || ext.Equals("mp3", c) || ext.Equals("ogg", c)) {
+        //    if (line.Contains("\"sourcePath\"", c) || line.Contains("\"url\"", c)) {
+        //        return true;
+        //    }
+        //    if (line.Contains("\"uid\"", c) || line.Contains("\"displayName\"", c) || 
+        //        line.Contains("\"audioClip\"", c) || line.Contains("\"sourceClip\"", c) ||
+        //        line.Contains("\"stringValue\"", c) || line.Contains("\"clip_", c) ||
+        //        line.Contains("\"selected\"", c) || line.Contains("\"receiverTargetName\"", c) ||
+        //        line.Contains("\"backgroundMusicClip\"", c) || line.Contains("\"Audio Clips\"", c) ||
+        //        line.Contains("\"Action1\\nAudio", c) ||
+        //        (line.Contains("\"act", c) && line.Contains("Target", c) && line.Contains("ValueName\"", c))) {
+        //        return false;
+        //    }
+        //}
+
+        //if (ext.Equals("audiobundle", c) && (line.Contains("\"AudioBundle\"", c) || line.Contains("\"AssetBundle\"", c))) {
+        //    return true;
+        //}
+        //if (ext.Equals("assetbundle", c)) {
+        //    return true;
+        //}
+        //if (ext.Equals("scene", c) && line.Contains("\"assetUrl\"", c)) {
+        //    return true;
+        //}
+
+        error = string.Concat("Invalid type in json scanner: ", line.Trim(), " in ", fromFile.ToString());
         return false;
     }
 }

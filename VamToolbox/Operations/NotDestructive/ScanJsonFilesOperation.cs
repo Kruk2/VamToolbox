@@ -289,15 +289,18 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         (Reference? nextScanForUuidOrMorphName, JsonReference? jsonReference) ProcessJsonReference(Reference reference)
         {
             JsonReference? jsonReference = null;
-            if (reference.HasSemiColon) {
-                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, forceSelf: false, localJsonPath);
-            }
-
-            if (jsonReference == null && (!reference.HasSemiColon || reference.HasSelfKeyword)) {
-                jsonReference = _referencesResolver.ScanFreeFileSceneReference(localJsonPath, reference);
-                // it can be inside scene in var
-                if (jsonReference == default && potentialJson.IsVar) {
-                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, forceSelf: true, localJsonPath);
+            if (reference.IsVar) {
+                // 1. reference to var, just scan vars
+                jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, varToSearch: null, localJsonPath);
+            } else {
+                if (potentialJson.IsVar && (reference.IsSelf || reference.IsLocal)) {
+                    // 2. we're in VAR but the reference is not to VAR (so it's SELF: or local)
+                    jsonReference = _referencesResolver.ScanPackageSceneReference(potentialJson, reference, potentialJson.Var, localJsonPath);
+                }
+                if (jsonReference == null && (reference.IsLocal || (reference.IsSelf && !potentialJson.IsVar))) {
+                    // 3. it's local (we can be in var or free file), just scan free files
+                    // 4. we're not in var and it's self reference 
+                    jsonReference = _referencesResolver.ScanFreeFileSceneReference(localJsonPath, reference);
                 }
             }
 
