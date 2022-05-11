@@ -10,7 +10,7 @@ public class VarPackageTests
     public void Create_ShouldInitAllProperties(VarPackageName varName, long size, bool isInVamDir)
     {
         var fakePath = @"C:/a\q/e\smtH.assetbundlE";
-        var varPackage = new VarPackage(varName, fakePath, isInVamDir, size);
+        var varPackage = new VarPackage(varName, fakePath, softLinkPath: null, isInVamDir, size);
 
         using var _ = new AssertionScope();
         varPackage.FullPath.Should().Be("C:/a/q/e/smtH.assetbundlE");

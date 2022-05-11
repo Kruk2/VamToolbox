@@ -7,6 +7,7 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public VarPackageName Name { get; }
     public long Size { get; }
     public string FullPath { get; }
+    public string? SourcePathIfSoftLink { get; }
     public bool IsInVaMDir { get; }
 
     private readonly List<VarPackageFile> _files = new();
@@ -44,6 +45,7 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public VarPackage(
         VarPackageName name,
         string fullPath,
+        string? softLinkPath,
         bool isInVamDir,
         long size)
     {
@@ -51,6 +53,7 @@ public sealed class VarPackage : IVamObjectWithDependencies
         FullPath = fullPath.NormalizePathSeparators();
         IsInVaMDir = isInVamDir;
         Size = size;
+        SourcePathIfSoftLink = softLinkPath?.NormalizePathSeparators() ?? null;
     }
 
     internal void AddVarFile(VarPackageFile varFile) => _files.Add(varFile);

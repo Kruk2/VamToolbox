@@ -5,6 +5,8 @@ namespace VamToolbox.Models;
 public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
 {
     public string FullPath { get; }
+    public string? SourcePathIfSoftLink { get; }
+
     private readonly List<FreeFile> _children = new();
     public override IReadOnlyCollection<FreeFile> Children => _children.AsReadOnly();
 
@@ -15,10 +17,11 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
     public bool AlreadyCalculatedDeps => _trimmedResolvedVarDependencies is not null;
     public IEnumerable<string> UnresolvedDependencies => JsonFile?.Missing.Select(x => x.EstimatedReferenceLocation + " from " + this) ?? Enumerable.Empty<string>();
 
-    public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp)
+    public FreeFile(string path, string localPath, long size, bool isInVamDir, DateTime modifiedTimestamp, string? softLinkPath)
         : base(localPath, size, isInVamDir, modifiedTimestamp)
     {
         FullPath = path.NormalizePathSeparators();
+        SourcePathIfSoftLink = softLinkPath?.NormalizePathSeparators() ?? null;
     }
 
     public IEnumerable<FreeFile> SelfAndChildren() => Children.Append(this);

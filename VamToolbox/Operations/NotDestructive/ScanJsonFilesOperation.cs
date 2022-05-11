@@ -16,7 +16,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
     private readonly IJsonFileParser _jsonFileParser;
-    private readonly IReferenceCacheReader _referenceCacheReader;
+    private readonly IReferenceCache _referenceCache;
     private readonly IUuidReferenceResolver _uuidReferenceResolver;
     private readonly IReferencesResolver _referencesResolver;
     private readonly ConcurrentBag<JsonFile> _jsonFiles = new();
@@ -32,7 +32,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         IFileSystem fs,
         ILogger logger,
         IJsonFileParser jsonFileParser,
-        IReferenceCacheReader referenceCacheReader,
+        IReferenceCache referenceCache,
         IUuidReferenceResolver uuidReferenceResolver,
         IReferencesResolver referencesResolver)
     {
@@ -40,7 +40,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         _fs = fs;
         _logger = logger;
         _jsonFileParser = jsonFileParser;
-        _referenceCacheReader = referenceCacheReader;
+        _referenceCache = referenceCache;
         _uuidReferenceResolver = uuidReferenceResolver;
         _referencesResolver = referencesResolver;
     }
@@ -56,14 +56,14 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         _progressTracker.InitProgress("Scanning scenes/presets references");
 
         var potentialScenes = await InitLookups(varFiles, freeFiles);
-        await _referenceCacheReader.ReadCache(potentialScenes);
+        await _referenceCache.ReadCache(potentialScenes);
 
         _total = potentialScenes.Count;
         await RunScenesScan(potentialScenes, varFiles, freeFiles);
 
         _total = varFiles.Count + freeFiles.Count;
         await Task.Run(async () => await CalculateDeps(varFiles, freeFiles));
-        await _referenceCacheReader.SaveCache(varFiles, freeFiles);
+        await _referenceCache.SaveCache(varFiles, freeFiles);
 
         var missingCount = _jsonFiles.Sum(s => s.Missing.Count);
         var resolvedCount = _jsonFiles.Sum(s => s.References.Count);

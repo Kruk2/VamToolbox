@@ -5,19 +5,18 @@ using VamToolbox.Sqlite;
 
 namespace VamToolbox.Helpers;
 
-public interface IReferenceCacheReader
+public interface IReferenceCache
 {
     Task SaveCache(IEnumerable<VarPackage> varFiles, IEnumerable<FreeFile> freeFiles);
     Task ReadCache(List<PotentialJsonFile> potentialScenes);
 }
 
-public class ReferenceCacheReader : IReferenceCacheReader
+public class ReferenceCache : IReferenceCache
 {
     private readonly IDatabase _database;
     private readonly IProgressTracker _progressTracker;
-    private Dictionary<string, ILookup<string, ReferenceEntry>>? _globalReferenceCache;
 
-    public ReferenceCacheReader(IDatabase database, IProgressTracker progressTracker)
+    public ReferenceCache(IDatabase database, IProgressTracker progressTracker)
     {
         _database = database;
         _progressTracker = progressTracker;
@@ -61,7 +60,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
 
     public Task ReadCache(List<PotentialJsonFile> potentialScenes) => Task.Run(() => ReadCacheSync(potentialScenes));
 
-    public void ReadCacheSync(List<PotentialJsonFile> potentialScenes)
+    private void ReadCacheSync(List<PotentialJsonFile> potentialScenes)
     {
         var progress = 0;
         HashSet<VarPackage> processedVars = new();
@@ -69,7 +68,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
 
         _progressTracker.Report(new ProgressInfo(0, potentialScenes.Count, "Fetching cache from database", forceShow: true));
 
-        _globalReferenceCache = _database.ReadReferenceCache()
+        var referenceCache = _database.ReadReferenceCache()
             .GroupBy(t => t.FilePath, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
 
@@ -77,7 +76,7 @@ public class ReferenceCacheReader : IReferenceCacheReader
             switch (json.IsVar) {
                 case true when processedVars.Add(json.Var):
                 case false when processedFreeFiles.Add(json.Free):
-                    ReadReferenceCache(json);
+                    ReadReferenceCache(json, referenceCache);
                     break;
             }
 
@@ -85,23 +84,26 @@ public class ReferenceCacheReader : IReferenceCacheReader
         }
     }
 
-    private void ReadReferenceCache(PotentialJsonFile potentialJsonFile)
+    private static void ReadReferenceCache(PotentialJsonFile potentialJsonFile, Dictionary<string, ILookup<string, ReferenceEntry>> globalReferenceCache)
     {
-        if (_globalReferenceCache is null) throw new InvalidOperationException("Cache not initialized");
+        if (globalReferenceCache is null) throw new InvalidOperationException("Cache not initialized");
 
         if (potentialJsonFile.IsVar) {
             foreach (var varFile in potentialJsonFile.Var.Files
                          .SelectMany(t => t.SelfAndChildren())
                          .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
                          .Where(t => !t.Dirty)) {
-                if (_globalReferenceCache.TryGetValue(varFile.ParentVar.FullPath, out var references) && references.Contains(varFile.LocalPath)) {
+
+                var parentPath = varFile.ParentVar.SourcePathIfSoftLink ?? varFile.ParentVar.FullPath;
+                if (globalReferenceCache.TryGetValue(parentPath, out var references) && references.Contains(varFile.LocalPath)) {
                     var mappedReferences = references[varFile.LocalPath].Where(x => x.Value is not null).Select(t => new Reference(t, varFile)).ToList();
                     potentialJsonFile.AddCachedReferences(varFile.LocalPath, mappedReferences);
                 }
             }
         } else if (!potentialJsonFile.IsVar && !potentialJsonFile.Free.Dirty) {
             var free = potentialJsonFile.Free;
-            if (_globalReferenceCache.TryGetValue(free.FullPath, out var references)) {
+            var sourcePath = free.SourcePathIfSoftLink ?? free.FullPath;
+            if (globalReferenceCache.TryGetValue(sourcePath, out var references)) {
                 var mappedReferences = references[string.Empty].Where(x => x.Value is not null).Select(t => new Reference(t, free)).ToList();
                 potentialJsonFile.AddCachedReferences(mappedReferences);
             }

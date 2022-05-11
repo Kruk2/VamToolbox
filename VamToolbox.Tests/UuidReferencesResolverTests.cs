@@ -394,6 +394,6 @@ public class UuidReferencesResolverTests
         isDelayed.Should().BeFalse();
     }
 
-    private FreeFile CreateFile(string localPath, bool isInVamDir = true, long size = 1) => new("a", localPath, size, isInVamDir, DateTime.Now);
+    private FreeFile CreateFile(string localPath, bool isInVamDir = true, long size = 1) => new("a", localPath, size, isInVamDir, DateTime.Now, softLinkPath: null);
     private VarPackageFile CreateVarFile(string localPath, VarPackage varPackage, bool isInVamDir = true) => new(localPath, 1, isInVamDir, varPackage, DateTime.Now);
 }

@@ -95,8 +95,8 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             .Where(f => !f.Contains(@"\."))
             .Select(f => (path: f, softLink: _softLinker.GetSoftLink(f)))
             .Where(f => f.softLink is null || File.Exists(f.softLink))
-            .Select(f => (f.path, fileInfo: _fs.FileInfo.FromFileName(f.softLink ?? f.path)))
-            .Select(f => new FreeFile(f.path, f.path.RelativeTo(rootDir), f.fileInfo.Length, isVamDir, f.fileInfo.LastWriteTimeUtc))
+            .Select(f => (f.path, fileInfo: _fs.FileInfo.FromFileName(f.softLink ?? f.path), f.softLink))
+            .Select(f => new FreeFile(f.path, f.path.RelativeTo(rootDir), f.fileInfo.Length, isVamDir, f.fileInfo.LastWriteTimeUtc, f.softLink))
             .ToList();
 
         return files;

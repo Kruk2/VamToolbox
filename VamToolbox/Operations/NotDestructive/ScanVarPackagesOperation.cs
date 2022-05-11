@@ -53,12 +53,12 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
         var scanPackageBlock = CreateBlock();
         foreach (var packageFile in packageFiles) {
-            if (!VarPackageName.TryGet(_fs.Path.GetFileName(packageFile), out var name)) {
-                _result.InvalidVarName.Add(packageFile);
+            if (!VarPackageName.TryGet(_fs.Path.GetFileName(packageFile.path), out var name)) {
+                _result.InvalidVarName.Add(packageFile.path);
                 continue;
             }
 
-            scanPackageBlock.Post((packageFile, name));
+            scanPackageBlock.Post((packageFile.path, packageFile.softLink, name));
         }
 
         scanPackageBlock.Complete();
@@ -91,7 +91,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         return _result.Vars;
     }
 
-    private Task<List<string>> InitLookups(IEnumerable<FreeFile> freeFiles)
+    private Task<IEnumerable<(string path, string? softLink)>> InitLookups(IEnumerable<FreeFile> freeFiles)
     {
         return Task.Run(() => {
             var packageFiles = _fs.Directory
@@ -115,28 +115,29 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                     t => t.ToDictionary(x => x.localPath, x => (x.size, x.modifiedTime, x.uuid)),
                     StringComparer.OrdinalIgnoreCase);
 
-            return packageFiles;
+            return packageFiles
+                .Select(t => (path: t, softLink: _softLinker.GetSoftLink(t)))
+                .Where(t => t.softLink is null || _fs.File.Exists(t.softLink));
         });
     }
 
-    private ActionBlock<(string, VarPackageName)> CreateBlock()
+    private ActionBlock<(string path, string? softLink, VarPackageName varName)> CreateBlock()
     {
-        var scanPackageBlock = new ActionBlock<(string, VarPackageName)>(
-            f => ExecuteOneAsync(f.Item1, f.Item2),
+        var scanPackageBlock = new ActionBlock<(string path, string? softLink, VarPackageName varName)>(
+            f => ExecuteOneAsync(f.path, f.softLink, f.varName),
             new ExecutionDataflowBlockOptions {
                 MaxDegreeOfParallelism = _context.Threads
             });
         return scanPackageBlock;
     }
 
-    private async Task ExecuteOneAsync(string varFullPath, VarPackageName name)
+    private async Task ExecuteOneAsync(string varFullPath, string? softLink, VarPackageName name)
     {
         try {
             varFullPath = varFullPath.NormalizePathSeparators();
             var isInVamDir = varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal);
-            var softLinkPath = _softLinker.GetSoftLink(varFullPath);
-            var fileInfo = softLinkPath != null && _fs.File.Exists(softLinkPath) ? _fs.FileInfo.FromFileName(softLinkPath) : _fs.FileInfo.FromFileName(varFullPath);
-            var varPackage = new VarPackage(name, varFullPath, isInVamDir, fileInfo.Length);
+            var fileInfo = softLink != null ? _fs.FileInfo.FromFileName(softLink) : _fs.FileInfo.FromFileName(varFullPath);
+            var varPackage = new VarPackage(name, varFullPath, softLink, isInVamDir, fileInfo.Length);
 
             await using var stream = _fs.File.OpenRead(varFullPath);
             using var archive = new ZipArchive(stream);

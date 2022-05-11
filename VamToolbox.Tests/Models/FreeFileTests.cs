@@ -11,7 +11,7 @@ public class FreeFileTests
     {
         var fakePath = @"C:/a\q/e\smtH.assetbundlE";
         var fakeLocalPath = @"q\e/smtH.assetbundlE";
-        var file = new FreeFile(fakePath, fakeLocalPath, size, isInVamDir, modificationDate);
+        var file = new FreeFile(fakePath, fakeLocalPath, size, isInVamDir, modificationDate, softLinkPath: null);
 
         using var _ = new AssertionScope();
         file.FullPath.Should().Be("C:/a/q/e/smtH.assetbundlE");

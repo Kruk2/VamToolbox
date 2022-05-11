@@ -102,5 +102,5 @@ public class ReferenceTests
         }
     }
 
-    Reference Create(string value) => new Reference(value, 0, 0, new FreeFile("", "", 1, false, DateTime.Now));
+    Reference Create(string value) => new Reference(value, 0, 0, new FreeFile("", "", 1, false, DateTime.Now, softLinkPath: null));
 }

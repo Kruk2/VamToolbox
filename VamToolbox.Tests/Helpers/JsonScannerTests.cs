@@ -103,7 +103,7 @@ public class JsonScannerTests
     [InlineData(@"  ""preset3FilePath"" : ""Custom/Atom/Person/Pose/UIADemo/Preset_ROAC Contra.vap""", "Custom/Atom/Person/Pose/UIADemo/Preset_ROAC Contra.vap")]
     public void Scan_ShouldFindMatchInUiapFile(string line, string asset)
     {
-        var file = new FreeFile("", "test.uiap", 0, true, DateTime.Now);
+        var file = new FreeFile("", "test.uiap", 0, true, DateTime.Now, softLinkPath: null);
         var reference = _scanner.GetAsset(line.AsSpan(), 0, file, out var error);
 
         using var _ = new AssertionScope();
@@ -115,8 +115,8 @@ public class JsonScannerTests
     public void IgnoreVAmMoanSounds()
     {
         var line = @"""audio"": ""Assets/VAMMoan/Seth/m3-13.wav"",";
-        var file = new FreeFile("", "Custom/Scripts/VAMMoan/audio/Seth/voice.json", 0, true, DateTime.Now);
-        var file2 = new FreeFile("", "Custom/Scripts/voice.json", 0, true, DateTime.Now);
+        var file = new FreeFile("", "Custom/Scripts/VAMMoan/audio/Seth/voice.json", 0, true, DateTime.Now, softLinkPath: null);
+        var file2 = new FreeFile("", "Custom/Scripts/voice.json", 0, true, DateTime.Now, softLinkPath: null);
 
         var reference = _scanner.GetAsset(line.AsSpan(), 0, file, out var error);
         var reference2 = _scanner.GetAsset(line.AsSpan(), 0, file2, out var error2);
@@ -133,7 +133,7 @@ public class JsonScannerTests
     public void IgnoreBlushingPngs()
     {
         var line = @"""File"" : ""blush_cartoonlike_large.png"",";
-        var file = new FreeFile("", "Custom/Scripts/cotyounoyume/ExpressionBlushingAndTears/Config/defaultSettings.json", 0, true, DateTime.Now);
+        var file = new FreeFile("", "Custom/Scripts/cotyounoyume/ExpressionBlushingAndTears/Config/defaultSettings.json", 0, true, DateTime.Now, softLinkPath: null);
 
         var reference = _scanner.GetAsset(line.AsSpan(), 0, file, out var error);
 
@@ -147,7 +147,7 @@ public class JsonScannerTests
     public void IgnoreVamDeluxeSounds()
     {
         var line = @"""audio"": ""./Audio/Aiko/AikoMoan1.wav"",";
-        var file = new FreeFile("", "Custom/Scripts/VAMDeluxe/whatever.json", 0, true, DateTime.Now);
+        var file = new FreeFile("", "Custom/Scripts/VAMDeluxe/whatever.json", 0, true, DateTime.Now, softLinkPath: null);
 
         var reference = _scanner.GetAsset(line.AsSpan(), 0, file, out var error);
 
@@ -160,7 +160,7 @@ public class JsonScannerTests
     public void IgnoreDollmasterSounds()
     {
         var line = @"""audio"": ""./Audio/Aiko/AikoMoan1.wav"",";
-        var file = new FreeFile("", "Custom/Scripts/Dollmaster - Blowjob version/Assets/Personas/Aiko/persona.json", 0, true, DateTime.Now);
+        var file = new FreeFile("", "Custom/Scripts/Dollmaster - Blowjob version/Assets/Personas/Aiko/persona.json", 0, true, DateTime.Now, softLinkPath: null);
 
         var reference = _scanner.GetAsset(line.AsSpan(), 0, file, out var error);
 
@@ -216,7 +216,7 @@ public class JsonScannerTests
 
     private (Reference? reference, string? error) Scan(string line)
     {
-        var reference = _scanner.GetAsset(line.AsSpan(), 0, new FreeFile("test", "test", 1, false, DateTime.Now), out var error);
+        var reference = _scanner.GetAsset(line.AsSpan(), 0, new FreeFile("test", "test", 1, false, DateTime.Now, softLinkPath: null), out var error);
         return (reference, error);
     }
 }

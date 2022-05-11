@@ -65,7 +65,7 @@ static class Program
         builder.RegisterType<PreviewGrouper>().As<IPreviewGrouper>();
         builder.RegisterType<ScriptGrouper>().As<IScriptGrouper>();
         builder.RegisterType<JsonUpdater>().As<IJsonUpdater>();
-        builder.RegisterType<ReferenceCacheReader>().As<IReferenceCacheReader>();
+        builder.RegisterType<ReferenceCache>().As<IReferenceCache>();
         builder.RegisterType<UuidReferencesResolver>().As<IUuidReferenceResolver>();
         builder.RegisterType<ReferencesResolver>().As<IReferencesResolver>();
 
