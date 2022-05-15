@@ -10,39 +10,43 @@ using VamToolbox.Operations.Abstract;
 namespace VamToolbox.Operations.Destructive;
 public interface IClearMetaJsonDependenciesOperation : IOperation
 {
-    Task Execute(OperationContext context);
+    Task Execute(OperationContext context, bool removeDependencies, bool disableMorphPreload);
 }
 
-public class ClearMetaJsonDependenciesOperation : IClearMetaJsonDependenciesOperation
+public class MetaJsonUpdaterOperation : IClearMetaJsonDependenciesOperation
 {
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
     private int _total, _progress;
     private OperationContext _context = null!;
+    private bool _removeDependencies, _disableMorphPreload;
 
     private readonly JsonSerializer _serializer = new() {
         Formatting = Formatting.Indented
     };
 
-    public ClearMetaJsonDependenciesOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker)
+    public MetaJsonUpdaterOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker)
     {
         _fileSystem = fileSystem;
         _logger = logger;
         _progressTracker = progressTracker;
     }
 
-    public async Task Execute(OperationContext context)
+    public async Task Execute(OperationContext context, bool removeDependencies, bool disableMorphPreload)
     {
+        _removeDependencies = removeDependencies;
+        _disableMorphPreload = disableMorphPreload;
+
         _context = context;
         await _logger.Init("clear_meta_json_dependencies.txt");
         _progressTracker.InitProgress("Clearing");
-        await RunInParallel(GetAddonDirs(), ClearMetaJson);
+        await RunInParallel(GetAddonDirs(), UpdateMetaJson);
 
         _progressTracker.Complete($"Backed up {_total} meta.json");
     }
 
-    private async Task ClearMetaJson(string varPath)
+    private async Task UpdateMetaJson(string varPath)
     {
         try {
             await using var stream = _context.DryRun ? _fileSystem.File.OpenRead(varPath) : _fileSystem.File.Open(varPath, FileMode.Open, FileAccess.ReadWrite);
@@ -61,21 +65,50 @@ public class ClearMetaJsonDependenciesOperation : IClearMetaJsonDependenciesOper
 
                 json = _serializer.Deserialize<ExpandoObject>(jsonReader);
             }
+            var dict = (IDictionary<string, object>)json;
+            var changed = false;
+            if (_removeDependencies) {
 
-            var dict = ((IDictionary<string, object>)json);
-            dict["dependencies"] = new object();
-            dict.Remove("hadReferenceIssues");
-            dict.Remove("referenceIssues");
-
-            if (!_context.DryRun) {
-                {
-                    metaFile.Delete();
-                    metaFile = zip.CreateEntry("meta.json");
-                    await using var streamWriter = new StreamWriter(metaFile.Open(), Encoding.UTF8);
-                    using var jsonWriter = new JsonTextWriter(streamWriter);
-
-                    _serializer.Serialize(jsonWriter, json);
+                if (dict.ContainsKey("dependencies") && ((IDictionary<string, object>)dict["dependencies"]).Count > 0) {
+                    var depsCount = ((IDictionary<string, object>)dict["dependencies"]).Count;
+                    dict["dependencies"] = new object();
+                    changed = true;
+                    _logger.Log($"Removing {depsCount} dependencies from {varPath}");
                 }
+
+                if (dict.ContainsKey("hadReferenceIssues") && (string)dict["hadReferenceIssues"] == "true") {
+                    dict.Remove("hadReferenceIssues");
+                    changed = true;
+                    _logger.Log($"Removing 'hadReferenceIssues' from {varPath}");
+                }
+
+                if (dict.ContainsKey("referenceIssues") && ((List<object>)dict["referenceIssues"]).Count > 0) {
+                    dict.Remove("referenceIssues");
+                    changed = true;
+                    _logger.Log($"Removing 'referenceIssues' from {varPath}");
+                }
+            }
+
+            if (_disableMorphPreload) {
+                var customOptionsExists = dict.ContainsKey("customOptions");
+                if (customOptionsExists) {
+                    var customOptions = (IDictionary<string, object>)dict["customOptions"];
+                    if (customOptions.ContainsKey("preloadMorphs") && (string)customOptions["preloadMorphs"] == "true") {
+                        customOptions["preloadMorphs"] = "false";
+                        changed = true;
+
+                        _logger.Log($"Disabling 'preloadMorphs' for {varPath}");
+                    }
+                }
+            }
+
+            if (!_context.DryRun && changed) {
+                metaFile.Delete();
+                metaFile = zip.CreateEntry("meta.json");
+                await using var streamWriter = new StreamWriter(metaFile.Open(), Encoding.UTF8);
+                using var jsonWriter = new JsonTextWriter(streamWriter);
+
+                _serializer.Serialize(jsonWriter, json);
             }
 
         } catch (Exception e) {

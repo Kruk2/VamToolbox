@@ -7,24 +7,24 @@ using VamToolbox.Operations.Destructive;
 using Xunit;
 
 namespace VamToolbox.Tests.Operations;
-public class ClearMetaJsonDependenciesOperationTests 
+public class MetaJsonUpdaterOperationTests 
 {
     private readonly MockFileSystem _fs;
-    private readonly ClearMetaJsonDependenciesOperation _operation;
+    private readonly MetaJsonUpdaterOperation _operation;
     private const string AddondsDir = "C:/VaM/AddonPackages/";
 
-    public ClearMetaJsonDependenciesOperationTests()
+    public MetaJsonUpdaterOperationTests()
     {
         var fixture = new CustomFixture();
         _fs = fixture.Create<MockFileSystem>();
-        _operation = fixture.Create<ClearMetaJsonDependenciesOperation>();
+        _operation = fixture.Create<MetaJsonUpdaterOperation>();
     }
 
     [Fact]
     public async Task Execute_WhenMetaIsMissing_ShouldSkip()
     {
         CreateZipFile();
-        await Execute();
+        await Execute(removeDeps: true, disableMorphs: true);
 
         var metaFile = ReadMetaJson();
         metaFile.Should().BeNull();
@@ -35,17 +35,17 @@ public class ClearMetaJsonDependenciesOperationTests
     public async Task Execute_WhenMetaIsBroken_ShouldSkip()
     {
         CreateZipFile("broken-json");
-        await Execute();
+        await Execute(removeDeps: true, disableMorphs: true);
 
         var metaFile = ReadMetaJson();
         metaFile.Should().Be("broken-json");
     }
 
     [Fact]
-    public async Task Execute_WhenMetaHasDependencies_ShouldClearThem()
+    public async Task RemoveDeps_WhenMetaHasDependencies_ShouldClearThem()
     {
         CreateZipFile(TestMetaWithDepsOnly);
-        await Execute();
+        await Execute(removeDeps: true);
 
         var metaFile = ReadMetaJson();
         metaFile.Should().Be(@"{
@@ -60,10 +60,10 @@ public class ClearMetaJsonDependenciesOperationTests
 
 
     [Fact]
-    public async Task Execute_WhenMetaHasBrokenReferences_ShouldClearThem()
+    public async Task RemoveDeps_WhenMetaHasBrokenReferences_ShouldClearThem()
     {
         CreateZipFile(TestMetaWithBrokenReferences);
-        await Execute();
+        await Execute(removeDeps: true);
 
         var metaFile = ReadMetaJson();
         metaFile.Should().Be(@"{
@@ -78,6 +78,57 @@ public class ClearMetaJsonDependenciesOperationTests
     ""preloadMorphs"": ""false""
   }
 }");
+    }
+
+    [Fact]
+    public async Task DisableMorphs_WhenMorphsAreEnabled_ShouldDisable()
+    {
+        CreateZipFile(TestMetaWithMorphPreloadEnabled);
+        await Execute(disableMorphs: true);
+
+        var metaFile = ReadMetaJson();
+        metaFile.Should().Be(@"{
+  ""licenseType"": ""PC"",
+  ""creatorName"": ""Chill_PopRun"",
+  ""contentList"": [
+    ""Saves/scene/private_clubII1.402.json""
+  ],
+  ""dependencies"": {},
+  ""customOptions"": {
+    ""test2"": true,
+    ""preloadMorphs"": ""false""
+  }
+}");
+    }
+
+    [Fact]
+    public async Task DisableMorphs_WhenMorphsAreDisabled_ShouldNotChangeAnything()
+    {
+        CreateZipFile(TestMetaWithMorphPreloadDisabled);
+        await Execute(disableMorphs: true);
+
+        var metaFile = ReadMetaJson();
+        metaFile.Should().Be(TestMetaWithMorphPreloadDisabled);
+    }
+
+    [Fact]
+    public async Task DisableMorphs_WhenCustomOptionsAreMissing_ShouldNotChangeAnything()
+    {
+        CreateZipFile(TestMetaWithMorphPreloadMissingCustomOptions);
+        await Execute(disableMorphs: true);
+
+        var metaFile = ReadMetaJson();
+        metaFile.Should().Be(TestMetaWithMorphPreloadMissingCustomOptions);
+    }
+
+    [Fact]
+    public async Task Execute_WhenThereIsNothingToFix_SkipWriting()
+    {
+        CreateZipFile(TestMetaWithNothingToFix);
+        await Execute(removeDeps: true, disableMorphs: true);
+
+        var metaFile = ReadMetaJson();
+        metaFile.Should().Be(TestMetaWithNothingToFix);
     }
 
     private string? ReadMetaJson()
@@ -100,11 +151,62 @@ public class ClearMetaJsonDependenciesOperationTests
         _fs.AddFile(AddondsDir + "a.var", zipFile);
     }
 
-    private Task Execute(bool dryRun = false) => _operation.Execute(new OperationContext {
+    private Task Execute(bool dryRun = false, bool removeDeps = false, bool disableMorphs = false) => _operation.Execute(new OperationContext {
         DryRun = dryRun,
         VamDir = "C:/VaM",
         Threads = 1
-    });
+    }, removeDeps, disableMorphs);
+
+    private const string TestMetaWithMorphPreloadMissingCustomOptions = @"{ 
+   ""licenseType"" : ""PC"", 
+   ""creatorName"" : ""Chill_PopRun"", 
+   ""contentList"" : [ 
+      ""Saves/scene/private_clubII1.402.json""
+   ], 
+   ""dependencies"" : { },
+   ""customOptions"" : { 
+      ""preloadMorphs"" : ""false""
+   }
+}";
+
+    private const string TestMetaWithMorphPreloadDisabled = @"{ 
+   ""licenseType"" : ""PC"", 
+   ""creatorName"" : ""Chill_PopRun"", 
+   ""contentList"" : [ 
+      ""Saves/scene/private_clubII1.402.json""
+   ], 
+   ""dependencies"" : { },
+   ""customOptions"" : { 
+      ""preloadMorphs"" : ""false"",
+      ""test1"" : ""qqq"",
+   }
+}";
+
+    private const string TestMetaWithMorphPreloadEnabled = @"{ 
+   ""licenseType"" : ""PC"", 
+   ""creatorName"" : ""Chill_PopRun"", 
+   ""contentList"" : [ 
+      ""Saves/scene/private_clubII1.402.json""
+   ], 
+   ""dependencies"" : { },
+   ""customOptions"" : { 
+      ""test2"": true,
+      ""preloadMorphs"" : ""true""
+   }
+}";
+
+    private const string TestMetaWithNothingToFix = @"{ 
+   ""licenseType"" : ""PC"", 
+   ""creatorName"" : ""Chill_PopRun"", 
+   ""contentList"" : [ 
+      ""Saves/scene/private_clubII1.402.json"", 
+      ""Saves/scene/private_clubII1.402.jpg""
+   ], 
+   ""dependencies"" : { },
+   ""customOptions"" : { 
+      ""preloadMorphs"" : ""false""
+   }
+}";
 
     private const string TestMetaWithDepsOnly = @"{ 
    ""licenseType"" : ""PC"", 
