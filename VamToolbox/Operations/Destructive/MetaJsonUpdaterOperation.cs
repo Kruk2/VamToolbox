@@ -132,7 +132,7 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
             MaxDegreeOfParallelism = _context.Threads
         });
 
-        var files = varDirs.SelectMany(t => _fileSystem.Directory.EnumerateFiles(t, "*.var")).ToList();
+        var files = varDirs.SelectMany(t => _fileSystem.Directory.EnumerateFiles(t, "*.var", SearchOption.AllDirectories)).ToList();
         _total = files.Count;
         foreach (var file in files) {
             depScanBlock.Post(file);

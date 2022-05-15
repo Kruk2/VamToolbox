@@ -33,6 +33,18 @@ public class MetaFileBackupTests
     }
 
     [Fact]
+    public async Task Backup_WhenInNestedDir_ShouldBackupMetaFile()
+    {
+        _fs.AddFile(AddondsDir + "test/a.var", CreateZipFile(metaFile: "test-meta-content"));
+        await Backup();
+
+        var file = _fs.GetFile(AddondsDir + "test/a.var");
+        var (metaFile, backupFile) = ReadZipFile(file);
+        metaFile!.Should().Be("test-meta-content");
+        backupFile!.Should().Be("test-meta-content");
+    }
+
+    [Fact]
     public async Task Backup_ShouldBackupMetaFile()
     {
         await Backup();

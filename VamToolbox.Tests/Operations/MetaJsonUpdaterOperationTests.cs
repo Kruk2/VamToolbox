@@ -58,6 +58,23 @@ public class MetaJsonUpdaterOperationTests
 }");
     }
 
+    [Fact]
+    public async Task RemoveDeps_WhenMetaHasDependenciesAndInNestedDir_ShouldClearThem()
+    {
+        CreateZipFile(TestMetaWithDepsOnly, AddondsDir + "test/a.var");
+        await Execute(removeDeps: true);
+
+        var metaFile = ReadMetaJson(AddondsDir + "test/a.var");
+        metaFile.Should().Be(@"{
+  ""licenseType"": ""PC"",
+  ""creatorName"": ""Chill_PopRun"",
+  ""contentList"": [
+    ""Saves/scene/private_clubII1.402.json""
+  ],
+  ""dependencies"": {}
+}");
+    }
+
 
     [Fact]
     public async Task RemoveDeps_WhenMetaHasBrokenReferences_ShouldClearThem()
@@ -131,16 +148,16 @@ public class MetaJsonUpdaterOperationTests
         metaFile.Should().Be(TestMetaWithNothingToFix);
     }
 
-    private string? ReadMetaJson()
+    private string? ReadMetaJson(string? path = null)
     {
 
-        var file = _fs.GetFile(AddondsDir + "a.var");
+        var file = _fs.GetFile(path ?? (AddondsDir + "a.var"));
         var files = ZipTestHelpers.ReadZipFile(file);
         files.TryGetValue("meta.json", out var metaContent);
         return metaContent;
     }
 
-    private void CreateZipFile(string? metaContent = null)
+    private void CreateZipFile(string? metaContent = null, string? path = null)
     {
         var files = new Dictionary<string, string>();
         if (metaContent is not null) {
@@ -148,7 +165,7 @@ public class MetaJsonUpdaterOperationTests
         }
 
         var zipFile = ZipTestHelpers.CreateZipFile(files);
-        _fs.AddFile(AddondsDir + "a.var", zipFile);
+        _fs.AddFile(path ?? (AddondsDir + "a.var"), zipFile);
     }
 
     private Task Execute(bool dryRun = false, bool removeDeps = false, bool disableMorphs = false) => _operation.Execute(new OperationContext {
