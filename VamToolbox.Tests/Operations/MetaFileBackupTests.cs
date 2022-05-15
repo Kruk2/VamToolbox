@@ -67,10 +67,22 @@ public class MetaFileBackupTests
     }
 
     [Fact]
-    public async Task Backup_WhenBackupAlreadyExist_ShouldOverrideIt()
+    public async Task Backup_WhenBackupAlreadyExists_ShouldNotChangeAnything()
     {
         _fs.AddFile(AddondsDir + "a.var", CreateZipFile(metaFile: "test-meta-content", backupFile: "backup-content"));
-        await Backup();
+        await Backup(overrideBackups: false);
+
+        var file = _fs.GetFile(AddondsDir + "a.var");
+        var (metaFile, backupFile) = ReadZipFile(file);
+        metaFile!.Should().Be("test-meta-content");
+        backupFile.Should().Be("backup-content");
+    }
+
+    [Fact]
+    public async Task Backup_WhenBackupAlreadyExistAndWeAllowed_ShouldOverrideIt()
+    {
+        _fs.AddFile(AddondsDir + "a.var", CreateZipFile(metaFile: "test-meta-content", backupFile: "backup-content"));
+        await Backup(overrideBackups: true);
 
         var file = _fs.GetFile(AddondsDir + "a.var");
         var (metaFile, backupFile) = ReadZipFile(file);
@@ -149,11 +161,11 @@ public class MetaFileBackupTests
         return ZipTestHelpers.CreateZipFile(files);
     }
 
-    private Task Backup(bool dryRun = false) => _backuper.Backup(new OperationContext {
+    private Task Backup(bool dryRun = false, bool overrideBackups = false) => _backuper.Backup(new OperationContext {
         DryRun = dryRun,
         VamDir = "C:/VaM",
         Threads = 1
-    });
+    }, overrideBackups);
 
     private Task Restore(bool dryRun = false) => _backuper.Restore(new OperationContext {
         DryRun = dryRun,

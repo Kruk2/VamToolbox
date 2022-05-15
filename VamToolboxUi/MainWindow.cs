@@ -7,6 +7,7 @@ using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
+using VamToolbox.Operations.Backups;
 using VamToolbox.Operations.Destructive;
 using VamToolbox.Operations.NotDestructive;
 using VamToolbox.Operations.Repo;
@@ -303,19 +304,35 @@ public partial class MainWindow : Form, IProgressTracker
         return filters;
     }
 
-    private async void fixMissingMorphsBtn_Click(object sender, EventArgs e)
+    private async void removeDependenciesFromMeta_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
+        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+            return;
+        }
 
-        var ctx = GetContext(stages: 3);
+        var ctx = GetContext(stages: 1);
         await using var scope = _ctx.BeginLifetimeScope();
-        var (vars, freeFiles) = await RunIndexing(scope, ctx);
-        await scope.Resolve<IFixMissingMorphsOperation>().ExecuteAsync(ctx, freeFiles, vars);
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, removeDependencies: true);
 
         SwitchUI(false);
     }
 
-    private async void fixReferencesJsonBtn_Click(object sender, EventArgs e)
+    private async void disableMorphPreloadBtn_Click(object sender, EventArgs e)
+    {
+        if (!ValidateSettings()) return;
+        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+            return;
+        }
+
+        var ctx = GetContext(stages: 1);
+        await using var scope = _ctx.BeginLifetimeScope();
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, disableMorphPreload: true);
+
+        SwitchUI(false);
+    }
+
+    private async void clearCache_Click(object sender, EventArgs e)
     {
         SwitchUI(true);
         await using var scope = _ctx.BeginLifetimeScope();
@@ -366,6 +383,32 @@ public partial class MainWindow : Form, IProgressTracker
         await scope.Resolve<IScanJsonFilesOperation>().ExecuteAsync(ctx, freeFiles, vars, filters);
 
         return (vars, freeFiles);
+    }
+
+    private async void backupMetaJsonBtn_Click(object sender, EventArgs e)
+    {
+        if (!ValidateSettings()) return;
+
+        var result = MessageBox.Show("Do you want to override old backups?", "Question", MessageBoxButtons.YesNoCancel);
+        if (result == DialogResult.Cancel) return;
+        var overrideBackups = result == DialogResult.Yes;
+
+        var ctx = GetContext(stages: 1);
+
+        await using var scope = _ctx.BeginLifetimeScope();
+        await scope.Resolve<IMetaFileBackuper>().Backup(ctx, overrideBackups);
+        SwitchUI(false);
+    }
+
+    private async void restoreMetaJsonBtn_Click(object sender, EventArgs e)
+    {
+        if (!ValidateSettings()) return;
+
+        var ctx = GetContext(stages: 1);
+
+        await using var scope = _ctx.BeginLifetimeScope();
+        await scope.Resolve<IMetaFileBackuper>().Restore(ctx);
+        SwitchUI(false);
     }
 
     private void MoveToStage(string text) => stageTxt.Text = $"{(_stage++) + 1}/{_totalStages} {text}";
