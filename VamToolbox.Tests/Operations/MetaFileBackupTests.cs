@@ -1,6 +1,4 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using System.IO.Compression;
-using System.Text;
 using AutoFixture;
 using FluentAssertions;
 using VamToolbox.Operations.Abstract;
@@ -130,54 +128,25 @@ public class MetaFileBackupTests
 
     private static (string? metaFile, string? backupFile) ReadZipFile(MockFileData file)
     {
-        using var memoryStream = new MemoryStream(file.Contents);
-        using var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Read, true);
-        string? metaFile = null;
-        string? backupFile = null;
-
-        {
-            var entry = zipArchive.GetEntry("meta.json");
-            if (entry != null) {
-                using var stream = entry.Open();
-                using var readStream = new StreamReader(stream, Encoding.UTF8);
-                metaFile = readStream.ReadToEnd();
-            }
-        }
-
-        {
-            var entry = zipArchive.GetEntry("meta.json.toolboxbak");
-            if (entry != null) {
-                using var stream = entry.Open();
-                using var readStream = new StreamReader(stream, Encoding.UTF8);
-                backupFile = readStream.ReadToEnd();
-            }
-        }
-
+        var files = ZipTestHelpers.ReadZipFile(file);
+        files.TryGetValue("meta.json", out var metaFile);
+        files.TryGetValue("meta.json.toolboxbak", out var backupFile);
 
         return (metaFile, backupFile);
     }
 
     private static MockFileData CreateZipFile(string? metaFile = null, string? backupFile = null)
     {
-        using var memoryStream = new MemoryStream();
-        {
-            using var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true);
-            if (metaFile is not null) {
-                var entry = zipArchive.CreateEntry("meta.json");
-                using var stream = entry.Open();
-                using var writeStream = new StreamWriter(stream, Encoding.UTF8);
-                writeStream.Write(metaFile);
-            }
-
-            if (backupFile is not null) {
-                var entry = zipArchive.CreateEntry("meta.json.toolboxbak");
-                using var stream = entry.Open();
-                using var writeStream = new StreamWriter(stream, Encoding.UTF8);
-                writeStream.Write(backupFile);
-            }
+        var files = new Dictionary<string, string>();
+        if (metaFile is not null) {
+            files["meta.json"] = metaFile;
         }
 
-        return new MockFileData(memoryStream.ToArray());
+        if (backupFile is not null) {
+            files["meta.json.toolboxbak"] = backupFile;
+        }
+
+        return ZipTestHelpers.CreateZipFile(files);
     }
 
     private Task Backup(bool dryRun = false) => _backuper.Backup(new OperationContext {
