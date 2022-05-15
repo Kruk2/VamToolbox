@@ -68,7 +68,6 @@ static class Program
         builder.RegisterType<ReferenceCache>().As<IReferenceCache>();
         builder.RegisterType<UuidReferencesResolver>().As<IUuidReferenceResolver>();
         builder.RegisterType<ReferencesResolver>().As<IReferencesResolver>();
-        builder.RegisterType<UserPrefsBackuper>().As<IUserPrefsBackuper>();
 
         var assembly = typeof(ScanVarPackagesOperation).Assembly;
         builder

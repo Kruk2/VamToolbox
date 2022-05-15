@@ -18,11 +18,10 @@ public sealed class CustomFixture : Fixture
         Customize(new AutoNSubstituteCustomization { ConfigureMembers = false });
 
         var fs = new MockFileSystem();
-        this.Inject((IFileSystem)fs);
-        this.Inject(fs);
+        AddFileSystem(fs);
     }
 
-    internal class VarNameBuilder : ISpecimenBuilder
+    private class VarNameBuilder : ISpecimenBuilder
     {
         public object Create(object request, ISpecimenContext context)
         {
@@ -36,5 +35,11 @@ public sealed class CustomFixture : Fixture
 
             return new NoSpecimen();
         }
+    }
+
+    public void AddFileSystem(MockFileSystem fs)
+    {
+        this.Inject((IFileSystem)fs);
+        this.Inject(fs);
     }
 }
