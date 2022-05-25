@@ -332,6 +332,20 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
+    private async void diableMorphAndDepsBtn_Click(object sender, EventArgs e)
+    {
+        if (!ValidateSettings()) return;
+        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+            return;
+        }
+
+        var ctx = GetContext(stages: 1);
+        await using var scope = _ctx.BeginLifetimeScope();
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, disableMorphPreload: true, removeDependencies: true);
+
+        SwitchUI(false);
+    }
+
     private async void clearCache_Click(object sender, EventArgs e)
     {
         SwitchUI(true);

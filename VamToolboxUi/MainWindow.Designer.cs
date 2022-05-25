@@ -59,6 +59,7 @@ namespace VamToolboxUi
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.diableMorphAndDepsBtn = new System.Windows.Forms.Button();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -200,6 +201,7 @@ namespace VamToolboxUi
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.diableMorphAndDepsBtn);
             this.groupBox2.Controls.Add(this.restoreMetaJsonBtn);
             this.groupBox2.Controls.Add(this.downloadFromHubBtn);
             this.groupBox2.Controls.Add(this.backupMetaJsonBtn);
@@ -384,6 +386,16 @@ namespace VamToolboxUi
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "General Options";
             // 
+            // diableMorphAndDepsBtn
+            // 
+            this.diableMorphAndDepsBtn.Location = new System.Drawing.Point(254, 22);
+            this.diableMorphAndDepsBtn.Name = "diableMorphAndDepsBtn";
+            this.diableMorphAndDepsBtn.Size = new System.Drawing.Size(111, 73);
+            this.diableMorphAndDepsBtn.TabIndex = 29;
+            this.diableMorphAndDepsBtn.Text = "Disable both";
+            this.diableMorphAndDepsBtn.UseVisualStyleBackColor = true;
+            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.diableMorphAndDepsBtn_Click);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -449,6 +461,7 @@ namespace VamToolboxUi
         private Button disableMorphPreloadBtn;
         private Button restoreMetaJsonBtn;
         private Button backupMetaJsonBtn;
+        private Button diableMorphAndDepsBtn;
     }
 }
 

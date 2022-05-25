@@ -1,9 +1,10 @@
 ﻿using System.Dynamic;
 using System.IO.Abstractions;
-using System.IO.Compression;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
+using Ionic.Zip;
 using Newtonsoft.Json;
+using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Operations.Abstract;
 
@@ -18,6 +19,7 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
+    private readonly ISoftLinker _softLinker;
     private int _total, _progress, _changesCount;
     private OperationContext _context = null!;
     private bool _removeDependencies, _disableMorphPreload;
@@ -26,11 +28,12 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         Formatting = Formatting.Indented
     };
 
-    public MetaJsonUpdaterOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker)
+    public MetaJsonUpdaterOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker, ISoftLinker softLinker)
     {
         _fileSystem = fileSystem;
         _logger = logger;
         _progressTracker = progressTracker;
+        _softLinker = softLinker;
     }
 
     public async Task Execute(OperationContext context, bool removeDependencies, bool disableMorphPreload)
@@ -49,14 +52,16 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
     private async Task UpdateMetaJson(string varPath)
     {
         var oldModifiedDate = _fileSystem.FileInfo.FromFileName(varPath).LastWriteTimeUtc;
-        var changed = false;
+        var oldCreatedDate = _fileSystem.FileInfo.FromFileName(varPath).CreationTimeUtc;
+        var varTmpPath = varPath + ".tmp";
 
         try {
             {
-                await using var stream = _context.DryRun ? _fileSystem.File.OpenRead(varPath) : _fileSystem.File.Open(varPath, FileMode.Open, FileAccess.ReadWrite);
-                using var zip = new ZipArchive(stream, _context.DryRun ? ZipArchiveMode.Read : ZipArchiveMode.Update, true);
+                await using var stream = _fileSystem.File.OpenRead(varPath);
+                using var zip = ZipFile.Read(stream);
+                zip.CaseSensitiveRetrieval = true;
 
-                var metaFile = zip.GetEntry("meta.json");
+                var metaFile = zip["meta.json"];
                 if (metaFile is null) {
                     _logger.Log($"Skipping because meta.json not found: {varPath}");
                     return;
@@ -64,12 +69,17 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
 
                 dynamic json;
                 {
-                    using var streamReader = new StreamReader(metaFile.Open(), Encoding.UTF8);
+                    using var memoryStream = new MemoryStream();
+                    metaFile.Extract(memoryStream);
+                    memoryStream.Position = 0;
+
+                    using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
                     using var jsonReader = new JsonTextReader(streamReader);
 
                     json = _serializer.Deserialize<ExpandoObject>(jsonReader);
                 }
                 var dict = (IDictionary<string, object>)json;
+                var changed = false;
                 if (_removeDependencies) {
 
                     if (dict.ContainsKey("dependencies") && ((IDictionary<string, object>)dict["dependencies"]).Count > 0) {
@@ -106,20 +116,44 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
                 }
 
                 if (!_context.DryRun && changed) {
-                    metaFile.Delete();
-                    metaFile = zip.CreateEntry("meta.json");
-                    await using var streamWriter = new StreamWriter(metaFile.Open(), Encoding.UTF8);
-                    using var jsonWriter = new JsonTextWriter(streamWriter);
+                    var oldMetaCreationTime = metaFile.CreationTime;
+                    var oldMetaModifiedTime = metaFile.LastModified;
+                    zip.RemoveEntry(metaFile);
 
-                    _serializer.Serialize(jsonWriter, json);
+                    {
+                        using var memoryStream = new MemoryStream();
+                        {
+                            await using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
+                            using var jsonWriter = new JsonTextWriter(streamWriter);
+
+                            _serializer.Serialize(jsonWriter, json);
+                            memoryStream.Position = 0;
+                        }
+                        zip.AddEntry("meta.json", memoryStream.ToArray());
+                        if (oldMetaCreationTime != default) {
+                            zip["meta.json"].CreationTime = oldMetaCreationTime;
+                        }
+                        if (oldMetaModifiedTime != default) {
+                            zip["meta.json"].LastModified = oldMetaModifiedTime;
+                        }
+                    }
+
+                    await using (var outputStream = _fileSystem.File.OpenWrite(varTmpPath)) {
+                        zip.Save(outputStream);
+                    }
                     Interlocked.Increment(ref _changesCount);
                 }
+            }
+
+            if (_fileSystem.File.Exists(varTmpPath)) {
+                _fileSystem.File.Move(varTmpPath, varPath, true);
             }
         } catch (Exception e) {
             _logger.Log($"Unable to process {varPath}. Error: {e.Message}");
         } finally {
             if (!_context.DryRun) {
                 _fileSystem.File.SetLastWriteTimeUtc(varPath, oldModifiedDate);
+                _fileSystem.File.SetLastWriteTimeUtc(varPath, oldCreatedDate);
             }
             Interlocked.Increment(ref _progress);
             _progressTracker.Report(new ProgressInfo(_progress, _total, $"Clearing meta.json dependencies: {_fileSystem.Path.GetFileName(varPath)}"));
@@ -132,7 +166,10 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
             MaxDegreeOfParallelism = _context.Threads
         });
 
-        var files = varDirs.SelectMany(t => _fileSystem.Directory.EnumerateFiles(t, "*.var", SearchOption.AllDirectories)).ToList();
+        var files = varDirs
+            .SelectMany(t => _fileSystem.Directory.EnumerateFiles(t, "*.var", SearchOption.AllDirectories))
+            .Where(t => !_softLinker.IsSoftLink(t))
+            .ToList();
         _total = files.Count;
         foreach (var file in files) {
             depScanBlock.Post(file);
