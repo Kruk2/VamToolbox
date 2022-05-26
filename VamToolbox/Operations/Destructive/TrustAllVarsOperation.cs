@@ -24,7 +24,7 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
         _fs = fs;
     }
 
-    public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars)
+    public async Task ExecuteAsync(OperationContext context)
     {
         _context = context;
         _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
@@ -32,12 +32,13 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
             _fs.Directory.CreateDirectory(_vamPrefsDir);
 
         _progressTracker.InitProgress("Trusting all vars");
-        _total = vars.Count;
-        var depScanBlock = new ActionBlock<VarPackage>(TrustVar, new ExecutionDataflowBlockOptions {
+        var depScanBlock = new ActionBlock<string>(TrustVar, new ExecutionDataflowBlockOptions {
             MaxDegreeOfParallelism = context.Threads
         });
 
-        foreach (var var in vars.Where(t => t.IsInVaMDir))
+        var vars = _fs.Directory.EnumerateFiles(_fs.Path.Combine(context.VamDir, "AddonPackages"), "*.var", SearchOption.AllDirectories).ToList();
+        _total = vars.Count;
+        foreach (var var in vars)
             depScanBlock.Post(var);
 
         depScanBlock.Complete();
@@ -46,9 +47,10 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
         _progressTracker.Complete($"Trusted {_trusted} vars");
     }
 
-    private void TrustVar(VarPackage var)
+    private void TrustVar(string varPath)
     {
-        var prefFile = Path.Combine(_vamPrefsDir, Path.GetFileNameWithoutExtension(var.Name.Filename) + ".prefs");
+        var varName = Path.GetFileNameWithoutExtension(varPath);
+        var prefFile = Path.Combine(_vamPrefsDir, varName+ ".prefs");
         dynamic json;
         try {
             json = _fs.File.Exists(prefFile) ? JsonConvert.DeserializeObject<ExpandoObject>(_fs.File.ReadAllText(prefFile))! : new ExpandoObject();
@@ -71,11 +73,11 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
             }
         }
 
-        _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _progress), _total, $"Trusting {var}"));
+        _progressTracker.Report(new ProgressInfo(Interlocked.Increment(ref _progress), _total, $"Trusting {varName}"));
     }
 }
 
 public interface ITrustAllVarsOperation : IOperation
 {
-    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars);
+    Task ExecuteAsync(OperationContext context);
 }

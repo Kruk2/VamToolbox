@@ -307,7 +307,7 @@ public partial class MainWindow : Form, IProgressTracker
     private async void removeDependenciesFromMeta_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
-        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+        if (MessageBox.Show("Removing dependencies can be very time and I/O consuming operation (every zip will be rewriten) Continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
             return;
         }
 
@@ -321,9 +321,6 @@ public partial class MainWindow : Form, IProgressTracker
     private async void disableMorphPreloadBtn_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
-        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
-            return;
-        }
 
         var ctx = GetContext(stages: 1);
         await using var scope = _ctx.BeginLifetimeScope();
@@ -332,10 +329,10 @@ public partial class MainWindow : Form, IProgressTracker
         SwitchUI(false);
     }
 
-    private async void diableMorphAndDepsBtn_Click(object sender, EventArgs e)
+    private async void disableMorphAndDepsBtn_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
-        if (MessageBox.Show("It is recommended to first backup your meta.json. Do you want to continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+        if (MessageBox.Show("Removing dependencies can be very time and I/O consuming operation (every zip will be rewriten) Continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
             return;
         }
 
@@ -362,10 +359,8 @@ public partial class MainWindow : Form, IProgressTracker
         if (!ValidateSettings()) return;
 
         await using var scope = _ctx.BeginLifetimeScope();
-        var ctx = GetContext(stages: 3);
-
-        var (vars, _) = await RunIndexing(scope, ctx);
-        await scope.Resolve<ITrustAllVarsOperation>().ExecuteAsync(ctx, vars);
+        var ctx = GetContext(stages: 1);
+        await scope.Resolve<ITrustAllVarsOperation>().ExecuteAsync(ctx);
 
         SwitchUI(false);
     }

@@ -222,7 +222,7 @@ namespace VamToolboxUi
             this.diableMorphAndDepsBtn.TabIndex = 29;
             this.diableMorphAndDepsBtn.Text = "Disable both";
             this.diableMorphAndDepsBtn.UseVisualStyleBackColor = true;
-            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.diableMorphAndDepsBtn_Click);
+            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.disableMorphAndDepsBtn_Click);
             // 
             // restoreMetaJsonBtn
             // 
