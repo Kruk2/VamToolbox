@@ -399,21 +399,6 @@ public partial class MainWindow : Form, IProgressTracker
         return (vars, freeFiles);
     }
 
-    private async void backupMetaJsonBtn_Click(object sender, EventArgs e)
-    {
-        if (!ValidateSettings()) return;
-
-        var result = MessageBox.Show("Do you want to override old backups?", "Question", MessageBoxButtons.YesNoCancel);
-        if (result == DialogResult.Cancel) return;
-        var overrideBackups = result == DialogResult.Yes;
-
-        var ctx = GetContext(stages: 1);
-
-        await using var scope = _ctx.BeginLifetimeScope();
-        await scope.Resolve<IMetaFileBackuper>().Backup(ctx, overrideBackups);
-        SwitchUI(false);
-    }
-
     private async void restoreMetaJsonBtn_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
@@ -421,7 +406,7 @@ public partial class MainWindow : Form, IProgressTracker
         var ctx = GetContext(stages: 1);
 
         await using var scope = _ctx.BeginLifetimeScope();
-        await scope.Resolve<IMetaFileBackuper>().Restore(ctx);
+        await scope.Resolve<IMetaFileRestorer>().Restore(ctx);
         SwitchUI(false);
     }
 

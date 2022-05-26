@@ -23,6 +23,7 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
     private int _total, _progress, _changesCount;
     private OperationContext _context = null!;
     private bool _removeDependencies, _disableMorphPreload;
+    private const string BackupExtension = ".toolboxbak";
 
     private readonly JsonSerializer _serializer = new() {
         Formatting = Formatting.Indented
@@ -81,6 +82,7 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
                 if (changed) {
 
                     if (!_context.DryRun) {
+                        BackupMeta(zip, metaFile, varPath);
                         await WriteNewMetaFile(json, zip, metaFile);
                         await using var outputStream = _fileSystem.File.OpenWrite(varTmpPath);
                         zip.Save(outputStream);
@@ -219,6 +221,28 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         }
         if (_context.RepoDir is not null && _fileSystem.Directory.Exists(_context.RepoDir)) {
             yield return _context.RepoDir;
+        }
+    }
+
+    public void BackupMeta(ZipFile zip, ZipEntry metaFile, string varPath)
+    {
+        try {
+            var backupFile = zip["meta.json" + BackupExtension];
+            if (backupFile is not null) {
+                _logger.Log($"Ignoring because backup already exists {varPath}");
+                return;
+            }
+
+            using (var reader = new MemoryStream()) {
+                metaFile.Extract(reader);
+                reader.Position = 0;
+                zip.AddEntry("meta.json" + BackupExtension, reader.ToArray());
+            }
+
+            _logger.Log($"Backing up meta.json in {varPath}");
+
+        } catch (Exception e) {
+            _logger.Log($"Unable to backup meta.json in {varPath}. Error: {e.Message}");
         }
     }
 }

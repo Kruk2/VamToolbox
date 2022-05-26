@@ -9,7 +9,7 @@ namespace VamToolbox.Tests.Operations;
 public class MetaFileBackupTests 
 {
     private readonly MockFileSystem _fs;
-    private readonly MetaFileBackuper _backuper;
+    private readonly MetaFileRestorer _restorer;
     private const string AddondsDir = "C:/VaM/AddonPackages/";
 
     public MetaFileBackupTests()
@@ -19,87 +19,7 @@ public class MetaFileBackupTests
         });
         var fixture = new CustomFixture();
         fixture.AddFileSystem(_fs);
-        _backuper = fixture.Create<MetaFileBackuper>();
-    }
-
-    [Fact]
-    public async Task Backup_WhenCorruptedZipFile_ShouldNotCrash()
-    {
-        _fs.AddFile(AddondsDir + "a.var", "corrupted-zip-data");
-        await Backup();
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        file.TextContents.Should().Be("corrupted-zip-data");
-    }
-
-    [Fact]
-    public async Task Backup_WhenInNestedDir_ShouldBackupMetaFile()
-    {
-        _fs.AddFile(AddondsDir + "test/a.var", CreateZipFile(metaFile: "test-meta-content"));
-        await Backup();
-
-        var file = _fs.GetFile(AddondsDir + "test/a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile!.Should().Be("test-meta-content");
-        backupFile!.Should().Be("test-meta-content");
-    }
-
-    [Fact]
-    public async Task Backup_ShouldBackupMetaFile()
-    {
-        await Backup();
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile!.Should().Be("test-meta-content");
-        backupFile!.Should().Be("test-meta-content");
-    }
-
-    [Fact]
-    public async Task Backup_WhenMetaFileIsMissing_ShouldSkipIt()
-    {
-        _fs.AddFile(AddondsDir + "a.var", CreateZipFile( backupFile: "backup-content"));
-        await Backup();
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile.Should().BeNull();
-        backupFile!.Should().Be("backup-content");
-    }
-
-    [Fact]
-    public async Task Backup_WhenDryRun_ShouldNotChangeAnything()
-    {
-        await Backup(dryRun: true);
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile!.Should().Be("test-meta-content");
-        backupFile.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Backup_WhenBackupAlreadyExists_ShouldNotChangeAnything()
-    {
-        _fs.AddFile(AddondsDir + "a.var", CreateZipFile(metaFile: "test-meta-content", backupFile: "backup-content"));
-        await Backup(overrideBackups: false);
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile!.Should().Be("test-meta-content");
-        backupFile.Should().Be("backup-content");
-    }
-
-    [Fact]
-    public async Task Backup_WhenBackupAlreadyExistAndWeAllowed_ShouldOverrideIt()
-    {
-        _fs.AddFile(AddondsDir + "a.var", CreateZipFile(metaFile: "test-meta-content", backupFile: "backup-content"));
-        await Backup(overrideBackups: true);
-
-        var file = _fs.GetFile(AddondsDir + "a.var");
-        var (metaFile, backupFile) = ReadZipFile(file);
-        metaFile!.Should().Be("test-meta-content");
-        backupFile!.Should().Be("test-meta-content");
+        _restorer = fixture.Create<MetaFileRestorer>();
     }
 
     [Fact]
@@ -173,13 +93,7 @@ public class MetaFileBackupTests
         return ZipTestHelpers.CreateZipFile(files);
     }
 
-    private Task Backup(bool dryRun = false, bool overrideBackups = false) => _backuper.Backup(new OperationContext {
-        DryRun = dryRun,
-        VamDir = "C:/VaM",
-        Threads = 1
-    }, overrideBackups);
-
-    private Task Restore(bool dryRun = false) => _backuper.Restore(new OperationContext {
+    private Task Restore(bool dryRun = false) => _restorer.Restore(new OperationContext {
         DryRun = dryRun,
         VamDir = "C:/VaM",
         Threads = 1

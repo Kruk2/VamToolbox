@@ -1,5 +1,4 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using System.Security.AccessControl;
 using AutoFixture;
 using FluentAssertions;
 using VamToolbox.Operations.Abstract;
@@ -42,6 +41,45 @@ public class MetaJsonUpdaterOperationTests
     }
 
     [Fact]
+    public async Task Backup_ShouldNotBackupMetaIfItExists()
+    {
+        CreateZipFile(TestMetaWithDepsOnly, metaBackup: "old-backup");
+        await Execute(removeDeps: true);
+
+        var backupFile = ReadMetaBackupJson();
+        var metaFile = ReadMetaJson();
+        backupFile.Should().Be("old-backup");
+        metaFile.Should().Be(@"{
+  ""licenseType"": ""PC"",
+  ""creatorName"": ""Chill_PopRun"",
+  ""contentList"": [
+    ""Saves/scene/private_clubII1.402.json""
+  ],
+  ""dependencies"": {}
+}");
+    }
+
+    [Fact]
+    public async Task Backup_WhenDryRun_ShouldNotChangeAnything()
+    {
+        CreateZipFile(TestMetaWithDepsOnly);
+        await Execute(removeDeps: true, dryRun: true);
+
+        var backupFile = ReadMetaBackupJson();
+        backupFile.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Backup_ShouldBackupMetaFile()
+    {
+        CreateZipFile(TestMetaWithDepsOnly);
+        await Execute(removeDeps: true);
+
+        var backupFile = ReadMetaBackupJson();
+        backupFile.Should().Be(TestMetaWithDepsOnly);
+    }
+
+    [Fact]
     public async Task RemoveDeps_WhenMetaHasDependencies_ShouldClearThem()
     {
         CreateZipFile(TestMetaWithDepsOnly);
@@ -61,7 +99,7 @@ public class MetaJsonUpdaterOperationTests
     [Fact]
     public async Task RemoveDeps_WhenMetaHasDependenciesAndInNestedDir_ShouldClearThem()
     {
-        CreateZipFile(TestMetaWithDepsOnly, AddondsDir + "test/a.var");
+        CreateZipFile(TestMetaWithDepsOnly, path: AddondsDir + "test/a.var");
         await Execute(removeDeps: true);
 
         var metaFile = ReadMetaJson(AddondsDir + "test/a.var");
@@ -157,11 +195,23 @@ public class MetaJsonUpdaterOperationTests
         return metaContent;
     }
 
-    private void CreateZipFile(string? metaContent = null, string? path = null)
+    private string? ReadMetaBackupJson(string? path = null)
+    {
+        var file = _fs.GetFile(path ?? (AddondsDir + "a.var"));
+        var files = ZipTestHelpers.ReadZipFile(file);
+        files.TryGetValue("meta.json.toolboxbak", out var metaBackup);
+
+        return metaBackup;
+    }
+
+    private void CreateZipFile(string? metaContent = null, string? metaBackup = null, string? path = null)
     {
         var files = new Dictionary<string, string>();
         if (metaContent is not null) {
             files["meta.json"] = metaContent;
+        }
+        if (metaBackup is not null) {
+            files["meta.json.toolboxbak"] = metaBackup;
         }
 
         var zipFile = ZipTestHelpers.CreateZipFile(files);
