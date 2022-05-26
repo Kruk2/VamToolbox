@@ -67,80 +67,25 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
                     return;
                 }
 
-                dynamic json;
-                {
-                    using var memoryStream = new MemoryStream();
-                    metaFile.Extract(memoryStream);
-                    memoryStream.Position = 0;
-
-                    using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
-                    using var jsonReader = new JsonTextReader(streamReader);
-
-                    json = _serializer.Deserialize<ExpandoObject>(jsonReader);
-                }
+                var json = ReadMetaJson(metaFile);
                 var dict = (IDictionary<string, object>)json;
                 var changed = false;
                 if (_removeDependencies) {
-
-                    if (dict.ContainsKey("dependencies") && ((IDictionary<string, object>)dict["dependencies"]).Count > 0) {
-                        var depsCount = ((IDictionary<string, object>)dict["dependencies"]).Count;
-                        dict["dependencies"] = new object();
-                        changed = true;
-                        _logger.Log($"Removing {depsCount} dependencies from {varPath}");
-                    }
-
-                    if (dict.ContainsKey("hadReferenceIssues") && (string)dict["hadReferenceIssues"] == "true") {
-                        dict.Remove("hadReferenceIssues");
-                        changed = true;
-                        _logger.Log($"Removing 'hadReferenceIssues' from {varPath}");
-                    }
-
-                    if (dict.ContainsKey("referenceIssues") && ((List<object>)dict["referenceIssues"]).Count > 0) {
-                        dict.Remove("referenceIssues");
-                        changed = true;
-                        _logger.Log($"Removing 'referenceIssues' from {varPath}");
-                    }
+                    changed |= RemoveDependecies(varPath, dict);
                 }
 
                 if (_disableMorphPreload) {
-                    var customOptionsExists = dict.ContainsKey("customOptions");
-                    if (customOptionsExists) {
-                        var customOptions = (IDictionary<string, object>)dict["customOptions"];
-                        if (customOptions.ContainsKey("preloadMorphs") && (string)customOptions["preloadMorphs"] == "true") {
-                            customOptions["preloadMorphs"] = "false";
-                            changed = true;
-
-                            _logger.Log($"Disabling 'preloadMorphs' for {varPath}");
-                        }
-                    }
+                    changed |= DisableMorphPreload(varPath, dict);
                 }
 
-                if (!_context.DryRun && changed) {
-                    var oldMetaCreationTime = metaFile.CreationTime;
-                    var oldMetaModifiedTime = metaFile.LastModified;
-                    zip.RemoveEntry(metaFile);
+                if (changed) {
 
-                    {
-                        using var memoryStream = new MemoryStream();
-                        {
-                            await using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
-                            using var jsonWriter = new JsonTextWriter(streamWriter);
-
-                            _serializer.Serialize(jsonWriter, json);
-                            memoryStream.Position = 0;
-                        }
-                        zip.AddEntry("meta.json", memoryStream.ToArray());
-                        if (oldMetaCreationTime != default) {
-                            zip["meta.json"].CreationTime = oldMetaCreationTime;
-                        }
-                        if (oldMetaModifiedTime != default) {
-                            zip["meta.json"].LastModified = oldMetaModifiedTime;
-                        }
-                    }
-
-                    await using (var outputStream = _fileSystem.File.OpenWrite(varTmpPath)) {
+                    if (!_context.DryRun) {
+                        await WriteNewMetaFile(json, zip, metaFile);
+                        await using var outputStream = _fileSystem.File.OpenWrite(varTmpPath);
                         zip.Save(outputStream);
                     }
+
                     Interlocked.Increment(ref _changesCount);
                 }
             }
@@ -158,6 +103,93 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
             Interlocked.Increment(ref _progress);
             _progressTracker.Report(new ProgressInfo(_progress, _total, $"Clearing meta.json dependencies: {_fileSystem.Path.GetFileName(varPath)}"));
         }
+    }
+
+    private async Task WriteNewMetaFile(dynamic json, ZipFile zip, ZipEntry metaFile)
+    {
+        var oldMetaCreationTime = metaFile.CreationTime;
+        var oldMetaModifiedTime = metaFile.LastModified;
+        zip.RemoveEntry(metaFile);
+        using var memoryStream = new MemoryStream();
+        {
+            await using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
+            using var jsonWriter = new JsonTextWriter(streamWriter);
+
+            _serializer.Serialize(jsonWriter, json);
+        }
+
+        memoryStream.Position = 0;
+        zip.AddEntry("meta.json", memoryStream.ToArray());
+        RestoreTimes(oldMetaCreationTime, zip, oldMetaModifiedTime);
+    }
+
+    private static void RestoreTimes(DateTime oldMetaCreationTime, ZipFile zip, DateTime oldMetaModifiedTime)
+    {
+        if (oldMetaCreationTime != default) {
+            zip["meta.json"].CreationTime = oldMetaCreationTime;
+        }
+
+        if (oldMetaModifiedTime != default) {
+            zip["meta.json"].LastModified = oldMetaModifiedTime;
+        }
+    }
+
+    private dynamic ReadMetaJson(ZipEntry metaFile)
+    {
+        using var memoryStream = new MemoryStream();
+        metaFile.Extract(memoryStream);
+        memoryStream.Position = 0;
+
+        using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
+        using var jsonReader = new JsonTextReader(streamReader);
+
+        dynamic json = _serializer.Deserialize<ExpandoObject>(jsonReader);
+        return json;
+    }
+
+    private bool DisableMorphPreload(string varPath, IDictionary<string, object> dict)
+    {
+        var customOptionsExists = dict.ContainsKey("customOptions");
+        if (customOptionsExists)
+        {
+            var customOptions = (IDictionary<string, object>)dict["customOptions"];
+            if (customOptions.ContainsKey("preloadMorphs") && (string)customOptions["preloadMorphs"] == "true")
+            {
+                customOptions["preloadMorphs"] = "false";
+                _logger.Log($"Disabling 'preloadMorphs' for {varPath}");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool RemoveDependecies(string varPath, IDictionary<string, object> dict)
+    {
+        var changed = false;
+        if (dict.ContainsKey("dependencies") && ((IDictionary<string, object>)dict["dependencies"]).Count > 0)
+        {
+            var depsCount = ((IDictionary<string, object>)dict["dependencies"]).Count;
+            dict["dependencies"] = new object();
+            _logger.Log($"Removing {depsCount} dependencies from {varPath}");
+            changed = true;
+        }
+
+        if (dict.ContainsKey("hadReferenceIssues") && (string)dict["hadReferenceIssues"] == "true")
+        {
+            dict.Remove("hadReferenceIssues");
+            _logger.Log($"Removing 'hadReferenceIssues' from {varPath}");
+            changed = true;
+        }
+
+        if (dict.ContainsKey("referenceIssues") && ((List<object>)dict["referenceIssues"]).Count > 0)
+        {
+            dict.Remove("referenceIssues");
+            _logger.Log($"Removing 'referenceIssues' from {varPath}");
+            changed = true;
+        }
+
+        return changed;
     }
 
     private async Task RunInParallel(IEnumerable<string> varDirs, Func<string, Task> act)
