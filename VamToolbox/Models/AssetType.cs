@@ -28,8 +28,28 @@ public enum AssetType
     ValidClothOrHair = ValidCloth | ValidHair,
     ValidClothOrHairOrMorph = ValidCloth | ValidHair | ValidMorph,
 
-    Female = FemaleMorph | FemaleCloth | FemaleHair,
-    Male = MaleMorph | MaleCloth | MaleHair
+    BreastPhysics = 1 << 11,
+    GlutePhysics = 1 << 12,
+    PluginsPreset = 1 << 13,
+
+    FemalePosition = 1 << 14,
+    MalePosition = 1 << 15,
+    TogetherPosition = 1 << 16,
+    AppearancePreset = 1 << 17,
+    ClothingPreset = 1 << 18,
+    HairPreset = 1 << 19,
+    MorphPreset = 1 << 20,
+    PosePreset = 1 << 21,
+    SkinPreset = 1 << 22,
+
+    FemaleClothPreset = 1 << 23,
+    MaleClothPreset = 1 << 24,
+    FemaleHairPreset = 1 << 25,
+    MaleHairPreset = 1 << 26,
+
+    Female = FemaleMorph | FemaleCloth | FemaleHair | FemalePosition | FemaleClothPreset | FemaleHairPreset,
+    Male = MaleMorph | MaleCloth | MaleHair | MalePosition | MaleClothPreset | MaleHairPreset,
+    
 }
 
 public static class AssetTypeExtensions
