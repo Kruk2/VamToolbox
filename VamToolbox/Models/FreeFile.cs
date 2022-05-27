@@ -24,14 +24,13 @@ public sealed class FreeFile : FileReferenceBase, IVamObjectWithDependencies
         SourcePathIfSoftLink = softLinkPath?.NormalizePathSeparators() ?? null;
     }
 
-    public IEnumerable<FreeFile> SelfAndChildren() => Children.Append(this);
+    public IEnumerable<FreeFile> SelfAndChildren() => Children.SelectMany(t => t.SelfAndChildren()).Append(this).Distinct();
 
     public override string ToString() => FullPath;
 
     public override void AddChildren(FileReferenceBase children)
     {
         _children.Add((FreeFile)children);
-        children.ParentFile = this;
     }
 
     private (List<VarPackage> Var, List<FreeFile> Free) CalculateDeps()

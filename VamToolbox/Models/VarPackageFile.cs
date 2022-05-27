@@ -17,10 +17,9 @@ public sealed class VarPackageFile : FileReferenceBase
     public override void AddChildren(FileReferenceBase children)
     {
         _children.Add((VarPackageFile)children);
-        children.ParentFile = this;
     }
 
-    public IEnumerable<VarPackageFile> SelfAndChildren() => Children.Append(this);
+    public IEnumerable<VarPackageFile> SelfAndChildren() => Children.SelectMany(t => t.SelfAndChildren()).Append(this).Distinct();
 
     public override string ToString()
     {

@@ -27,25 +27,24 @@ public sealed class PresetGrouper : IPresetGrouper
     public async Task GroupPresets<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream)
         where T : FileReferenceBase
     {
+        var presetFiles = files
+            .Where(t => t.ExtLower == ".vap" || KnownNames.PreviewExtensions.Contains(t.ExtLower))
+            .ToLookup(t => _fs.Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators());
+
         var grouped = files
-            .Where(f => f.ExtLower is ".vaj" or ".vam" or ".vab")
+            .Where(f => f.ExtLower is ".vaj" or ".vam" or ".vab" || KnownNames.PreviewExtensions.Contains(f.ExtLower))
             .Select(f => (basePath: f.LocalPath[..^f.ExtLower.Length], file: f))
             .GroupBy(x => x.basePath)
             .Select(g => {
-                if (g.Count() is 1 or 2 or 3) {
-                    return (vaj: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vaj").file,
-                        vam: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vam").file,
-                        vab: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vab").file);
-                }
-
-                _logger.Log(
-                    $"[MISSING-PRESET-FILE] Incorrect number of presets {g.Count()} {g.First().basePath}{(varName != null ? $" in var {varName.Filename}" : "")}");
-                return default;
+                return (vaj: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vaj").file,
+                    vam: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vam").file,
+                    vab: (T?)g.SingleOrDefault(f => f.file.ExtLower == ".vab").file,
+                    preview: (T?)g.FirstOrDefault(f => KnownNames.PreviewExtensions.Contains(f.file.ExtLower)).file);
             });
 
 
         var filesMovedAsChildren = new HashSet<T>();
-        foreach (var (vaj, vam, vab) in grouped) {
+        foreach (var (vaj, vam, vab, preview) in grouped) {
             var notNullPreset = vam ?? vaj ?? vab;
             if (notNullPreset == null)
                 continue;
@@ -54,33 +53,55 @@ public sealed class PresetGrouper : IPresetGrouper
                 vam.InternalId = await ReadVamInternalId(vam, openFileStream);
             }
 
-            var localDir = _fs.Path.Combine(_fs.Path.GetDirectoryName(notNullPreset.LocalPath), _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
+            var localDir = _fs.Path.GetDirectoryName(notNullPreset.LocalPath).NormalizePathSeparators();
+            var pathWithoutExtension = _fs.Path.Combine(localDir, _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
+            GroupAssetPresets(notNullPreset, notNullPreset.FilenameWithoutExt, presetFiles[localDir], filesMovedAsChildren);
+
+            if (vam == null) {
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vam toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                notNullPreset.AddMissingChildren(pathWithoutExtension + ".vam");
+            }
+
             if (vaj == null) {
                 _logger.Log($"[MISSING-PRESET-FILE] Missing vaj toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
-                notNullPreset.AddMissingChildren(localDir + ".vaj");
+                notNullPreset.AddMissingChildren(pathWithoutExtension + ".vaj");
             } else if (notNullPreset != vaj) {
                 notNullPreset.AddChildren(vaj);
                 filesMovedAsChildren.Add(vaj);
             }
 
-            if (vam == null) {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vam toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
-                notNullPreset.AddMissingChildren(localDir + ".vam");
-            } else if (notNullPreset != vam) {
-                notNullPreset.AddChildren(vam);
-                filesMovedAsChildren.Add(vam);
-            }
-
             if (vab == null) {
                 _logger.Log($"[MISSING-PRESET-FILE] Missing vab toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
-                notNullPreset.AddMissingChildren(localDir + ".vab");
+                notNullPreset.AddMissingChildren(pathWithoutExtension + ".vab");
             } else if (notNullPreset != vab) {
                 notNullPreset.AddChildren(vab);
                 filesMovedAsChildren.Add(vab);
             }
+
+            if (preview != null) {
+                notNullPreset.AddChildren(preview);
+                filesMovedAsChildren.Add(preview);
+            }
         }
 
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
+    }
+
+    private static void GroupAssetPresets<T>(T notNullPreset, string fileNameWithoutExtensions, IEnumerable<T> presetFilesWithPreviews, ISet<T> filesMovedAsChildren) where T : FileReferenceBase
+    {
+        var allowedPresetName = fileNameWithoutExtensions + "_";
+        foreach (var additionalPreset in presetFilesWithPreviews.Where(t => t.ExtLower == ".vap" && t.FilenameLower.StartsWith(allowedPresetName, StringComparison.OrdinalIgnoreCase))) {
+            var additionalPresetPreview = presetFilesWithPreviews.FirstOrDefault(t => 
+                t.FilenameWithoutExt.Equals(additionalPreset.FilenameWithoutExt, StringComparison.OrdinalIgnoreCase) && 
+                KnownNames.PreviewExtensions.Contains(t.ExtLower));
+
+            additionalPreset.AddChildren(notNullPreset);
+
+            if (additionalPresetPreview != null) {
+                additionalPreset.AddChildren(additionalPresetPreview);
+                filesMovedAsChildren.Add(additionalPresetPreview);
+            }
+        }
     }
 
     private async Task<string?> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase

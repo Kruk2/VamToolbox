@@ -30,7 +30,6 @@ public class VarPackageFileTests
         file.Var.Should().Be(varPackage);
         file.VarFile.Should().Be(file);
         file.Free.Should().BeNull();
-        file.ParentFile.Should().BeNull();
         file.ToString().Should().Be($@"q/e/smtH.assetbundlE Var: {varPackage.FullPath}");
         file.ParentVar.Files.Should().BeEquivalentTo(new[] { file });
     }
@@ -40,11 +39,24 @@ public class VarPackageFileTests
     {
         varFile.AddChildren(childFile);
 
-        varFile.ParentFile.Should().BeNull();
-        childFile.ParentFile.Should().Be(varFile);
         varFile.Children.Should().BeEquivalentTo(new[] { childFile });
         varFile.SelfAndChildren().Should().BeEquivalentTo(new[] { childFile, varFile });
         varFile.SizeWithChildren.Should().Be(varFile.Size + childFile.Size);
+    }
+
+    [Theory, CustomAutoData]
+    public void Create_NestedChildrenShouldIterateCorrectly(VarPackageFile freeFile, VarPackageFile childFile, VarPackageFile childChildFile)
+    {
+        freeFile.AddChildren(childFile);
+        childFile.AddChildren(childChildFile);
+
+        freeFile.Children.Should().BeEquivalentTo(new[] { childFile });
+        freeFile.SelfAndChildren().Should().BeEquivalentTo(new[] { childFile, freeFile, childChildFile });
+        freeFile.SizeWithChildren.Should().Be(freeFile.Size + childFile.Size + childChildFile.Size);
+
+        childFile.Children.Should().BeEquivalentTo(new[] { childChildFile });
+        childFile.SelfAndChildren().Should().BeEquivalentTo(new[] { childFile, childChildFile });
+        childFile.SizeWithChildren.Should().Be(childFile.Size + childChildFile.Size);
     }
 
     [Theory, CustomAutoData]

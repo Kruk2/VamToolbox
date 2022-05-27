@@ -27,7 +27,6 @@ public abstract class FileReferenceBase
     public long Size { get; }
     public bool IsInVaMDir { get; }
     public AssetType Type { get; }
-    public FileReferenceBase? ParentFile { get; protected internal set; }
     public bool Dirty { get; set; }
     public DateTime ModifiedTimestamp { get; }
 
