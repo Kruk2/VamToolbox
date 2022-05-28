@@ -1,149 +1,92 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.ComponentModel;
+using System.Runtime.ConstrainedExecution;
+using System.Runtime.InteropServices;
+using System.Security;
 using Microsoft.Win32.SafeHandles;
 
 namespace VamToolbox.Helpers;
 
 public interface ISoftLinker
 {
-    int SoftLink(string destination, string source, bool dryRun);
+    bool SoftLink(string destination, string source, bool dryRun);
     bool IsSoftLink(string file);
     string? GetSoftLink(string file);
 }
 
 public sealed class SoftLinker : ISoftLinker
 {
-    [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
-
-    [Flags]
-    enum SymbolicLink
-    {
-        File = 0,
-        Directory = 1,
-        AllowUnprivilegedCreate = 2
-    }
-
-    private const int ioctlCommandGetReparsePoint = 0x000900A8;
-
-    private const uint pathNotAReparsePointError = 0x80071126;
-
-    private const uint symLinkTag = 0xA000000C;
-
-    private const uint fileFlagsForOpenReparsePointAndBackupSemantics = 0x02200000;
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct SymbolicLinkReparseData
-    {
-        private const int maxUnicodePathLength = 32767 * 2;
-
-        public uint ReparseTag;
-        public ushort ReparseDataLength;
-        public ushort Reserved;
-        public ushort SubstituteNameOffset;
-        public ushort SubstituteNameLength;
-        public ushort PrintNameOffset;
-        public ushort PrintNameLength;
-        public uint Flags;
-        // PathBuffer needs to be able to contain both SubstituteName and PrintName,
-        // so needs to be 2 * maximum of each
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = maxUnicodePathLength * 2)]
-        public byte[] PathBuffer;
-    }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern SafeFileHandle CreateFile(
         [MarshalAs(UnmanagedType.LPWStr)] string filename,
-        [MarshalAs(UnmanagedType.U4)] FileAccess access,
+        int dwDesiredAccess,
         [MarshalAs(UnmanagedType.U4)] FileShare share,
-        IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
+        uint lpSecurityAttributes,
         [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
-        [MarshalAs(UnmanagedType.U4)] FileAttributes flagsAndAttributes,
+        int dwFlagsAndAttributes,
         IntPtr templateFile);
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern bool DeviceIoControl(
-        IntPtr hDevice,
-        uint dwIoControlCode,
-        IntPtr lpInBuffer,
-        int nInBufferSize,
-        IntPtr lpOutBuffer,
-        int nOutBufferSize,
-        out int lpBytesReturned,
-        IntPtr lpOverlapped);
+    [DllImport("Kernel32.dll", SetLastError = true)]
+    private static extern bool SetFileInformationByHandle(SafeHandle hFile, int FileInformationClass, ref FILE_BASIC_INFO FileInformation, uint dwBufferSize);
 
-    private static SafeFileHandle GetFileHandle(string path)
+    [StructLayout(LayoutKind.Sequential)]
+    struct FILE_BASIC_INFO
     {
-        return CreateFile(path, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, IntPtr.Zero, FileMode.Open,
-            (FileAttributes)fileFlagsForOpenReparsePointAndBackupSemantics, IntPtr.Zero);
+        internal long CreationTime;
+        internal long LastAccessTime;
+        internal long LastWriteTime;
+        internal long ChangeTime;
+        internal uint FileAttributes;
     }
 
-    public bool IsSoftLink(string file)
-    {
-        return GetSoftLink(file) != null;
-    }
+    public bool IsSoftLink(string file) => GetSoftLink(file) != null;
+    public string? GetSoftLink(string file) => File.ResolveLinkTarget(file, true)?.FullName;
 
-    public string? GetSoftLink(string file)
-    {
-        var pathInfo = new FileInfo(file);
-        if (!pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-            return null;
-
-        SymbolicLinkReparseData reparseDataBuffer;
-
-        using (var fileHandle = GetFileHandle(file)) {
-            if (fileHandle.IsInvalid) {
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-            }
-
-            int outBufferSize = Marshal.SizeOf(typeof(SymbolicLinkReparseData));
-            var outBuffer = IntPtr.Zero;
-            try {
-                outBuffer = Marshal.AllocHGlobal(outBufferSize);
-                bool success = DeviceIoControl(
-                    fileHandle.DangerousGetHandle(), ioctlCommandGetReparsePoint, IntPtr.Zero, 0,
-                    outBuffer, outBufferSize, out _, IntPtr.Zero);
-
-                fileHandle.Close();
-
-                if (!success) {
-                    if (((uint)Marshal.GetHRForLastWin32Error()) == pathNotAReparsePointError) {
-                        return null;
-                    }
-
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-                }
-
-                reparseDataBuffer = (SymbolicLinkReparseData)Marshal.PtrToStructure(
-                    outBuffer, typeof(SymbolicLinkReparseData))!;
-            } finally {
-                Marshal.FreeHGlobal(outBuffer);
-            }
-        }
-
-        if (reparseDataBuffer.ReparseTag != symLinkTag) {
-            return null;
-        }
-
-        var target = Encoding.Unicode.GetString(reparseDataBuffer.PathBuffer,
-            reparseDataBuffer.PrintNameOffset, reparseDataBuffer.PrintNameLength);
-
-        return target;
-    }
-
-
-    public int SoftLink(string destination, string source, bool dryRun)
+    public bool SoftLink(string destination, string source, bool dryRun)
     {
         if (File.Exists(destination))
-            return 0;
+            return true;
         if (!File.Exists(source))
             throw new VamToolboxException($"Copying failed. {source} doesn't exist;");
 
         if (dryRun)
-            return 0;
+            return true;
 
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        var result = CreateSymbolicLink(destination, source, SymbolicLink.File | SymbolicLink.AllowUnprivilegedCreate);
-        return result ? 0 : Marshal.GetLastWin32Error();
+        try {
+            File.CreateSymbolicLink(destination, source);
+            return SetSymbolicLinkTimes(destination, source);
+
+        } catch (UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    private static bool SetSymbolicLinkTimes(string destination, string source)
+    {
+        const int fileBasicInfo = 0;
+        var sourceFileInfo = new FileInfo(source);
+
+        using var handle = CreateFile(
+            destination,
+            0x40000000 /* Write */,
+            FileShare.ReadWrite | FileShare.Delete,
+            lpSecurityAttributes: 0,
+            FileMode.Open,
+            0x00200000,
+            IntPtr.Zero);
+
+        if (handle.IsInvalid) {
+            return false;
+        }
+
+        var basicInfo = new FILE_BASIC_INFO {
+            CreationTime = sourceFileInfo.CreationTimeUtc.ToFileTime(),
+            LastAccessTime = -1,
+            LastWriteTime = sourceFileInfo.LastWriteTimeUtc.ToFileTime(),
+            ChangeTime = -1,
+            FileAttributes = 0
+        };
+
+        return SetFileInformationByHandle(handle, fileBasicInfo, ref basicInfo, (uint)Marshal.SizeOf(basicInfo));
     }
 }

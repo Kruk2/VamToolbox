@@ -58,8 +58,8 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
                 File.Move(existingVar.FullPath, varDestination);
             else {
                 var success = _linker.SoftLink(varDestination, existingVar.FullPath, _context.DryRun);
-                if (success != 0) {
-                    _logger.Log($"Error soft-link. Code {success} Dest: {varDestination} source: {existingVar.FullPath}");
+                if (!success) {
+                    _logger.Log($"Error soft-link. You didn't run the program as admin Dest: {varDestination} source: {existingVar.FullPath}");
                     _reporter.Complete("Failed. Unable to create symlink. Probably missing admin privilege.");
                     continue;
                 }
@@ -84,7 +84,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
                 File.Move(file.FullPath, destinationPath);
             } else {
                 var success = _linker.SoftLink(destinationPath, file.FullPath, _context.DryRun);
-                if (success != 0) {
+                if (!success) {
                     _logger.Log($"Error soft-link. Code {success} Dest: {destinationPath} source: {file.FullPath}");
                     _reporter.Complete(
                         $"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {success}.");

@@ -51,7 +51,7 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
 
             var destination = Path.Combine(addonPackages, relativeToRepo);
             var result = _linker.SoftLink(destination, varPackage.FullPath, context.DryRun);
-            if (result != 0)
+            if (!result)
             {
                 _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
                 return;
@@ -66,7 +66,7 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
             var destination = Path.Combine(context.VamDir, freeFile.LocalPath);
 
             var result = _linker.SoftLink(destination, freeFile.FullPath, context.DryRun);
-            if (result != 0) {
+            if (!result) {
                 _reporter.Complete($"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {result}");
                 return;
             }
