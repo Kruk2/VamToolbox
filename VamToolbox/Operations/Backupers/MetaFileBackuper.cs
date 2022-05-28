@@ -19,7 +19,6 @@ public class MetaFileRestorer : IMetaFileRestorer
     private OperationContext _context = null!;
     private int _total, _progress, _successfullyProcessed;
     private readonly ISoftLinker _softLinker;
-    private const string BackupExtension = ".toolboxbak";
 
     public MetaFileRestorer(IFileSystem fileSystem, ILogger logger, IProgressTracker progress, ISoftLinker softLinker)
     {
@@ -53,7 +52,6 @@ public class MetaFileRestorer : IMetaFileRestorer
     private async Task RestoreMeta(string varPath)
     {
         var oldModifiedDate = _fileSystem.FileInfo.FromFileName(varPath).LastWriteTimeUtc;
-        var oldCreatedDate = _fileSystem.FileInfo.FromFileName(varPath).CreationTimeUtc;
         var varTmpPath = varPath + ".tmp";
 
         try {
@@ -62,7 +60,7 @@ public class MetaFileRestorer : IMetaFileRestorer
                 using var zip = ZipFile.Read(stream);
                 zip.CaseSensitiveRetrieval = true;
 
-                var backupFile = zip["meta.json" + BackupExtension];
+                var backupFile = zip["meta.json" + KnownNames.BackupExtension];
 
                 if (backupFile is null) {
                     return;
@@ -72,7 +70,6 @@ public class MetaFileRestorer : IMetaFileRestorer
                 if (_context.DryRun) {
                     return;
                 }
-
 
                 var oldMetaCreationTime = DateTime.MinValue; 
                 var oldMetaModifiedTime = DateTime.MinValue;
@@ -98,9 +95,8 @@ public class MetaFileRestorer : IMetaFileRestorer
                 _logger.Log($"Restoring meta.json in {varPath}");
                 Interlocked.Increment(ref _successfullyProcessed);
 
-                await using (var outputStream = _fileSystem.File.OpenWrite(varTmpPath)) {
-                    zip.Save(outputStream);
-                }
+                await using var outputStream = _fileSystem.File.OpenWrite(varTmpPath);
+                zip.Save(outputStream);
             }
 
             if (_fileSystem.File.Exists(varTmpPath)) {
@@ -112,7 +108,6 @@ public class MetaFileRestorer : IMetaFileRestorer
         } finally {
             if (!_context.DryRun) {
                 _fileSystem.File.SetLastWriteTimeUtc(varPath, oldModifiedDate);
-                _fileSystem.File.SetCreationTimeUtc(varPath, oldCreatedDate);
             }
             Interlocked.Increment(ref _progress);
             _progressTracker.Report(new ProgressInfo(_progress, _total, $"Restoring up {_fileSystem.Path.GetFileName(varPath)}"));

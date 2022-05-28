@@ -14,7 +14,6 @@ public class UserPrefsBackuper : IUserPrefsBackuper
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
-    private const string BackupExtension = ".toolboxbak";
 
     public UserPrefsBackuper(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker)
     {
@@ -36,7 +35,7 @@ public class UserPrefsBackuper : IUserPrefsBackuper
 
         int counter = 0;
         foreach (var file in _fileSystem.Directory.EnumerateFiles(userPrefsDir, "*.prefs")) {
-            var fileName = _fileSystem.Path.GetFileName(file) + BackupExtension;
+            var fileName = _fileSystem.Path.GetFileName(file) + KnownNames.BackupExtension;
             var backupDestination = _fileSystem.Path.Combine(userPrefsDir, fileName);
 
             if (!dryRun) {
@@ -63,7 +62,7 @@ public class UserPrefsBackuper : IUserPrefsBackuper
         }
 
         int counter = 0;
-        foreach (var file in _fileSystem.Directory.EnumerateFiles(userPrefsDir, "*" + BackupExtension)) {
+        foreach (var file in _fileSystem.Directory.EnumerateFiles(userPrefsDir, "*" + KnownNames.BackupExtension)) {
             var fileName = _fileSystem.Path.GetFileNameWithoutExtension(file);
             var restoreDestination = _fileSystem.Path.Combine(userPrefsDir, fileName);
 

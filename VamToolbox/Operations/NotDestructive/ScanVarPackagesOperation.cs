@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Abstractions;
-using System.IO.Compression;
 using System.Threading.Tasks.Dataflow;
 using Autofac;
+using Ionic.Zip;
 using Newtonsoft.Json;
 using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
@@ -70,10 +70,16 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 var sortedVars = t.OrderBy(t => t.FullPath).ToList();
                 if (sortedVars.Count == 1) return sortedVars[0];
 
-                _result.DuplicatedVars.Add(sortedVars.Select(t => t.FullPath).ToList());
+                var fromVamDir = sortedVars.Where(t => t.IsInVaMDir);
+                var notFromVamDir = sortedVars.Where(t => !t.IsInVaMDir);
+                if (fromVamDir.Count() > 1) {
+                    _result.DuplicatedVars.Add(fromVamDir.Select(t => t.FullPath).ToList());
+                }
+                if (notFromVamDir.Count() > 1) {
+                    _result.DuplicatedVars.Add(notFromVamDir.Select(t => t.FullPath).ToList());
+                }
 
-                var fromVamDir = sortedVars.FirstOrDefault(t => t.IsInVaMDir);
-                return fromVamDir ?? sortedVars.First();
+                return fromVamDir.FirstOrDefault() ?? sortedVars.First();
             })
             .ToList();
 
@@ -140,29 +146,38 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             var varPackage = new VarPackage(name, varFullPath, softLink, isInVamDir, fileInfo.Length);
 
             await using var stream = _fs.File.OpenRead(varFullPath);
-            using var archive = new ZipArchive(stream);
+            using var archive = ZipFile.Read(stream);
+            archive.CaseSensitiveRetrieval = true;
 
             var foundMetaFile = false;
             foreach (var entry in archive.Entries) {
-                if (entry.FullName.EndsWith('/')) continue;
-                if (entry.FullName == "meta.json") {
+                if (entry.IsDirectory) continue;
+                if (entry.FileName == "meta.json" + KnownNames.BackupExtension) continue;
+                if (entry.FileName == "meta.json") {
+                    try {
+                        await ReadMetaFile(entry);
+                    } catch (Exception e) when (e is ArgumentException or JsonReaderException or JsonSerializationException) {
+                        var message = $"{varFullPath}: {e.Message}";
+                        _result.InvalidVars.Add(message);
+                    }
+
                     foundMetaFile = true;
                     continue;
                 }
 
-                CreatePackageFileAsync(entry, isInVamDir, entry.LastWriteTime.DateTime, varPackage);
+                CreatePackageFileAsync(entry, isInVamDir, entry.LastModified, varPackage);
             }
             if (!foundMetaFile) {
                 _result.MissingMetaJson.Add(varFullPath);
                 return;
             }
 
-
             var varFilesList = (List<VarPackageFile>)varPackage.Files;
             _packages.Add(varPackage);
 
-            var entries = archive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
-            Stream OpenFileStream(string p) => entries[p].Open();
+            var entries = archive.Entries.ToDictionary(t => t.FileName.NormalizePathSeparators());
+            Stream OpenFileStream(string p) => entries[p].OpenReader();
+
             LookupDirtyPackages(varPackage);
 
             await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(varFilesList, OpenFileStream);
@@ -201,18 +216,18 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         }
     }
 
-    private static async Task<MetaFileJson?> ReadMetaFile(ZipArchiveEntry metaEntry)
+    private static async Task<MetaFileJson?> ReadMetaFile(ZipEntry metaEntry)
     {
-        await using var metaStream = metaEntry.Open();
+        await using var metaStream = metaEntry.OpenReader();
         using var sr = new StreamReader(metaStream);
         using var reader = new JsonTextReader(sr);
         var serializer = new JsonSerializer();
         return serializer.Deserialize<MetaFileJson>(reader);
     }
 
-    private static void CreatePackageFileAsync(ZipArchiveEntry entry, bool isInVamDir, DateTime modifiedTimestamp, VarPackage varPackage)
+    private static void CreatePackageFileAsync(ZipEntry entry, bool isInVamDir, DateTime modifiedTimestamp, VarPackage varPackage)
     {
-        _ = new VarPackageFile(entry.FullName.NormalizePathSeparators(), entry.Length, isInVamDir, varPackage, modifiedTimestamp);
+        _ = new VarPackageFile(entry.FileName.NormalizePathSeparators(), entry.UncompressedSize, isInVamDir, varPackage, modifiedTimestamp);
     }
 }
 

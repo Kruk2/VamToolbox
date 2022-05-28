@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using Autofac;
+using Ionic.Zip;
 using VamToolbox.FilesGrouper;
 using VamToolbox.Hashing;
 using VamToolbox.Helpers;
@@ -18,6 +19,24 @@ static class Program
     [STAThread]
     static void Main()
     {
+        //var files = Directory.EnumerateFiles(@"D:\Gry\other\vam_test\AddonPackages", "*.var", SearchOption.AllDirectories);
+        //foreach (var file in files) {
+        //    var modified = File.GetLastWriteTimeUtc(file);
+        //    var updated = false;
+        //    {
+        //        using var zipFile = ZipFile.Read(file);
+        //        zipFile.CaseSensitiveRetrieval = true;
+        //        if (zipFile.ContainsEntry("meta.json.toolboxbak")) {
+        //            zipFile.RemoveEntry("meta.json.toolboxbak");
+        //            zipFile.Save();
+        //            updated = true;
+        //        }
+        //    }
+        //    if (updated) {
+        //        File.SetLastWriteTimeUtc(file, modified);
+        //    }
+
+        //}
         Application.ThreadException += CatchUnhandled;
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         AppDomain.CurrentDomain.UnhandledException += CatchUnhandledDomain;

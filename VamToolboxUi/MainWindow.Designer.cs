@@ -44,6 +44,7 @@ namespace VamToolboxUi
             this.removeDependenciesFromMetaBtn = new System.Windows.Forms.Button();
             this.clearCacheBtn = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.diableMorphAndDepsBtn = new System.Windows.Forms.Button();
             this.restoreMetaJsonBtn = new System.Windows.Forms.Button();
             this.downloadFromHubBtn = new System.Windows.Forms.Button();
             this.disableMorphPreloadBtn = new System.Windows.Forms.Button();
@@ -58,7 +59,6 @@ namespace VamToolboxUi
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.diableMorphAndDepsBtn = new System.Windows.Forms.Button();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -214,6 +214,16 @@ namespace VamToolboxUi
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Tools";
             // 
+            // diableMorphAndDepsBtn
+            // 
+            this.diableMorphAndDepsBtn.Location = new System.Drawing.Point(254, 22);
+            this.diableMorphAndDepsBtn.Name = "diableMorphAndDepsBtn";
+            this.diableMorphAndDepsBtn.Size = new System.Drawing.Size(111, 73);
+            this.diableMorphAndDepsBtn.TabIndex = 29;
+            this.diableMorphAndDepsBtn.Text = "Disable both";
+            this.diableMorphAndDepsBtn.UseVisualStyleBackColor = true;
+            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.disableMorphAndDepsBtn_Click);
+            // 
             // restoreMetaJsonBtn
             // 
             this.restoreMetaJsonBtn.Location = new System.Drawing.Point(137, 116);
@@ -240,7 +250,7 @@ namespace VamToolboxUi
             this.disableMorphPreloadBtn.Name = "disableMorphPreloadBtn";
             this.disableMorphPreloadBtn.Size = new System.Drawing.Size(111, 73);
             this.disableMorphPreloadBtn.TabIndex = 19;
-            this.disableMorphPreloadBtn.Text = "Disable morphPreload for all non-morphpack vars";
+            this.disableMorphPreloadBtn.Text = "Disable morphPreload for all non-morphpacks";
             this.disableMorphPreloadBtn.UseVisualStyleBackColor = true;
             this.disableMorphPreloadBtn.Click += new System.EventHandler(this.disableMorphPreloadBtn_Click);
             // 
@@ -373,16 +383,6 @@ namespace VamToolboxUi
             this.groupBox4.TabIndex = 27;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "General Options";
-            // 
-            // diableMorphAndDepsBtn
-            // 
-            this.diableMorphAndDepsBtn.Location = new System.Drawing.Point(254, 22);
-            this.diableMorphAndDepsBtn.Name = "diableMorphAndDepsBtn";
-            this.diableMorphAndDepsBtn.Size = new System.Drawing.Size(111, 73);
-            this.diableMorphAndDepsBtn.TabIndex = 29;
-            this.diableMorphAndDepsBtn.Text = "Disable both";
-            this.diableMorphAndDepsBtn.UseVisualStyleBackColor = true;
-            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.disableMorphAndDepsBtn_Click);
             // 
             // MainWindow
             // 

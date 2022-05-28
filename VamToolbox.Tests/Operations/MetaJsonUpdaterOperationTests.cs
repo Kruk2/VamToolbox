@@ -1,6 +1,7 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using AutoFixture;
 using FluentAssertions;
+using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 using VamToolbox.Operations.Destructive;
 using Xunit;
@@ -10,13 +11,14 @@ public class MetaJsonUpdaterOperationTests
 {
     private readonly MockFileSystem _fs;
     private readonly MetaJsonUpdaterOperation _operation;
+    private CustomFixture _fixture;
     private const string AddondsDir = "C:/VaM/AddonPackages/";
 
     public MetaJsonUpdaterOperationTests()
     {
-        var fixture = new CustomFixture();
-        _fs = fixture.Create<MockFileSystem>();
-        _operation = fixture.Create<MetaJsonUpdaterOperation>();
+        _fixture = new CustomFixture();
+        _fs = _fixture.Create<MockFileSystem>();
+        _operation = _fixture.Create<MetaJsonUpdaterOperation>();
     }
 
     [Fact]
@@ -136,10 +138,10 @@ public class MetaJsonUpdaterOperationTests
     }
 
     [Fact]
-    public async Task DisableMorphs_WhenMorphsAreEnabled_ShouldDisable()
+    public async Task DisableMorphs_WhenMorphsAreEnabledAndItsNotMorphpack_ShouldDisable()
     {
         CreateZipFile(TestMetaWithMorphPreloadEnabled);
-        await Execute(disableMorphs: true);
+        await Execute(disableMorphs: true, addMorphFile: false);
 
         var metaFile = ReadMetaJson();
         metaFile.Should().Be(@"{
@@ -154,6 +156,16 @@ public class MetaJsonUpdaterOperationTests
     ""preloadMorphs"": ""false""
   }
 }");
+    }
+
+    [Fact]
+    public async Task DisableMorphs_WhenMorphsAreEnabledAndItsMorphpack_ShouldKeepEnabled()
+    {
+        CreateZipFile(TestMetaWithMorphPreloadEnabled);
+        await Execute(disableMorphs: true, addMorphFile: true);
+
+        var metaFile = ReadMetaJson();
+        metaFile.Should().Be(TestMetaWithMorphPreloadEnabled);
     }
 
     [Fact]
@@ -218,11 +230,20 @@ public class MetaJsonUpdaterOperationTests
         _fs.AddFile(path ?? (AddondsDir + "a.var"), zipFile);
     }
 
-    private Task Execute(bool dryRun = false, bool removeDeps = false, bool disableMorphs = false) => _operation.Execute(new OperationContext {
-        DryRun = dryRun,
-        VamDir = "C:/VaM",
-        Threads = 1
-    }, removeDeps, disableMorphs);
+    private Task Execute(bool dryRun = false, bool removeDeps = false, bool disableMorphs = false, bool addMorphFile = false)
+    {
+        var varFiles = _fs.AllFiles.Select(t => new VarPackage(_fixture.Create<VarPackageName>(), t, null, false, 0)).ToList();
+        if (addMorphFile) {
+            varFiles.ForEach(t => _ = new VarPackageFile(KnownNames.MaleMorphsDir + "/a.vmb", 0, false, t, DateTime.Now));
+        } else {
+            varFiles.ForEach(t => _ = new VarPackageFile(KnownNames.HairPresetsDir + "/a.vam", 0, false, t, DateTime.Now));
+        }
+        return _operation.Execute(new OperationContext {
+            DryRun = dryRun,
+            VamDir = "C:/VaM",
+            Threads = 1
+        }, varFiles, removeDeps, disableMorphs);
+    }
 
     private const string TestMetaWithMorphPreloadMissingCustomOptions = @"{ 
    ""licenseType"" : ""PC"", 

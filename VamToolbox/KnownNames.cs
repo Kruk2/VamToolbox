@@ -6,6 +6,7 @@ public static class KnownNames
 {
     public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" };
     public static readonly string[] PreviewExtensions = { ".jpg", ".jpeg", ".png" };
+    public const string BackupExtension = ".toolboxbak";
 
     public static readonly string[] KnownVamDirs = {
         "Custom",
@@ -67,7 +68,7 @@ public static class KnownNames
 
     public static AssetType ClassifyType(this string ext, string localPath)
     {
-        if (ext is ".vmi" or ".vmb") {
+        if (ext is ".vmi" or ".vmb" or ".dsf") {
             if (localPath.IsInDir(FemaleGenMorphsDir))
                 return AssetType.FemaleGenMorph;
             if (localPath.IsInDir(FemaleMorphsDir))

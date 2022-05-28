@@ -1,17 +1,18 @@
-﻿using System.Dynamic;
+﻿using Ionic.Zip;
+using Newtonsoft.Json;
+using System.Dynamic;
 using System.IO.Abstractions;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
-using Ionic.Zip;
-using Newtonsoft.Json;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
+using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 
 namespace VamToolbox.Operations.Destructive;
 public interface IMetaJsonUpdaterOperation : IOperation
 {
-    Task Execute(OperationContext context, bool removeDependencies = false, bool disableMorphPreload = false);
+    Task Execute(OperationContext context, IEnumerable<VarPackage> vars, bool removeDependencies = false, bool disableMorphPreload = false);
 }
 
 public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
@@ -19,11 +20,9 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
-    private readonly ISoftLinker _softLinker;
-    private int _total, _progress, _changesCount;
+    private int _total, _progress, _changesCount, _errors;
     private OperationContext _context = null!;
     private bool _removeDependencies, _disableMorphPreload;
-    private const string BackupExtension = ".toolboxbak";
 
     private readonly JsonSerializer _serializer = new() {
         Formatting = Formatting.Indented
@@ -34,10 +33,9 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         _fileSystem = fileSystem;
         _logger = logger;
         _progressTracker = progressTracker;
-        _softLinker = softLinker;
     }
 
-    public async Task Execute(OperationContext context, bool removeDependencies, bool disableMorphPreload)
+    public async Task Execute(OperationContext context, IEnumerable<VarPackage> vars, bool removeDependencies, bool disableMorphPreload)
     {
         _removeDependencies = removeDependencies;
         _disableMorphPreload = disableMorphPreload;
@@ -45,9 +43,9 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         _context = context;
         await _logger.Init("clear_meta_json_dependencies.txt");
         _progressTracker.InitProgress("Clearing");
-        await RunInParallel(GetAddonDirs(), UpdateMetaJson);
+        await RunInParallel(vars, UpdateMetaJson);
 
-        _progressTracker.Complete($"Processed {_total} meta.json files. Fixed: {_changesCount} files");
+        _progressTracker.Complete($"Processed {_total} meta.json files. Fixed: {_changesCount} files. Errors {_errors}");
     }
 
     private async Task UpdateMetaJson(string varPath)
@@ -96,14 +94,15 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
                 _fileSystem.File.Move(varTmpPath, varPath, true);
             }
         } catch (Exception e) {
+            Interlocked.Increment(ref _errors);
             _logger.Log($"Unable to process {varPath}. Error: {e.Message}");
         } finally {
             if (!_context.DryRun) {
                 _fileSystem.File.SetLastWriteTimeUtc(varPath, oldModifiedDate);
-                _fileSystem.File.SetLastWriteTimeUtc(varPath, oldCreatedDate);
+                _fileSystem.File.SetCreationTimeUtc(varPath, oldCreatedDate);
             }
             Interlocked.Increment(ref _progress);
-            _progressTracker.Report(new ProgressInfo(_progress, _total, $"Clearing meta.json dependencies: {_fileSystem.Path.GetFileName(varPath)}"));
+            _progressTracker.Report(new ProgressInfo(_progress, _total, $"Processing meta.json: {_fileSystem.Path.GetFileName(varPath)}"));
         }
     }
 
@@ -194,16 +193,18 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         return changed;
     }
 
-    private async Task RunInParallel(IEnumerable<string> varDirs, Func<string, Task> act)
+    private async Task RunInParallel(IEnumerable<VarPackage> vars, Func<string, Task> act)
     {
         var depScanBlock = new ActionBlock<string>(async t => await act(t), new ExecutionDataflowBlockOptions {
             MaxDegreeOfParallelism = _context.Threads
         });
 
-        var files = varDirs
-            .SelectMany(t => _fileSystem.Directory.EnumerateFiles(t, "*.var", SearchOption.AllDirectories))
-            .Where(t => !_softLinker.IsSoftLink(t))
+        var files = vars
+            .Where(t => t.SourcePathIfSoftLink is null)
+            .Where(t => _removeDependencies || (_disableMorphPreload && !t.IsMorphPack))
+            .Select(t => t.FullPath)
             .ToList();
+
         _total = files.Count;
         foreach (var file in files) {
             depScanBlock.Post(file);
@@ -213,30 +214,19 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         await depScanBlock.Completion;
     }
 
-    private IEnumerable<string> GetAddonDirs()
-    {
-        var addonDir = _fileSystem.Path.Combine(_context.VamDir, "AddonPackages");
-        if (_fileSystem.Directory.Exists(addonDir)) {
-            yield return addonDir;
-        }
-        if (_context.RepoDir is not null && _fileSystem.Directory.Exists(_context.RepoDir)) {
-            yield return _context.RepoDir;
-        }
-    }
-
-    public void BackupMeta(ZipFile zip, ZipEntry metaFile, string varPath)
+    private void BackupMeta(ZipFile zip, ZipEntry metaFile, string varPath)
     {
         try {
-            var backupFile = zip["meta.json" + BackupExtension];
+            var backupFile = zip["meta.json" + KnownNames.BackupExtension];
             if (backupFile is not null) {
-                _logger.Log($"Ignoring because backup already exists {varPath}");
+                _logger.Log($"Ignoring backups because it already exists {varPath}");
                 return;
             }
 
             using (var reader = new MemoryStream()) {
                 metaFile.Extract(reader);
                 reader.Position = 0;
-                zip.AddEntry("meta.json" + BackupExtension, reader.ToArray());
+                zip.AddEntry("meta.json" + KnownNames.BackupExtension, reader.ToArray());
             }
 
             _logger.Log($"Backing up meta.json in {varPath}");

@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using Autofac;
 using MoreLinq;
-using Newtonsoft.Json;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -311,9 +311,10 @@ public partial class MainWindow : Form, IProgressTracker
             return;
         }
 
-        var ctx = GetContext(stages: 1);
+        var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, removeDependencies: true);
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, removeDependencies: true);
 
         SwitchUI(false);
     }
@@ -322,9 +323,10 @@ public partial class MainWindow : Form, IProgressTracker
     {
         if (!ValidateSettings()) return;
 
-        var ctx = GetContext(stages: 1);
+        var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, disableMorphPreload: true);
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true);
 
         SwitchUI(false);
     }
@@ -336,9 +338,10 @@ public partial class MainWindow : Form, IProgressTracker
             return;
         }
 
-        var ctx = GetContext(stages: 1);
+        var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, disableMorphPreload: true, removeDependencies: true);
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true, removeDependencies: true);
 
         SwitchUI(false);
     }
