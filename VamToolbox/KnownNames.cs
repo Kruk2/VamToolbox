@@ -67,72 +67,83 @@ public static class KnownNames
 
     public static AssetType ClassifyType(this string ext, string localPath)
     {
-        var type = AssetType.Unknown;
         if (ext is ".vmi" or ".vmb") {
-
             if (localPath.IsInDir(FemaleGenMorphsDir))
-                type |= AssetType.FemaleGenMorph;
-            else if (localPath.IsInDir(FemaleMorphsDir))
-                type |= AssetType.FemaleNormalMorph;
-            else if (localPath.IsInDir(MaleGenMorphsDir))
-                type |= AssetType.MaleGenMorph;
-            else if (localPath.IsInDir(MaleMorphsDir))
-                type |= AssetType.MaleNormalMorph;
-            else
-                type |= AssetType.UnknownMorph;
-        } else if (ext is ".vaj" or ".vam" or ".vab") {
-            if (localPath.IsInDir(FemaleHairDir))
-                type |= AssetType.FemaleHair;
-            else if (localPath.IsInDir(FemaleClothDir))
-                type |= AssetType.FemaleCloth;
-            else if (localPath.IsInDir(MaleHairDir))
-                type |= AssetType.MaleHair;
-            else if (localPath.IsInDir(MaleClothDir))
-                type |= AssetType.MaleCloth;
-            else if (localPath.IsOtherCloth())
-                type |= AssetType.OtherCloth;
-            else
-                type |= AssetType.UnknownClothOrHair;
-        } else if (ext is ".vap") {
-            if (localPath.IsInDir(BreastPhysicsDir)) {
-                type = AssetType.BreastPhysics;
-            } else if (localPath.IsInDir(GlutePhysicsDir)) {
-                type = AssetType.GlutePhysics;
-            } else if (localPath.IsInDir(PluginsPresetDir)) {
-                type = AssetType.PluginsPreset;
-            } else if (localPath.IsInDir(FemalePositionsDir)) {
-                type = AssetType.FemalePosition;
-            } else if (localPath.IsInDir(MalePositionsDir)) {
-                type = AssetType.MalePosition;
-            } else if (localPath.IsInDir(TogetherPositionsDir)) {
-                type = AssetType.TogetherPosition;
-            } else if (localPath.IsInDir(AppearancePresetsDir)) {
-                type = AssetType.AppearancePreset;
-            } else if (localPath.IsInDir(ClothingPresetsDir)) {
-                type = AssetType.ClothingPreset;
-            } else if (localPath.IsInDir(HairPresetsDir)) {
-                type = AssetType.HairPreset;
-            } else if (localPath.IsInDir(MorphsDir)) {
-                type = AssetType.MorphPreset;
-            } else if (localPath.IsInDir(PosePresetsDir)) {
-                type = AssetType.PosePreset;
-            } else if (localPath.IsInDir(SkinPresetsDir)) {
-                type = AssetType.SkinPreset;
-            } else if (localPath.IsInDir(FemaleClothDir)) {
-                type = AssetType.FemaleClothPreset;
-            } else if (localPath.IsInDir(MaleClothDir)) {
-                type = AssetType.MaleClothPreset;
-            } else if (localPath.IsInDir(FemaleHairDir)) {
-                type = AssetType.FemaleHairPreset;
-            } else if (localPath.IsInDir(MaleHairDir)) {
-                type = AssetType.MaleHairPreset;
-            } else {
-                // glass preset? interesting
-                type = AssetType.Unknown;
-            }
-
+                return AssetType.FemaleGenMorph;
+            if (localPath.IsInDir(FemaleMorphsDir))
+                return AssetType.FemaleNormalMorph;
+            if (localPath.IsInDir(MaleGenMorphsDir))
+                return AssetType.MaleGenMorph;
+            if (localPath.IsInDir(MaleMorphsDir))
+                return AssetType.MaleNormalMorph;
+            return AssetType.UnknownMorph;
         }
 
-        return type;
+        if (ext is ".vaj" or ".vam" or ".vab") {
+            if (localPath.IsInDir(FemaleHairDir))
+                return AssetType.FemaleHair;
+            if (localPath.IsInDir(FemaleClothDir))
+                return AssetType.FemaleCloth;
+            if (localPath.IsInDir(MaleHairDir))
+                return AssetType.MaleHair;
+            if (localPath.IsInDir(MaleClothDir))
+                return AssetType.MaleCloth;
+            if (localPath.IsOtherCloth())
+                return AssetType.OtherCloth;
+            return AssetType.UnknownClothOrHair;
+        }
+        if (ext is ".vap") {
+            if (localPath.IsInDir(BreastPhysicsDir)) {
+                return AssetType.BreastPhysics;
+            }
+            if (localPath.IsInDir(GlutePhysicsDir)) {
+                return AssetType.GlutePhysics;
+            }
+            if (localPath.IsInDir(PluginsPresetDir)) {
+                return AssetType.PluginsPreset;
+            }
+            if (localPath.IsInDir(FemalePositionsDir)) {
+                return AssetType.FemalePosition;
+            }
+            if (localPath.IsInDir(MalePositionsDir)) {
+                return AssetType.MalePosition;
+            }
+            if (localPath.IsInDir(TogetherPositionsDir)) {
+                return AssetType.TogetherPosition;
+            }
+            if (localPath.IsInDir(AppearancePresetsDir)) {
+                return AssetType.AppearancePreset;
+            }
+            if (localPath.IsInDir(ClothingPresetsDir)) {
+                return AssetType.ClothingPreset;
+            }
+            if (localPath.IsInDir(HairPresetsDir)) {
+                return AssetType.HairPreset;
+            }
+            if (localPath.IsInDir(MorphsDir)) {
+                return AssetType.MorphPreset;
+            }
+            if (localPath.IsInDir(PosePresetsDir)) {
+                return AssetType.PosePreset;
+            }
+            if (localPath.IsInDir(SkinPresetsDir)) {
+                return AssetType.SkinPreset;
+            }
+            if (localPath.IsInDir(FemaleClothDir)) {
+                return AssetType.FemaleClothPreset;
+            }
+            if (localPath.IsInDir(MaleClothDir)) {
+                return AssetType.MaleClothPreset;
+            }
+            if (localPath.IsInDir(FemaleHairDir)) {
+                return AssetType.FemaleHairPreset;
+            }
+            if (localPath.IsInDir(MaleHairDir)) {
+                return AssetType.MaleHairPreset;
+            }
+            // glass preset? interesting
+        }
+
+        return AssetType.Unknown;
     }
 }

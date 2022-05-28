@@ -1,10 +1,9 @@
 namespace VamToolbox.Models;
 
 [Flags]
-public enum AssetType
+public enum AssetType : ulong
 {
-    Unknown = 0,
-
+    Empty = 0,
     FemaleNormalMorph = 1 << 0,
     FemaleGenMorph = 1 << 1,
     MaleNormalMorph = 1 << 2,
@@ -46,6 +45,9 @@ public enum AssetType
     MaleClothPreset = 1 << 24,
     FemaleHairPreset = 1 << 25,
     MaleHairPreset = 1 << 26,
+
+
+    Unknown = 1ul << 63,
 
     Female = FemaleMorph | FemaleCloth | FemaleHair | FemalePosition | FemaleClothPreset | FemaleHairPreset,
     Male = MaleMorph | MaleCloth | MaleHair | MalePosition | MaleClothPreset | MaleHairPreset,

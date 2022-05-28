@@ -169,6 +169,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(varFilesList, name, OpenFileStream, _favMorphs);
             await _scope.Resolve<IPresetGrouper>().GroupPresets(varFilesList, name, OpenFileStream);
             _scope.Resolve<IPreviewGrouper>().GroupsPreviews(varFilesList);
+
         } catch (Exception exc) {
             var message = $"{varFullPath}: {exc.Message}";
             _result.InvalidVars.Add(message);

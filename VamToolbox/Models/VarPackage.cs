@@ -14,9 +14,11 @@ public sealed class VarPackage : IVamObjectWithDependencies
     public IReadOnlyList<VarPackageFile> Files => _files;
 
     private AssetType? _assetType;
-    private AssetType? Type => _assetType ??= Files
+    public AssetType Type => _assetType ??= Files
         .SelfAndChildren()
-        .Aggregate(AssetType.Unknown, (a, b) => a | b.Type);
+        .Aggregate(AssetType.Empty, (a, b) => a | b.Type);
+
+    public bool IsMorphPack => (Type & ~AssetType.Morph) == AssetType.Empty;
 
     private List<JsonFile>? _jsonFiles;
     public IReadOnlyList<JsonFile> JsonFiles => _jsonFiles ??= Files
