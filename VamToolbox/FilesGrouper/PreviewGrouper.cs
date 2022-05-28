@@ -16,7 +16,7 @@ public sealed class PreviewGrouper : IPreviewGrouper
 
     public void GroupsPreviews<T>(List<T> files) where T : FileReferenceBase
     {
-        var filesWithPreview = new[] { ".vam", ".var", ".vap", ".vaj", ".json" };
+        var filesWithPreview = new[] { ".vam", ".var", ".vap", ".vaj", ".json", ".assetbundle" };
         var filesMovedAsChildren = new HashSet<T>();
         var possibleFilesWithPreview = files.Where(t => filesWithPreview.Contains(t.ExtLower));
         var possiblePreviews = files.Where(t => KnownNames.PreviewExtensions.Contains(t.ExtLower)).ToDictionary(t => t.LocalPath);
