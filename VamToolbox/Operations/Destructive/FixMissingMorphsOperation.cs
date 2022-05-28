@@ -1,4 +1,5 @@
 ﻿using System.IO.Abstractions;
+using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
@@ -108,7 +109,7 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
     {
         var missingMorphs = _files.Where(t => t.Type == AssetType.ValidMorph && t.Children.Count == 0);
         var allMorphsByName = _files
-            .SelectMany(t => t.SelfAndChildren())
+            .SelfAndChildren()
             .Where(t => t.Type == AssetType.ValidMorph)
             .ToLookup(t => t.FilenameLower);
         return (missingMorphs, allMorphsByName);

@@ -105,7 +105,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     private void LookupDirtyFiles(List<FreeFile> files)
     {
         foreach (var freeFile in files
-                     .SelectMany(t => t.SelfAndChildren())
+                     .SelfAndChildren()
                      .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower))) {
             if (!_uuidCache.TryGetValue(freeFile.FullPath, out var uuidEntry)) {
                 freeFile.Dirty = true;

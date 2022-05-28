@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
 
@@ -29,5 +30,10 @@ public static class Extensions
     public static string RemoveInvalidChars(this string filename)
     {
         return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));
+    }
+
+    public static IEnumerable<T> SelfAndChildren<T>(this IEnumerable<T> files) where T: FileReferenceBase
+    {
+        return files.SelectMany(t => t.SelfAndChildren()).Distinct().Cast<T>();
     }
 }

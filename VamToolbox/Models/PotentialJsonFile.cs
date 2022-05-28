@@ -26,7 +26,7 @@ public sealed class PotentialJsonFile : IDisposable
     {
         if (IsVar) {
             var potentialJsonFiles = Var.Files
-                .SelectMany(t => t.SelfAndChildren())
+                .SelfAndChildren()
                 .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower));
             IDictionary<string, ZipArchiveEntry>? entries = null;
 

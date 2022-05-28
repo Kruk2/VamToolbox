@@ -82,11 +82,11 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         return await Task.Run(() => {
 
             var varFilesWithScene = varFiles
-                .Where(t => t.Files.SelectMany(x => x.SelfAndChildren())
+                .Where(t => t.Files.SelfAndChildren()
                     .Any(x => x.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(x.ExtLower)));
 
             return freeFiles
-                .SelectMany(x => x.SelfAndChildren())
+                .SelfAndChildren()
                 .Where(t => KnownNames.IsPotentialJsonFile(t.ExtLower))
                 .Select(t => new PotentialJsonFile(t))
                 .Concat(varFilesWithScene.Select(t => new PotentialJsonFile(t)))
@@ -146,8 +146,8 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             (varsToMove, filesToMove) = DependencyCalculator.GetFilesToMove(varFiles, freeFiles);
         }
 
-        var files = varsToMove.SelectMany(t => t.Files).SelectMany(t => t.SelfAndChildren())
-            .Concat(filesToMove.SelectMany(t => t.SelfAndChildren().Cast<FileReferenceBase>()));
+        var files = varsToMove.SelectMany(t => t.Files).SelfAndChildren()
+            .Concat(filesToMove.SelfAndChildren().Cast<FileReferenceBase>());
 
         foreach (var file in files) {
             file.PreferredForDelayedResolver = true;

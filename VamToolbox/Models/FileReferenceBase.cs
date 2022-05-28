@@ -62,4 +62,6 @@ public abstract class FileReferenceBase
     public abstract void AddChildren(FileReferenceBase children);
 
     public void AddMissingChildren(string localChildrenPath) => MissingChildren.Add(localChildrenPath);
+
+    public virtual IEnumerable<FileReferenceBase> SelfAndChildren() => Children.SelectMany(t => t.SelfAndChildren()).Append(this);
 }

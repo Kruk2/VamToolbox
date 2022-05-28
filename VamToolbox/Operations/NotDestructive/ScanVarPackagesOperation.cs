@@ -180,7 +180,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private void LookupDirtyPackages(VarPackage varPackage)
     {
         foreach (var varFile in varPackage.Files
-                     .SelectMany(t => t.SelfAndChildren())
+                     .SelfAndChildren()
                      .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower) && t.FilenameLower != "meta.json")) {
             if (!_uuidCache.TryGetValue(varPackage.FullPath, out var cacheEntry) ||
                 !cacheEntry.TryGetValue(varFile.LocalPath, out var uuidEntry)) {

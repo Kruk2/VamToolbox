@@ -15,12 +15,12 @@ public sealed class VarPackage : IVamObjectWithDependencies
 
     private AssetType? _assetType;
     private AssetType? Type => _assetType ??= Files
-        .SelectMany(t => t.SelfAndChildren())
+        .SelfAndChildren()
         .Aggregate(AssetType.Unknown, (a, b) => a | b.Type);
 
     private List<JsonFile>? _jsonFiles;
     public IReadOnlyList<JsonFile> JsonFiles => _jsonFiles ??= Files
-        .SelectMany(t => t.SelfAndChildren())
+        .SelfAndChildren()
         .Where(t => t.JsonFile != null)
         .Select(t => t.JsonFile!)
         .ToList();
@@ -38,7 +38,7 @@ public sealed class VarPackage : IVamObjectWithDependencies
     private Dictionary<string, VarPackageFile>? _filesDict;
 
     public Dictionary<string, VarPackageFile> FilesDict => _filesDict ??= Files
-        .SelectMany(t => t.SelfAndChildren())
+        .SelfAndChildren()
         .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
         .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 

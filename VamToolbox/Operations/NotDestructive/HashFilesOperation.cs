@@ -107,7 +107,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
             using var archive = new ZipArchive(stream);
 
             var archiveDict = archive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
-            foreach (var entry in var.Files.SelectMany(t => t.SelfAndChildren()).Distinct()) {
+            foreach (var entry in var.Files.SelfAndChildren()) {
                 entry.Hash = await HashFileAsync(entry, archiveDict[entry.LocalPath]);
             }
 

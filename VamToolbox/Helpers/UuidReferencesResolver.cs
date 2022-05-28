@@ -81,7 +81,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
                 jsonFile.AddReference(referenceToAdd);
                 fileToAdd.PreferredForDelayedResolver |= jsonFile.File.PreferredForDelayedResolver;
                 if (fileToAdd.IsVar && jsonFile.File.PreferredForDelayedResolver) {
-                    foreach (var varPackageFile in fileToAdd.Var.Files.SelectMany(t => t.SelfAndChildren())) {
+                    foreach (var varPackageFile in fileToAdd.Var.Files.SelfAndChildren()) {
                         // mark all files in current var as preferred
                         varPackageFile.PreferredForDelayedResolver |= jsonFile.File.PreferredForDelayedResolver;
                     }

@@ -49,7 +49,7 @@ public static class DependencyCalculator
 
         var freeFilesDeps = toCopy
             .SelectMany(t => t.ResolvedFreeDependencies)
-            .SelectMany(t => t.SelfAndChildren())
+            .SelfAndChildren()
             .DistinctBy(t => t.FullPath)
             .Where(t => !t.IsInVaMDir);
 
@@ -71,8 +71,7 @@ public static class DependencyCalculator
             .SelectMany(t => t.ResolvedFreeDependencies)
             .Concat(freeFiles.Where(t => t.IsInVaMDir).SelectMany(t => t.ResolvedFreeDependencies))
             .Where(t => !t.IsInVaMDir)
-            .SelectMany(t => t.SelfAndChildren())
-            .Distinct()
+            .SelfAndChildren()
             .ToList();
 
         return (dependedVarsToMove, dependedFreeFilesToMove);

@@ -30,10 +30,10 @@ public class ReferenceCache : IReferenceCache
 
         var progress = 0;
         var jsonFilesFromFreeFiles = freeFiles
-            .SelectMany(t => t.SelfAndChildren())
+            .SelfAndChildren()
             .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty);
         var jsonFilesFromVars = varFiles.SelectMany(t => t.Files)
-            .SelectMany(t => t.SelfAndChildren())
+            .SelfAndChildren()
             .Where(t => (t.ExtLower is ".vam" or ".vmi" || KnownNames.IsPotentialJsonFile(t.ExtLower)) && t.Dirty); // ugly, forces to save cache for internalId/morphName
 
         var jsonFiles = jsonFilesFromVars.Cast<FileReferenceBase>().Concat(jsonFilesFromFreeFiles).ToList();
@@ -90,7 +90,7 @@ public class ReferenceCache : IReferenceCache
 
         if (potentialJsonFile.IsVar) {
             foreach (var varFile in potentialJsonFile.Var.Files
-                         .SelectMany(t => t.SelfAndChildren())
+                         .SelfAndChildren()
                          .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower))
                          .Where(t => !t.Dirty)) {
 
