@@ -9,8 +9,7 @@ namespace VamToolbox.FilesGrouper;
 
 public interface IPresetGrouper
 {
-    public Task GroupPresets<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream)
-        where T : FileReferenceBase;
+    public Task GroupPresets<T>(List<T> files, Func<string, Stream> openFileStream) where T : FileReferenceBase;
 }
 
 public sealed class PresetGrouper : IPresetGrouper
@@ -24,7 +23,7 @@ public sealed class PresetGrouper : IPresetGrouper
         _logger = logger;
     }
 
-    public async Task GroupPresets<T>(List<T> files, VarPackageName? varName, Func<string, Stream> openFileStream)
+    public async Task GroupPresets<T>(List<T> files, Func<string, Stream> openFileStream)
         where T : FileReferenceBase
     {
         var presetFiles = files
@@ -58,12 +57,12 @@ public sealed class PresetGrouper : IPresetGrouper
             GroupAssetPresets(notNullPreset, notNullPreset.FilenameWithoutExt, presetFiles[localDir], filesMovedAsChildren);
 
             if (vam == null) {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vam toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vam toFile for {notNullPreset}");
                 notNullPreset.AddMissingChildren(pathWithoutExtension + ".vam");
             }
 
             if (vaj == null) {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vaj toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vaj toFile for {notNullPreset}");
                 notNullPreset.AddMissingChildren(pathWithoutExtension + ".vaj");
             } else if (notNullPreset != vaj) {
                 notNullPreset.AddChildren(vaj);
@@ -71,7 +70,7 @@ public sealed class PresetGrouper : IPresetGrouper
             }
 
             if (vab == null) {
-                _logger.Log($"[MISSING-PRESET-FILE] Missing vab toFile for {notNullPreset.LocalPath}{(varName != null ? $" in var {varName.Filename}" : "")}");
+                _logger.Log($"[MISSING-PRESET-FILE] Missing vab toFile for {notNullPreset}");
                 notNullPreset.AddMissingChildren(pathWithoutExtension + ".vab");
             } else if (notNullPreset != vab) {
                 notNullPreset.AddChildren(vab);

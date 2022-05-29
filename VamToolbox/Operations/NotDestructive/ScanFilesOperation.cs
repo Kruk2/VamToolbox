@@ -1,5 +1,4 @@
 using System.IO.Abstractions;
-using Autofac;
 using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
@@ -14,18 +13,18 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     private readonly IProgressTracker _reporter;
     private readonly IFileSystem _fs;
     private readonly ILogger _logger;
-    private readonly ILifetimeScope _scope;
+    private readonly IFileGroupers _groupers;
     private readonly IDatabase _database;
     private OperationContext _context = null!;
     private readonly ISoftLinker _softLinker;
     private Dictionary<string, (long size, DateTime modifiedTime, string? uuid)> _uuidCache = null!;
 
-    public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, ILifetimeScope scope, IDatabase database, ISoftLinker softLinker)
+    public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, IFileGroupers groupers, IDatabase database, ISoftLinker softLinker)
     {
         _reporter = reporter;
         _fs = fs;
         _logger = logger;
-        _scope = scope;
+        _groupers = groupers;
         _database = database;
         _softLinker = softLinker;
     }
@@ -59,24 +58,12 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             files.AddRange(ScanFolder(rootDir, "Saves"));
 
             _reporter.Report("Analyzing fav files", forceShow: true);
-            var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
-            var favMorphs = files
-                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
-                .ToLookup(t => t.FilenameWithoutExt, t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
-
             Stream OpenFileStream(string p) => _fs.File.OpenRead(_fs.Path.Combine(rootDir, p));
 
             _reporter.Report("Updating local database", forceShow: true);
             LookupDirtyFiles(files);
 
-            _reporter.Report("Grouping scripts", forceShow: true);
-            await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(files, OpenFileStream);
-            _reporter.Report("Grouping morphs", forceShow: true);
-            await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(files, varName: null, openFileStream: OpenFileStream, favMorphs);
-            _reporter.Report("Grouping presets", forceShow: true);
-            await _scope.Resolve<IPresetGrouper>().GroupPresets(files, varName: null, OpenFileStream);
-            _reporter.Report("Grouping previews", forceShow: true);
-            _scope.Resolve<IPreviewGrouper>().GroupsPreviews(files);
+            await _groupers.Group(files, OpenFileStream);
 
         });
 

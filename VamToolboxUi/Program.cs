@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Text;
 using Autofac;
 using Ionic.Zip;
 using VamToolbox.FilesGrouper;
@@ -37,6 +38,8 @@ static class Program
         //    }
 
         //}
+
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Application.ThreadException += CatchUnhandled;
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         AppDomain.CurrentDomain.UnhandledException += CatchUnhandledDomain;
@@ -84,6 +87,8 @@ static class Program
         builder.RegisterType<PreviewGrouper>().As<IPreviewGrouper>();
         builder.RegisterType<ScriptGrouper>().As<IScriptGrouper>();
         builder.RegisterType<JsonUpdater>().As<IJsonUpdater>();
+        builder.RegisterType<FavAndHiddenGrouper>().As<IFavAndHiddenGrouper>();
+        builder.RegisterType<FileGroupers>().As<IFileGroupers>();
         builder.RegisterType<ReferenceCache>().As<IReferenceCache>();
         builder.RegisterType<UuidReferencesResolver>().As<IUuidReferenceResolver>();
         builder.RegisterType<ReferencesResolver>().As<IReferencesResolver>();

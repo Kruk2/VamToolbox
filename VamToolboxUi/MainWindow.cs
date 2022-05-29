@@ -314,7 +314,7 @@ public partial class MainWindow : Form, IProgressTracker
 
         var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
         await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, removeDependencies: true);
 
         SwitchUI(false);
@@ -326,7 +326,7 @@ public partial class MainWindow : Form, IProgressTracker
 
         var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
         await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true);
 
         SwitchUI(false);
@@ -341,7 +341,7 @@ public partial class MainWindow : Form, IProgressTracker
 
         var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
-        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, Array.Empty<FreeFile>());
+        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
         await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true, removeDependencies: true);
 
         SwitchUI(false);

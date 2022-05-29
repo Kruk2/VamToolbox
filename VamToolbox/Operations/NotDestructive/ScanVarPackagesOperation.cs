@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Threading.Tasks.Dataflow;
-using Autofac;
 using Ionic.Zip;
 using Newtonsoft.Json;
 using VamToolbox.FilesGrouper;
@@ -20,9 +19,9 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private readonly IFileSystem _fs;
     private readonly IProgressTracker _reporter;
     private readonly ILogger _logger;
-    private readonly ILifetimeScope _scope;
+    private readonly IFileGroupers _groupers;
     private readonly ISoftLinker _softLinker;
-    private ILookup<string, (string basePath, FileReferenceBase file)> _favMorphs = null!;
+    private IFavAndHiddenGrouper _favHideenGrouper;
     private readonly ConcurrentBag<VarPackage> _packages = new();
     private readonly VarScanResults _result = new();
 
@@ -32,17 +31,18 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private readonly IDatabase _database;
     private Dictionary<string, Dictionary<string, (long size, DateTime modifiedTime, string? uuid)>> _uuidCache = null!;
 
-    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, ILifetimeScope scope, ISoftLinker softLinker, IDatabase database)
+    public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, IFileGroupers groupers, ISoftLinker softLinker, IDatabase database, IFavAndHiddenGrouper favHideenGrouper)
     {
         _fs = fs;
         _reporter = progressTracker;
         _logger = logger;
-        _scope = scope;
+        _groupers = groupers;
         _softLinker = softLinker;
         _database = database;
+        _favHideenGrouper = favHideenGrouper;
     }
 
-    public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles)
+    public async Task<List<VarPackage>> ExecuteAsync(OperationContext context, List<FreeFile> freeFiles)
     {
         _context = context;
         _reporter.InitProgress("Scanning var files");
@@ -84,6 +84,8 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             })
             .ToList();
 
+        await _favHideenGrouper.Group(freeFiles, _result.Vars);
+
         var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
         _reporter.Complete(endingMessage);
 
@@ -109,11 +111,6 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
                 packageFiles.AddRange(_fs.Directory.GetFiles(_context.RepoDir, "*.var", SearchOption.AllDirectories));
 
             _totalVarsCount = packageFiles.Count;
-            var favDirs = KnownNames.MorphDirs.Select(t => Path.Combine(t, "favorites").NormalizePathSeparators()).ToArray();
-            _favMorphs = freeFiles
-                .Where(t => t.ExtLower == ".fav" && favDirs.Any(x => t.LocalPath.StartsWith(x, StringComparison.Ordinal)))
-                .ToLookup(t => t.FilenameWithoutExt,
-                    t => (basePath: Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators(), file: (FileReferenceBase)t));
 
             _uuidCache = _database.ReadVarFilesCache()
                 .GroupBy(t => t.fullPath, StringComparer.OrdinalIgnoreCase)
@@ -181,10 +178,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
             LookupDirtyPackages(varPackage);
 
-            await _scope.Resolve<IScriptGrouper>().GroupCslistRefs(varFilesList, OpenFileStream);
-            await _scope.Resolve<IMorphGrouper>().GroupMorphsVmi(varFilesList, name, OpenFileStream, _favMorphs);
-            await _scope.Resolve<IPresetGrouper>().GroupPresets(varFilesList, name, OpenFileStream);
-            _scope.Resolve<IPreviewGrouper>().GroupsPreviews(varFilesList);
+            await _groupers.Group(varFilesList, OpenFileStream);
 
         } catch (Exception exc) {
             var message = $"{varFullPath}: {exc.Message}";
@@ -234,7 +228,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
 public interface IScanVarPackagesOperation : IOperation
 {
-    Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles);
+    Task<List<VarPackage>> ExecuteAsync(OperationContext context, List<FreeFile> freeFiles);
 }
 
 [ExcludeFromCodeCoverage]

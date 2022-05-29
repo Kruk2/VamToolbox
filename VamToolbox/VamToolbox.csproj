@@ -21,6 +21,7 @@
 		<PackageReference Include="morelinq" Version="3.3.2" />
 		<PackageReference Include="RestEase" Version="1.5.6" />
 		<PackageReference Include="System.IO.Abstractions" Version="17.0.15" />
+		<PackageReference Include="System.Text.Encoding.CodePages" Version="6.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

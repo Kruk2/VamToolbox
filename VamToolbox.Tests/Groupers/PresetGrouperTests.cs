@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using AutoFixture;
 using FluentAssertions;
 using FluentAssertions.Execution;
@@ -28,7 +24,7 @@ public class PresetGrouperTests
         var fileGroup2 = CreateGroup("b");
         var files = fileGroup1.Concat(fileGroup2).ToList();
 
-        await _grouper.GroupPresets(files, varName: null, StreamOpener);
+        await _grouper.GroupPresets(files, StreamOpener);
 
         using var _ = new AssertionScope();
         var parentFile = files.Single(t => t.FilenameLower == "a.vam");
@@ -69,7 +65,7 @@ public class PresetGrouperTests
         var fileGroup = CreateGroup("a");
         fileGroup.RemoveAll(t => t.ExtLower != ".vam");
 
-        await _grouper.GroupPresets(fileGroup, varName: null, StreamOpener);
+        await _grouper.GroupPresets(fileGroup, StreamOpener);
 
         using var _ = new AssertionScope();
         var parentFile = fileGroup.Single(t => t.FilenameLower == "a.vam");
@@ -83,7 +79,7 @@ public class PresetGrouperTests
         var fileGroup = CreateGroup("a");
         fileGroup.RemoveAll(t => t.ExtLower == ".vam");
 
-        await _grouper.GroupPresets(fileGroup, varName: null, StreamOpener);
+        await _grouper.GroupPresets(fileGroup, StreamOpener);
 
         using var _ = new AssertionScope();
         var parentFile = fileGroup.Single(t => t.FilenameLower == "a.vaj");
@@ -98,7 +94,7 @@ public class PresetGrouperTests
     {
         var fileGroup = CreateGroup("a");
 
-        await _grouper.GroupPresets(fileGroup, varName: null, _ => StreamOpener(@"{""uid"": ""test""}"));
+        await _grouper.GroupPresets(fileGroup, _ => StreamOpener(@"{""uid"": ""test""}"));
 
         using var _ = new AssertionScope();
         var parentFile = fileGroup.Single(t => t.FilenameLower == "a.vam");
@@ -111,7 +107,7 @@ public class PresetGrouperTests
     {
         var fileGroup = CreateGroup("a");
 
-        await _grouper.GroupPresets(fileGroup, varName: null, _ => StreamOpener(@"invalid"));
+        await _grouper.GroupPresets(fileGroup, _ => StreamOpener(@"invalid"));
 
         using var _ = new AssertionScope();
         var parentFile = fileGroup.Single(t => t.FilenameLower == "a.vam");

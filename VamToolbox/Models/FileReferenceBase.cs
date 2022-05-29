@@ -29,6 +29,7 @@ public abstract class FileReferenceBase
     public AssetType Type { get; }
     public bool Dirty { get; set; }
     public DateTime ModifiedTimestamp { get; }
+    public string? FavFilePath { get; set; }
 
     public JsonFile? JsonFile { get; internal set; }
     public ConcurrentDictionary<JsonFile, bool> UsedByJsonFiles { get; } = new();
