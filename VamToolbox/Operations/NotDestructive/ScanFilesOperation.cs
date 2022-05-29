@@ -63,6 +63,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
             _reporter.Report("Updating local database", forceShow: true);
             LookupDirtyFiles(files);
 
+            _reporter.Report("Grouping files", forceShow: true);
             await _groupers.Group(files, OpenFileStream);
 
         });

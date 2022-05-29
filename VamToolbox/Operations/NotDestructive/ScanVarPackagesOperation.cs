@@ -84,6 +84,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             })
             .ToList();
 
+        _reporter.Report("Grouping fav/hidden files", forceShow: true);
         await _favHideenGrouper.Group(freeFiles, _result.Vars);
 
         var endingMessage = $"Found {_result.Vars.SelectMany(t => t.Files).Count()} files in {_result.Vars.Count} var packages. Took {stopWatch.Elapsed:hh\\:mm\\:ss}. Check var_scan.log";
@@ -178,6 +179,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
             LookupDirtyPackages(varPackage);
 
+            _reporter.Report("Grouping files", forceShow: true);
             await _groupers.Group(varFilesList, OpenFileStream);
 
         } catch (Exception exc) {
