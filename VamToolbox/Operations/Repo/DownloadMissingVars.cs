@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json;
 using RestEase;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -132,12 +133,14 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
     }
 }
 
+[ExcludeFromCodeCoverage]
 public class VamResult
 {
     [JsonProperty("packages")]
     public Dictionary<string, PackageInfo> Packages { get; set; } = null!;
 }
 
+[ExcludeFromCodeCoverage]
 public class PackageInfo
 {
     [JsonProperty("filename")]
@@ -146,6 +149,7 @@ public class PackageInfo
     public string DownloadUrl { get; set; } = string.Empty;
 }
 
+[ExcludeFromCodeCoverage]
 public class VamQuery
 {
     [JsonProperty("source")]

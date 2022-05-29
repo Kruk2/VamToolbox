@@ -1,6 +1,9 @@
-﻿using VamToolbox.Operations.Repo;
+﻿using System.Diagnostics.CodeAnalysis;
+using VamToolbox.Operations.Repo;
 
 namespace VamToolbox.Sqlite;
+
+[ExcludeFromCodeCoverage]
 public class AppSettings 
 {
     public string? AdditionalVars { get; set; }

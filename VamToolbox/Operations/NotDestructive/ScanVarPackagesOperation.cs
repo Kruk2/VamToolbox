@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Threading.Tasks.Dataflow;
 using Autofac;
@@ -236,6 +237,7 @@ public interface IScanVarPackagesOperation : IOperation
     Task<List<VarPackage>> ExecuteAsync(OperationContext context, IEnumerable<FreeFile> freeFiles);
 }
 
+[ExcludeFromCodeCoverage]
 public class VarScanResults
 {
     public List<VarPackage> Vars { get; set; } = new();

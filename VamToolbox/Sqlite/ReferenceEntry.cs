@@ -1,5 +1,8 @@
-﻿namespace VamToolbox.Sqlite;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace VamToolbox.Sqlite;
+
+[ExcludeFromCodeCoverage]
 public sealed class ReferenceEntry
 {
     public string? Value { get; init; }
