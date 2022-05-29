@@ -27,7 +27,7 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
     public async Task ExecuteAsync(OperationContext context)
     {
         _context = context;
-        _vamPrefsDir = Path.Combine(context.VamDir, "AddonPackagesUserPrefs");
+        _vamPrefsDir = Path.Combine(context.VamDir, KnownNames.AddonPackagesUserPrefs);
         if (!context.DryRun)
             _fs.Directory.CreateDirectory(_vamPrefsDir);
 
@@ -36,7 +36,7 @@ public sealed class TrustAllVarsOperation : ITrustAllVarsOperation
             MaxDegreeOfParallelism = context.Threads
         });
 
-        var vars = _fs.Directory.EnumerateFiles(_fs.Path.Combine(context.VamDir, "AddonPackages"), "*.var", SearchOption.AllDirectories).ToList();
+        var vars = _fs.Directory.EnumerateFiles(_fs.Path.Combine(context.VamDir, KnownNames.AddonPackages), "*.var", SearchOption.AllDirectories).ToList();
         _total = vars.Count;
         foreach (var var in vars)
             depScanBlock.Post(var);

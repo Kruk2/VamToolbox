@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
 namespace VamToolbox;
 
 [Serializable]
+[ExcludeFromCodeCoverage]
 internal class VamToolboxException : Exception
 {
     public VamToolboxException()

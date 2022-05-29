@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Autofac;
 using MoreLinq;
+using VamToolbox;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -46,7 +47,7 @@ public partial class MainWindow : Form, IProgressTracker
         var (selected, vamDir) = AskFirDirectory();
         if (!selected)
             return;
-        if (!Directory.Exists(Path.Combine(vamDir, "AddonPackages"))) {
+        if (!Directory.Exists(Path.Combine(vamDir, KnownNames.AddonPackages))) {
             MessageBox.Show("VaM dir doesn't contain AddonPackages");
             vamDirTxt.Text = string.Empty;
         } else {
@@ -374,7 +375,7 @@ public partial class MainWindow : Form, IProgressTracker
             _stage++;
             return Task.CompletedTask;
         }
-        return scope.Resolve<IRemoveSoftLinks>().ExecuteAsync(ctx);
+        return scope.Resolve<IRemoveSoftLinksAndEmptyDirs>().ExecuteAsync(ctx);
     }
 
     private async void downloadFromHubBtn_Click(object sender, EventArgs e)

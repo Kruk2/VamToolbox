@@ -7,30 +7,8 @@ public static class KnownNames
     public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" };
     public static readonly string[] PreviewExtensions = { ".jpg", ".jpeg", ".png" };
     public const string BackupExtension = ".toolboxbak";
-
-    public static readonly string[] KnownVamDirs = {
-        "Custom",
-
-        "Custom/Assets",
-
-        "Custom/Atom",
-        "Custom/Atom/Person",
-        MorphsDir,
-        FemaleMorphsDir,
-        FemaleGenMorphsDir,
-        MaleMorphsDir,
-        MaleGenMorphsDir,
-
-        "Custom/Atom/Person/Textures",
-        "Custom/Atom/Person/Textures/FemaleBase",
-        "Custom/Atom/Person/Textures/MaleBase",
-
-        "Custom/Hair",
-        "Custom/Hair/Female",
-        "Custom/Hair/Male",
-
-        "Custom/Scripts"
-    };
+    public const string AddonPackagesUserPrefs = "AddonPackagesUserPrefs";
+    public const string AddonPackages = "AddonPackages";
 
     public const string MorphsDir = "Custom/Atom/Person/Morphs";
     public const string FemaleMorphsDir = "Custom/Atom/Person/Morphs/female";
@@ -51,7 +29,6 @@ public static class KnownNames
     public const string MalePositionsDir = "Custom/Positions/Male";
     public const string TogetherPositionsDir = "Custom/Positions/Together";
 
-    // does these have gender?
     public const string GlutePhysicsDir = "Custom/Atom/Person/GlutePhysics";
     public const string BreastPhysicsDir = "Custom/Atom/Person/BreastPhysics";
     public const string PluginsPresetDir = "Custom/PluginPresets";
@@ -60,6 +37,16 @@ public static class KnownNames
     public const string HairPresetsDir = "Custom/Atom/Person/Hair";
     public const string PosePresetsDir = "Custom/Atom/Person/Pose";
     public const string SkinPresetsDir = "Custom/Atom/Person/Skin";
+
+    public static readonly string[] KnownDirs = { 
+        FemaleMorphsDir,FemaleGenMorphsDir,  MaleMorphsDir,  MaleGenMorphsDir, 
+        FemaleHairDir,  MaleHairDir, 
+        FemaleClothDir, MaleClothDir, SharedClothDir, NeutralClothDir,
+        FemalePositionsDir, MalePositionsDir, TogetherPositionsDir,
+        GlutePhysicsDir, BreastPhysicsDir, PluginsPresetDir,
+        AppearancePresetsDir, ClothingPresetsDir,
+        HairPresetsDir, PosePresetsDir, SkinPresetsDir
+    };
 
     public static bool IsPotentialJsonFile(string ext) => ext is ".json" or ".vap" or ".vaj" or ".uiap";
 

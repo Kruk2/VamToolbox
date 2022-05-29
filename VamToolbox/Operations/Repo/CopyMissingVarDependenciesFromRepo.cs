@@ -43,7 +43,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
         var count = existingFiles.Count + exitingVars.Count;
         var processed = 0;
 
-        var varFolderDestination = Path.Combine(_context.VamDir, "AddonPackages", "other");
+        var varFolderDestination = Path.Combine(_context.VamDir, KnownNames.AddonPackages, "other");
         if (!_context.DryRun)
             Directory.CreateDirectory(varFolderDestination);
 

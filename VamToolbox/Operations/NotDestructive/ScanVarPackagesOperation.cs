@@ -101,7 +101,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     {
         return Task.Run(() => {
             var packageFiles = _fs.Directory
-                .GetFiles(_fs.Path.Combine(_context.VamDir, "AddonPackages"), "*.var", SearchOption.AllDirectories)
+                .GetFiles(_fs.Path.Combine(_context.VamDir, KnownNames.AddonPackages), "*.var", SearchOption.AllDirectories)
                 .ToList();
 
             if (!string.IsNullOrEmpty(_context.RepoDir))

@@ -40,7 +40,7 @@ public class MetaFileRestorer : IMetaFileRestorer
 
     private IEnumerable<string> GetAddonDirs()
     {
-        var addonDir = _fileSystem.Path.Combine(_context.VamDir, "AddonPackages");
+        var addonDir = _fileSystem.Path.Combine(_context.VamDir, KnownNames.AddonPackages);
         if (_fileSystem.Directory.Exists(addonDir)) {
             yield return addonDir;
         }

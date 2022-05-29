@@ -79,8 +79,8 @@ public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
         if (_filesToCopy.TryAdd(bestReference.HashWithChildren, string.Empty)) {
             var parentDir = Path.GetDirectoryName(bestReference.LocalPath)!.NormalizePathSeparators();
             var destDir = Path.Combine(_context.VamDir, Path.GetDirectoryName(bestReference.LocalPath)!);
-            if (KnownNames.KnownVamDirs.Contains(parentDir, StringComparer.InvariantCultureIgnoreCase))
-                destDir = Path.Combine(_context.VamDir, parentDir, bestReference.ParentVar.Name.Author.RemoveInvalidChars()).NormalizePathSeparators();
+            //if (KnownNames.KnownVamDirs.Contains(parentDir, StringComparer.InvariantCultureIgnoreCase))
+            //    destDir = Path.Combine(_context.VamDir, parentDir, bestReference.ParentVar.Name.Author.RemoveInvalidChars()).NormalizePathSeparators();
 
             destDir = ResolveDestDirConflicts(bestReference, destDir);
 

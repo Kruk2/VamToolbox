@@ -78,5 +78,5 @@ public class UserPrefsBackuper : IUserPrefsBackuper
         _progressTracker.Complete($"Restored {counter} files");
     }
 
-    private string UserPrefsDir(string vamDir) => _fileSystem.Path.Combine(vamDir, "AddonPackagesUserPrefs");
+    private string UserPrefsDir(string vamDir) => _fileSystem.Path.Combine(vamDir, KnownNames.AddonPackagesUserPrefs);
 }

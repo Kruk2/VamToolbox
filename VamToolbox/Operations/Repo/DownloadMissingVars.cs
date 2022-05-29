@@ -30,7 +30,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             return;
         }
 
-        var folderDestination = Path.Combine(context.VamDir, "AddonPackages", "other");
+        var folderDestination = Path.Combine(context.VamDir, KnownNames.AddonPackages, "other");
         if (!context.DryRun)
             Directory.CreateDirectory(folderDestination);
         var count = vamResult.Count;

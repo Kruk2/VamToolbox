@@ -39,13 +39,13 @@ public sealed class CopySelectedVarsWithDependenciesFromRepo : ICopySelectedVars
             .Distinct();
 
         int copied = 0, unresolved = 0;
-        var addonPackages = Path.Combine(context.VamDir, "AddonPackages");
-        var addonPackagesInRepo = Path.Combine(context.RepoDir!, "AddonPackages");
+        var addonPackages = Path.Combine(context.VamDir,KnownNames.AddonPackages);
+        var addonPackagesInRepo = Path.Combine(context.RepoDir!, KnownNames.AddonPackages);
 
         foreach (var varPackage in filesToCopy.vars) 
         {
             var relativeToRepo = Path.GetRelativePath(context.RepoDir!, varPackage.FullPath);
-            if (relativeToRepo.StartsWith("AddonPackages", StringComparison.OrdinalIgnoreCase)) {
+            if (relativeToRepo.StartsWith(KnownNames.AddonPackages, StringComparison.OrdinalIgnoreCase)) {
                 relativeToRepo = Path.GetRelativePath(addonPackagesInRepo, varPackage.FullPath);
             }
 

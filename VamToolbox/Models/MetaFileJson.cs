@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json;
 
 namespace VamToolbox.Models;
 
+[ExcludeFromCodeCoverage]
 public sealed class MetaFileJson
 {
     [JsonProperty("dependencies")]
@@ -9,6 +11,7 @@ public sealed class MetaFileJson
 
 }
 
+[ExcludeFromCodeCoverage]
 public sealed class Dependency
 {
     [JsonProperty("dependencies")]
