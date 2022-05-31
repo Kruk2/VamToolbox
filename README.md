@@ -2,7 +2,7 @@
 The idea behind this program is to have empty ```VAM``` directory, terrabytes of vars in ```REPO``` directory and a defined subset of vars that you want to play with.  
 There are two ways to make it work.   
 
-The first way is to manually copy some vars/scenes to AddonPackages/Scenes directoriers and then using "Search for missing dependencies" button.
+The first way is to manually copy (or do a hardlink) some vars/scenes to AddonPackages/Scenes directoriers and then using "Search for missing dependencies" button.
 It will lookup up what files are need to correctly load files you've copied and then soft-link them from ```REPO``` to ```VAM```.
 
 Second way (more roboust) is to define various profiles.  
