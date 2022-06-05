@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
-using System.IO.Compression;
+﻿using System.Diagnostics.CodeAnalysis;
+using Ionic.Zip;
 using VamToolbox.Helpers;
 
 namespace VamToolbox.Models;
@@ -15,7 +15,7 @@ public sealed class PotentialJsonFile : IDisposable
     public string Name => IsVar ? Var.Name.Filename : Free.LocalPath;
 
     private FileStream? _varFileStream;
-    private ZipArchive? _varArchive;
+    private ZipFile? _varArchive;
 
     private readonly Dictionary<string, List<Reference>> _varFilesReferenceCache = new(StringComparer.Ordinal);
     private List<Reference>? _freeFileReferenceCache;
@@ -28,7 +28,7 @@ public sealed class PotentialJsonFile : IDisposable
             var potentialJsonFiles = Var.Files
                 .SelfAndChildren()
                 .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower));
-            IDictionary<string, ZipArchiveEntry>? entries = null;
+            IDictionary<string, ZipEntry>? entries = null;
 
             foreach (var potentialJsonFile in potentialJsonFiles) {
                 if (_varFilesReferenceCache.ContainsKey(potentialJsonFile.LocalPath)) {
@@ -36,10 +36,11 @@ public sealed class PotentialJsonFile : IDisposable
                 } else {
                     if (!potentialJsonFile.Dirty) throw new InvalidOperationException($"Tried to read not-dirty var file {potentialJsonFile}");
                     _varFileStream ??= File.OpenRead(Var.FullPath);
-                    _varArchive ??= new ZipArchive(_varFileStream);
-                    entries ??= _varArchive.Entries.ToDictionary(t => t.FullName.NormalizePathSeparators());
+                    _varArchive ??= ZipFile.Read(_varFileStream);
+                    _varArchive.CaseSensitiveRetrieval = true;
+                    entries ??= _varArchive.Entries.Where(t => !t.IsDirectory).ToDictionary(t => t.FileName.NormalizePathSeparators());
 
-                    yield return new OpenedPotentialJson(potentialJsonFile) { Stream = entries[potentialJsonFile.LocalPath].Open() };
+                    yield return new OpenedPotentialJson(potentialJsonFile) { Stream = entries[potentialJsonFile.LocalPath].OpenReader() };
                 }
             }
         } else {
