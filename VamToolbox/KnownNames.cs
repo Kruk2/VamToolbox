@@ -6,6 +6,8 @@ public static class KnownNames
 {
     public static readonly string[] ExtReferencesToPresets = { ".json", ".vap", ".vaj", ".vam" };
     public static readonly string[] PreviewExtensions = { ".jpg", ".jpeg", ".png" };
+    public static readonly string[] VirusMorphs = { "RG UpDown2", "RG Side2Side", "RG InOut" };
+
     public const string BackupExtension = ".toolboxbak";
     public const string AddonPackagesUserPrefs = "AddonPackagesUserPrefs";
     public const string AddonPackages = "AddonPackages";

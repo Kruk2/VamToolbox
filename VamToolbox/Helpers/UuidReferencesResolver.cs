@@ -155,7 +155,7 @@ public class UuidReferencesResolver : IUuidReferenceResolver
 
     public (JsonReference? jsonReference, bool isDelayed) MatchMorphJsonReferenceByName(JsonFile jsonFile, Reference reference, FileReferenceBase? fallBackResolvedAsset)
     {
-        if (reference.MorphName is not null && (reference.MorphName.StartsWith("RG ", StringComparison.Ordinal) || reference.MorphName.StartsWith("LG ", StringComparison.Ordinal))) {
+        if (reference.MorphName is not null && KnownNames.VirusMorphs.Any(t => reference.MorphName.Equals(t, StringComparison.Ordinal))) {
             return (default, false);
         }
 

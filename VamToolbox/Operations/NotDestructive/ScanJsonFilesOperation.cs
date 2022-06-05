@@ -163,7 +163,10 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         }
 
         _logger.Log("Unresolved references");
-        foreach (var unableToParseVarName in scenes.SelectMany(t => t.Missing).OrderBy(t => t.Value)) {
+        foreach (var unableToParseVarName in scenes
+                     .SelectMany(t => t.Missing)
+                     .Where(t => KnownNames.VirusMorphs.All(x => t.MorphName?.Equals(x, StringComparison.Ordinal) != true))
+                     .OrderBy(t => t.Value)) {
             _logger.Log($"'{unableToParseVarName.Value}' in {unableToParseVarName.ForJsonFile}");
         }
 
