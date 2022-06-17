@@ -36,13 +36,14 @@ You can fix some of them manually like invalid var filename or missing meta.json
 4. ![image](https://user-images.githubusercontent.com/59397941/156947430-d014f2a5-e478-4499-978a-8f8e323dd098.png)  
 This will check what vars are missing in your ```VAM``` directory and download them from HUB. They will be downloaded to ```VAM/AddonPackages/other``` directory.
 
-5. ![image](https://user-images.githubusercontent.com/59397941/171235499-36a0a33c-5a48-491e-9dab-8a84e153f586.png)  
-First button will clear the "dependencies" section in every meta.json. It's often incorrect and the only purpose it has is to spam with errors in VaM.  
-Warning! This make take over an hour depending on how many vars you have. Unfortunately updating one file in .var requires to recreate the archive (this is how zip works).  
-Second button will remove preloadMorphs: true from every meta.json that it has. It will do it only for vars that are not morphpacks (i.e. vars that only contain morphs).  
-Third button will do both things at once. Usefull since both operations have to recreate zip archive which can be slow.  
-Both operations will backup your meta.json inside the var file so you can restore them if need by using "Restore meta.json" button. 
-It is recommended to run them first with "Dry run" and check the relevant log file to see what has been changed.
+5. ![image](https://user-images.githubusercontent.com/59397941/174407559-b517e42d-9df4-41be-8cd7-170a0b23a168.png)     
+- ```Disable morph-preload``` will remove preloadMorphs: true from every meta.json that it has. It will do it only for vars that are not morphpacks (i.e. vars that only contain morphs).  
+- ```Remove dependencies```  will clear the "dependencies" section in every meta.json. It's often incorrect and the only purpose it has is to spam with errors in VaM.   **Warning!** This make take over an hour depending on how many vars you have. Unfortunately updating one file in .var requires to recreate the archive (this is how zip works).  
+- ```Remove virus morphs``` will remove virus RG morphs from var files. More info [here](https://hub.virtamate.com/threads/fake-depth-on-2d-plane.21760/#post-57493).
+- ```Remove dsf morphs``` will remove all DSF morphs from var files.
+
+Operations that modify ```meta.json``` will backup this file inside the var file so you can restore them if need by using "Restore meta.json" button. 
+It is recommended to first run ```Var Fixers``` with "Dry run" and check the relevant log file to see what has been changed.
 
 ## Profiles
 ![image](https://user-images.githubusercontent.com/59397941/156947461-51a9093d-c82c-4a95-8b6b-793a8c347fde.png)  
