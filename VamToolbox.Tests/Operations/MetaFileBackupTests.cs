@@ -90,7 +90,7 @@ public class MetaFileBackupTests
             files["meta.json.toolboxbak"] = backupFile;
         }
 
-        return ZipTestHelpers.CreateZipFile(files);
+        return ZipTestHelpers.CreateMockFile(files);
     }
 
     private Task Restore(bool dryRun = false) => _restorer.Restore(new OperationContext {

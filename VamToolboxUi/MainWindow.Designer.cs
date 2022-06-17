@@ -60,6 +60,7 @@ namespace VamToolboxUi
             this.runVarFixersBtn = new System.Windows.Forms.Button();
             this.removeDependenciesFromMetaChk = new System.Windows.Forms.CheckBox();
             this.disableMorphPreloadChk = new System.Windows.Forms.CheckBox();
+            this.removeVirusMorphsChk = new System.Windows.Forms.CheckBox();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -355,6 +356,7 @@ namespace VamToolboxUi
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.removeVirusMorphsChk);
             this.groupBox1.Controls.Add(this.runVarFixersBtn);
             this.groupBox1.Controls.Add(this.removeDependenciesFromMetaChk);
             this.groupBox1.Controls.Add(this.disableMorphPreloadChk);
@@ -394,6 +396,16 @@ namespace VamToolboxUi
             this.disableMorphPreloadChk.TabIndex = 0;
             this.disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
             this.disableMorphPreloadChk.UseVisualStyleBackColor = true;
+            // 
+            // removeVirusMorphsChk
+            // 
+            this.removeVirusMorphsChk.AutoSize = true;
+            this.removeVirusMorphsChk.Location = new System.Drawing.Point(298, 22);
+            this.removeVirusMorphsChk.Name = "removeVirusMorphsChk";
+            this.removeVirusMorphsChk.Size = new System.Drawing.Size(213, 19);
+            this.removeVirusMorphsChk.TabIndex = 31;
+            this.removeVirusMorphsChk.Text = "Remove virus-morphs (RG morphs)";
+            this.removeVirusMorphsChk.UseVisualStyleBackColor = true;
             // 
             // MainWindow
             // 
@@ -464,6 +476,7 @@ namespace VamToolboxUi
         private Button runVarFixersBtn;
         private CheckBox removeDependenciesFromMetaChk;
         private CheckBox disableMorphPreloadChk;
+        private CheckBox removeVirusMorphsChk;
     }
 }
 

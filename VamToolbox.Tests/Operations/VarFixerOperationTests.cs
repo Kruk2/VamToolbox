@@ -227,7 +227,7 @@ public class VarFixerOperationTests
             files["meta.json.toolboxbak"] = metaBackup;
         }
 
-        var zipFile = ZipTestHelpers.CreateZipFile(files);
+        var zipFile = ZipTestHelpers.CreateMockFile(files);
         _fs.AddFile(path ?? (AddondsDir + "a.var"), zipFile);
     }
 

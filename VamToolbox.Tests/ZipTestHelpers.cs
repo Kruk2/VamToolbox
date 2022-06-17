@@ -21,13 +21,18 @@ public static class ZipTestHelpers
         return result;
     }
 
-    public static MockFileData CreateZipFile(Dictionary<string, string> files)
+    public static MockFileData CreateMockFile(Dictionary<string, string> files)
     {
-        using var memoryStream = new MemoryStream();
+        using var memoryStream = CreateZipFile(files);
+        return new MockFileData(memoryStream.ToArray());
+    }
+
+    public static MemoryStream CreateZipFile(Dictionary<string, string> files)
+    {
+        var memoryStream = new MemoryStream();
         {
             using var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true);
-            foreach (var (key, value) in files)
-            {
+            foreach (var (key, value) in files) {
                 var entry = zipArchive.CreateEntry(key);
                 using var stream = entry.Open();
                 using var writeStream = new StreamWriter(stream, Encoding.UTF8);
@@ -35,6 +40,7 @@ public static class ZipTestHelpers
             }
         }
 
-        return new MockFileData(memoryStream.ToArray());
+        memoryStream.Position = 0;
+        return memoryStream;
     }
 }

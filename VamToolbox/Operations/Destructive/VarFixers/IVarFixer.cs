@@ -1,4 +1,5 @@
 ﻿using Ionic.Zip;
+using VamToolbox.Helpers;
 using VamToolbox.Models;
 
 namespace VamToolbox.Operations.Destructive.VarFixers;

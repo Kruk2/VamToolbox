@@ -30,8 +30,4 @@
 		</AssemblyAttribute>
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Operations\Destructive\VarFixers\" />
-	</ItemGroup>
-
 </Project>
