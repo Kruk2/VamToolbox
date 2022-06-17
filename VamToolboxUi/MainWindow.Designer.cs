@@ -57,10 +57,11 @@ namespace VamToolboxUi
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.removeVirusMorphsChk = new System.Windows.Forms.CheckBox();
             this.runVarFixersBtn = new System.Windows.Forms.Button();
             this.removeDependenciesFromMetaChk = new System.Windows.Forms.CheckBox();
             this.disableMorphPreloadChk = new System.Windows.Forms.CheckBox();
-            this.removeVirusMorphsChk = new System.Windows.Forms.CheckBox();
+            this.removeDsfMorphsChk = new System.Windows.Forms.CheckBox();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -356,6 +357,7 @@ namespace VamToolboxUi
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.removeDsfMorphsChk);
             this.groupBox1.Controls.Add(this.removeVirusMorphsChk);
             this.groupBox1.Controls.Add(this.runVarFixersBtn);
             this.groupBox1.Controls.Add(this.removeDependenciesFromMetaChk);
@@ -366,6 +368,16 @@ namespace VamToolboxUi
             this.groupBox1.TabIndex = 31;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Var Fixers";
+            // 
+            // removeVirusMorphsChk
+            // 
+            this.removeVirusMorphsChk.AutoSize = true;
+            this.removeVirusMorphsChk.Location = new System.Drawing.Point(298, 22);
+            this.removeVirusMorphsChk.Name = "removeVirusMorphsChk";
+            this.removeVirusMorphsChk.Size = new System.Drawing.Size(213, 19);
+            this.removeVirusMorphsChk.TabIndex = 31;
+            this.removeVirusMorphsChk.Text = "Remove virus-morphs (RG morphs)";
+            this.removeVirusMorphsChk.UseVisualStyleBackColor = true;
             // 
             // runVarFixersBtn
             // 
@@ -397,15 +409,15 @@ namespace VamToolboxUi
             this.disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
             this.disableMorphPreloadChk.UseVisualStyleBackColor = true;
             // 
-            // removeVirusMorphsChk
+            // removeDsfMorphsChk
             // 
-            this.removeVirusMorphsChk.AutoSize = true;
-            this.removeVirusMorphsChk.Location = new System.Drawing.Point(298, 22);
-            this.removeVirusMorphsChk.Name = "removeVirusMorphsChk";
-            this.removeVirusMorphsChk.Size = new System.Drawing.Size(213, 19);
-            this.removeVirusMorphsChk.TabIndex = 31;
-            this.removeVirusMorphsChk.Text = "Remove virus-morphs (RG morphs)";
-            this.removeVirusMorphsChk.UseVisualStyleBackColor = true;
+            this.removeDsfMorphsChk.AutoSize = true;
+            this.removeDsfMorphsChk.Location = new System.Drawing.Point(298, 41);
+            this.removeDsfMorphsChk.Name = "removeDsfMorphsChk";
+            this.removeDsfMorphsChk.Size = new System.Drawing.Size(132, 19);
+            this.removeDsfMorphsChk.TabIndex = 32;
+            this.removeDsfMorphsChk.Text = "Remove dsf morphs";
+            this.removeDsfMorphsChk.UseVisualStyleBackColor = true;
             // 
             // MainWindow
             // 
@@ -477,6 +489,7 @@ namespace VamToolboxUi
         private CheckBox removeDependenciesFromMetaChk;
         private CheckBox disableMorphPreloadChk;
         private CheckBox removeVirusMorphsChk;
+        private CheckBox removeDsfMorphsChk;
     }
 }
 

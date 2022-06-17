@@ -6,19 +6,20 @@ using VamToolbox.Operations.Destructive.VarFixers;
 using Xunit;
 
 namespace VamToolbox.Tests.Operations;
-public class RemoveVirusMorphsVarFixerTests
+
+public class RemoveDsfMorphsVarFixerTests
 {
     private readonly CustomFixture _fixture;
-    private readonly RemoveVirusMorphsVarFixer _fixer;
+    private readonly RemoveDsfMorphsVarFixer _fixer;
 
-    public RemoveVirusMorphsVarFixerTests()
+    public RemoveDsfMorphsVarFixerTests()
     {
         _fixture = new CustomFixture();
-        _fixer = _fixture.Create<RemoveVirusMorphsVarFixer>();
+        _fixer = _fixture.Create<RemoveDsfMorphsVarFixer>();
     }
 
     [Theory, CustomAutoData]
-    public void Fix_WhenVarDoesntContainRGMorphs_ShouldReturnFalse(VarPackage var)
+    public void Fix_WhenVarDoesntContainDsfMorphs_ShouldReturnFalse(VarPackage var)
     {
         using var zipFile = CreateZip("some_morph.vmb", "other_morph.vmi");
 
@@ -29,9 +30,10 @@ public class RemoveVirusMorphsVarFixerTests
     }
 
     [Theory, CustomAutoData]
-    public void Fix_WhenVarContainsRgMorph_ShouldDeleteThem(VarPackage var)
+    public void Fix_WhenVarContainsDsfMorphs_ShouldDeleteThem(VarPackage var)
     {
-        var morphs = RemoveVirusMorphsVarFixer.VirusMorphs.ToList();
+        var morphs = _fixture.CreateMany<string>().Select(t => t + ".DSF").ToList();
+        morphs.AddRange(_fixture.CreateMany<string>().Select(t => t + ".dsf"));
         morphs.AddRange(new[] { "some_morph.vmb", "other_morph.vmi" });
         using var zipFile = CreateZip(morphs.ToArray());
 

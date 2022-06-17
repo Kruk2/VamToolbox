@@ -320,6 +320,7 @@ public partial class MainWindow : Form, IProgressTracker
         if(disableMorphPreloadChk.Checked) fixers.Add(scope.Resolve<DisableMorphVarFixer>());
         if(removeDependenciesFromMetaChk.Checked) fixers.Add(scope.Resolve<RemoveDependenciesVarFixer>());
         if(removeVirusMorphsChk.Checked) fixers.Add(scope.Resolve<RemoveVirusMorphsVarFixer>());
+        if(removeDsfMorphsChk.Checked) fixers.Add(scope.Resolve<RemoveDsfMorphsVarFixer>());
 
         await scope.Resolve<IVarFixerOperation>().Execute(ctx, vars, fixers);
 
