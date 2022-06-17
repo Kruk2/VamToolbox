@@ -41,13 +41,10 @@ namespace VamToolboxUi
             this.dryRunCheckbox = new System.Windows.Forms.CheckBox();
             this.copyMissingDepsFromRepoBtn = new System.Windows.Forms.Button();
             this.scanJsonFilesBtn = new System.Windows.Forms.Button();
-            this.removeDependenciesFromMetaBtn = new System.Windows.Forms.Button();
             this.clearCacheBtn = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.diableMorphAndDepsBtn = new System.Windows.Forms.Button();
             this.restoreMetaJsonBtn = new System.Windows.Forms.Button();
             this.downloadFromHubBtn = new System.Windows.Forms.Button();
-            this.disableMorphPreloadBtn = new System.Windows.Forms.Button();
             this.trustAllVarsBtn = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.profilesListBox = new System.Windows.Forms.CheckedListBox();
@@ -59,9 +56,14 @@ namespace VamToolboxUi
             this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.runVarFixersBtn = new System.Windows.Forms.Button();
+            this.removeDependenciesFromMetaChk = new System.Windows.Forms.CheckBox();
+            this.disableMorphPreloadChk = new System.Windows.Forms.CheckBox();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -160,7 +162,7 @@ namespace VamToolboxUi
             // 
             // copyMissingDepsFromRepoBtn
             // 
-            this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(481, 116);
+            this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(477, 20);
             this.copyMissingDepsFromRepoBtn.Name = "copyMissingDepsFromRepoBtn";
             this.copyMissingDepsFromRepoBtn.Size = new System.Drawing.Size(135, 75);
             this.copyMissingDepsFromRepoBtn.TabIndex = 13;
@@ -178,16 +180,6 @@ namespace VamToolboxUi
             this.scanJsonFilesBtn.UseVisualStyleBackColor = true;
             this.scanJsonFilesBtn.Click += new System.EventHandler(this.scanJsonFilesBtn_Click);
             // 
-            // removeDependenciesFromMetaBtn
-            // 
-            this.removeDependenciesFromMetaBtn.Location = new System.Drawing.Point(6, 22);
-            this.removeDependenciesFromMetaBtn.Name = "removeDependenciesFromMetaBtn";
-            this.removeDependenciesFromMetaBtn.Size = new System.Drawing.Size(125, 73);
-            this.removeDependenciesFromMetaBtn.TabIndex = 16;
-            this.removeDependenciesFromMetaBtn.Text = "Remove dependencies from all meta.json files";
-            this.removeDependenciesFromMetaBtn.UseVisualStyleBackColor = true;
-            this.removeDependenciesFromMetaBtn.Click += new System.EventHandler(this.removeDependenciesFromMeta_Click);
-            // 
             // clearCacheBtn
             // 
             this.clearCacheBtn.Location = new System.Drawing.Point(208, 52);
@@ -200,35 +192,22 @@ namespace VamToolboxUi
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.diableMorphAndDepsBtn);
             this.groupBox2.Controls.Add(this.restoreMetaJsonBtn);
             this.groupBox2.Controls.Add(this.downloadFromHubBtn);
             this.groupBox2.Controls.Add(this.copyMissingDepsFromRepoBtn);
-            this.groupBox2.Controls.Add(this.disableMorphPreloadBtn);
             this.groupBox2.Controls.Add(this.trustAllVarsBtn);
-            this.groupBox2.Controls.Add(this.removeDependenciesFromMetaBtn);
-            this.groupBox2.Location = new System.Drawing.Point(3, 169);
+            this.groupBox2.Location = new System.Drawing.Point(3, 265);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(622, 198);
+            this.groupBox2.Size = new System.Drawing.Size(622, 102);
             this.groupBox2.TabIndex = 19;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Tools";
             // 
-            // diableMorphAndDepsBtn
-            // 
-            this.diableMorphAndDepsBtn.Location = new System.Drawing.Point(254, 22);
-            this.diableMorphAndDepsBtn.Name = "diableMorphAndDepsBtn";
-            this.diableMorphAndDepsBtn.Size = new System.Drawing.Size(111, 73);
-            this.diableMorphAndDepsBtn.TabIndex = 29;
-            this.diableMorphAndDepsBtn.Text = "Disable both";
-            this.diableMorphAndDepsBtn.UseVisualStyleBackColor = true;
-            this.diableMorphAndDepsBtn.Click += new System.EventHandler(this.disableMorphAndDepsBtn_Click);
-            // 
             // restoreMetaJsonBtn
             // 
-            this.restoreMetaJsonBtn.Location = new System.Drawing.Point(137, 116);
+            this.restoreMetaJsonBtn.Location = new System.Drawing.Point(125, 22);
             this.restoreMetaJsonBtn.Name = "restoreMetaJsonBtn";
-            this.restoreMetaJsonBtn.Size = new System.Drawing.Size(111, 76);
+            this.restoreMetaJsonBtn.Size = new System.Drawing.Size(111, 49);
             this.restoreMetaJsonBtn.TabIndex = 21;
             this.restoreMetaJsonBtn.Text = "Restore meta.json";
             this.restoreMetaJsonBtn.UseVisualStyleBackColor = true;
@@ -236,29 +215,19 @@ namespace VamToolboxUi
             // 
             // downloadFromHubBtn
             // 
-            this.downloadFromHubBtn.Location = new System.Drawing.Point(481, 22);
+            this.downloadFromHubBtn.Location = new System.Drawing.Point(336, 20);
             this.downloadFromHubBtn.Name = "downloadFromHubBtn";
-            this.downloadFromHubBtn.Size = new System.Drawing.Size(135, 73);
+            this.downloadFromHubBtn.Size = new System.Drawing.Size(135, 75);
             this.downloadFromHubBtn.TabIndex = 28;
             this.downloadFromHubBtn.Text = "Download missing dependencies from Virt-a HUB";
             this.downloadFromHubBtn.UseVisualStyleBackColor = true;
             this.downloadFromHubBtn.Click += new System.EventHandler(this.downloadFromHubBtn_Click);
             // 
-            // disableMorphPreloadBtn
-            // 
-            this.disableMorphPreloadBtn.Location = new System.Drawing.Point(137, 22);
-            this.disableMorphPreloadBtn.Name = "disableMorphPreloadBtn";
-            this.disableMorphPreloadBtn.Size = new System.Drawing.Size(111, 73);
-            this.disableMorphPreloadBtn.TabIndex = 19;
-            this.disableMorphPreloadBtn.Text = "Disable morphPreload for all non-morphpacks";
-            this.disableMorphPreloadBtn.UseVisualStyleBackColor = true;
-            this.disableMorphPreloadBtn.Click += new System.EventHandler(this.disableMorphPreloadBtn_Click);
-            // 
             // trustAllVarsBtn
             // 
-            this.trustAllVarsBtn.Location = new System.Drawing.Point(6, 116);
+            this.trustAllVarsBtn.Location = new System.Drawing.Point(6, 22);
             this.trustAllVarsBtn.Name = "trustAllVarsBtn";
-            this.trustAllVarsBtn.Size = new System.Drawing.Size(125, 76);
+            this.trustAllVarsBtn.Size = new System.Drawing.Size(113, 49);
             this.trustAllVarsBtn.TabIndex = 18;
             this.trustAllVarsBtn.Text = "Trust scripts for all VARs in .prefs files";
             this.trustAllVarsBtn.UseVisualStyleBackColor = true;
@@ -384,11 +353,54 @@ namespace VamToolboxUi
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "General Options";
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.runVarFixersBtn);
+            this.groupBox1.Controls.Add(this.removeDependenciesFromMetaChk);
+            this.groupBox1.Controls.Add(this.disableMorphPreloadChk);
+            this.groupBox1.Location = new System.Drawing.Point(3, 169);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(622, 99);
+            this.groupBox1.TabIndex = 31;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Var Fixers";
+            // 
+            // runVarFixersBtn
+            // 
+            this.runVarFixersBtn.Location = new System.Drawing.Point(246, 66);
+            this.runVarFixersBtn.Name = "runVarFixersBtn";
+            this.runVarFixersBtn.Size = new System.Drawing.Size(114, 24);
+            this.runVarFixersBtn.TabIndex = 30;
+            this.runVarFixersBtn.Text = "Run var fixers";
+            this.runVarFixersBtn.UseVisualStyleBackColor = true;
+            this.runVarFixersBtn.Click += new System.EventHandler(this.runVarFixersBtn_Click);
+            // 
+            // removeDependenciesFromMetaChk
+            // 
+            this.removeDependenciesFromMetaChk.AutoSize = true;
+            this.removeDependenciesFromMetaChk.Location = new System.Drawing.Point(6, 47);
+            this.removeDependenciesFromMetaChk.Name = "removeDependenciesFromMetaChk";
+            this.removeDependenciesFromMetaChk.Size = new System.Drawing.Size(268, 19);
+            this.removeDependenciesFromMetaChk.TabIndex = 1;
+            this.removeDependenciesFromMetaChk.Text = "Remove dependencies from all meta.json files";
+            this.removeDependenciesFromMetaChk.UseVisualStyleBackColor = true;
+            // 
+            // disableMorphPreloadChk
+            // 
+            this.disableMorphPreloadChk.AutoSize = true;
+            this.disableMorphPreloadChk.Location = new System.Drawing.Point(6, 22);
+            this.disableMorphPreloadChk.Name = "disableMorphPreloadChk";
+            this.disableMorphPreloadChk.Size = new System.Drawing.Size(271, 19);
+            this.disableMorphPreloadChk.TabIndex = 0;
+            this.disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
+            this.disableMorphPreloadChk.UseVisualStyleBackColor = true;
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(641, 658);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.scanJsonFilesBtn);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.stageTxt);
@@ -412,6 +424,8 @@ namespace VamToolboxUi
             this.groupBox3.ResumeLayout(false);
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -431,7 +445,6 @@ namespace VamToolboxUi
         private System.Windows.Forms.CheckBox dryRunCheckbox;
         private System.Windows.Forms.Button copyMissingDepsFromRepoBtn;
         private System.Windows.Forms.Button scanJsonFilesBtn;
-        private System.Windows.Forms.Button removeDependenciesFromMetaBtn;
         private System.Windows.Forms.Button clearCacheBtn;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.GroupBox groupBox3;
@@ -446,9 +459,11 @@ namespace VamToolboxUi
         private System.Windows.Forms.Label stageTxt;
         private System.Windows.Forms.GroupBox groupBox4;
         private System.Windows.Forms.Button downloadFromHubBtn;
-        private Button disableMorphPreloadBtn;
         private Button restoreMetaJsonBtn;
-        private Button diableMorphAndDepsBtn;
+        private GroupBox groupBox1;
+        private Button runVarFixersBtn;
+        private CheckBox removeDependenciesFromMetaChk;
+        private CheckBox disableMorphPreloadChk;
     }
 }
 

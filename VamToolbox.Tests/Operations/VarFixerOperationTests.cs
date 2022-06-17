@@ -4,21 +4,22 @@ using FluentAssertions;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 using VamToolbox.Operations.Destructive;
+using VamToolbox.Operations.Destructive.VarFixers;
 using Xunit;
 
 namespace VamToolbox.Tests.Operations;
-public class MetaJsonUpdaterOperationTests 
+public class VarFixerOperationTests 
 {
     private readonly MockFileSystem _fs;
-    private readonly MetaJsonUpdaterOperation _operation;
+    private readonly VarFixerOperation _operation;
     private CustomFixture _fixture;
     private const string AddondsDir = "C:/VaM/AddonPackages/";
 
-    public MetaJsonUpdaterOperationTests()
+    public VarFixerOperationTests()
     {
         _fixture = new CustomFixture();
         _fs = _fixture.Create<MockFileSystem>();
-        _operation = _fixture.Create<MetaJsonUpdaterOperation>();
+        _operation = _fixture.Create<VarFixerOperation>();
     }
 
     [Fact]
@@ -238,11 +239,16 @@ public class MetaJsonUpdaterOperationTests
         } else {
             varFiles.ForEach(t => _ = new VarPackageFile(KnownNames.HairPresetsDir + "/a.vam", 0, false, t, DateTime.Now));
         }
+
+        var fixers = new List<IVarFixer>();
+        if(disableMorphs) fixers.Add(_fixture.Create<DisableMorphVarFixer>());
+        if(removeDeps) fixers.Add(_fixture.Create<RemoveDependenciesVarFixer>());
+
         return _operation.Execute(new OperationContext {
             DryRun = dryRun,
             VamDir = "C:/VaM",
             Threads = 1
-        }, varFiles, removeDeps, disableMorphs);
+        }, varFiles, fixers);
     }
 
     private const string TestMetaWithMorphPreloadMissingCustomOptions = @"{ 

@@ -10,6 +10,7 @@ using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 using VamToolbox.Operations.Backups;
 using VamToolbox.Operations.Destructive;
+using VamToolbox.Operations.Destructive.VarFixers;
 using VamToolbox.Operations.NotDestructive;
 using VamToolbox.Operations.Repo;
 using VamToolbox.Sqlite;
@@ -305,44 +306,21 @@ public partial class MainWindow : Form, IProgressTracker
         return filters;
     }
 
-    private async void removeDependenciesFromMeta_Click(object sender, EventArgs e)
+    private async void runVarFixersBtn_Click(object sender, EventArgs e)
     {
         if (!ValidateSettings()) return;
-        if (MessageBox.Show("Removing dependencies can be very time and I/O consuming operation (every zip will be rewriten) Continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
+        if (removeDependenciesFromMetaChk.Checked && MessageBox.Show("Removing dependencies can be very time and I/O consuming operation (every zip will be rewriten) Continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
             return;
         }
 
         var ctx = GetContext(stages: 2);
         await using var scope = _ctx.BeginLifetimeScope();
         var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, removeDependencies: true);
+        var fixers = new List<IVarFixer>();
+        if(disableMorphPreloadChk.Checked) fixers.Add(scope.Resolve<DisableMorphVarFixer>());
+        if(removeDependenciesFromMetaChk.Checked) fixers.Add(scope.Resolve<RemoveDependenciesVarFixer>());
 
-        SwitchUI(false);
-    }
-
-    private async void disableMorphPreloadBtn_Click(object sender, EventArgs e)
-    {
-        if (!ValidateSettings()) return;
-
-        var ctx = GetContext(stages: 2);
-        await using var scope = _ctx.BeginLifetimeScope();
-        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true);
-
-        SwitchUI(false);
-    }
-
-    private async void disableMorphAndDepsBtn_Click(object sender, EventArgs e)
-    {
-        if (!ValidateSettings()) return;
-        if (MessageBox.Show("Removing dependencies can be very time and I/O consuming operation (every zip will be rewriten) Continue?", "Warning", MessageBoxButtons.OKCancel) == DialogResult.Cancel) {
-            return;
-        }
-
-        var ctx = GetContext(stages: 2);
-        await using var scope = _ctx.BeginLifetimeScope();
-        var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
-        await scope.Resolve<IMetaJsonUpdaterOperation>().Execute(ctx, vars, disableMorphPreload: true, removeDependencies: true);
+        await scope.Resolve<IVarFixerOperation>().Execute(ctx, vars, fixers);
 
         SwitchUI(false);
     }

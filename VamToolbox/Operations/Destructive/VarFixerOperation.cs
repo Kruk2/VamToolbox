@@ -4,52 +4,53 @@ using System.Dynamic;
 using System.IO.Abstractions;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
-using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
+using VamToolbox.Operations.Destructive.VarFixers;
 
 namespace VamToolbox.Operations.Destructive;
-public interface IMetaJsonUpdaterOperation : IOperation
+
+public interface IVarFixerOperation : IOperation
 {
-    Task Execute(OperationContext context, IEnumerable<VarPackage> vars, bool removeDependencies = false, bool disableMorphPreload = false);
+    Task Execute(OperationContext context, IEnumerable<VarPackage> vars, IEnumerable<IVarFixer> varFixers);
 }
 
-public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
+public class VarFixerOperation : IVarFixerOperation
 {
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly IProgressTracker _progressTracker;
     private int _total, _progress, _changesCount, _errors;
     private OperationContext _context = null!;
-    private bool _removeDependencies, _disableMorphPreload;
+    private IEnumerable<IVarFixer> _varFixers = null!;
 
     private readonly JsonSerializer _serializer = new() {
         Formatting = Formatting.Indented
     };
 
-    public MetaJsonUpdaterOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker, ISoftLinker softLinker)
+    public VarFixerOperation(IFileSystem fileSystem, ILogger logger, IProgressTracker progressTracker)
     {
         _fileSystem = fileSystem;
         _logger = logger;
         _progressTracker = progressTracker;
     }
 
-    public async Task Execute(OperationContext context, IEnumerable<VarPackage> vars, bool removeDependencies, bool disableMorphPreload)
+    public async Task Execute(OperationContext context, IEnumerable<VarPackage> vars, IEnumerable<IVarFixer> varFixers)
     {
-        _removeDependencies = removeDependencies;
-        _disableMorphPreload = disableMorphPreload;
+        _varFixers = varFixers;
 
         _context = context;
-        await _logger.Init("clear_meta_json_dependencies.txt");
+        await _logger.Init("var_fixer.txt");
         _progressTracker.InitProgress("Clearing");
-        await RunInParallel(vars, UpdateMetaJson);
+        await RunInParallel(vars, ProcessVar);
 
-        _progressTracker.Complete($"Processed {_total} meta.json files. Fixed: {_changesCount} files. Errors {_errors}");
+        _progressTracker.Complete($"Processed {_total} var files. Fixed: {_changesCount} files. Errors {_errors}");
     }
 
-    private async Task UpdateMetaJson(string varPath)
+    private async Task ProcessVar(VarPackage var)
     {
+        var varPath = var.FullPath;
         var oldModifiedDate = _fileSystem.FileInfo.FromFileName(varPath).LastWriteTimeUtc;
         var oldCreatedDate = _fileSystem.FileInfo.FromFileName(varPath).CreationTimeUtc;
         var varTmpPath = varPath + ".tmp";
@@ -61,27 +62,17 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
                 zip.CaseSensitiveRetrieval = true;
 
                 var metaFile = zip["meta.json"];
-                if (metaFile is null) {
-                    _logger.Log($"Skipping because meta.json not found: {varPath}");
-                    return;
-                }
-
-                var json = ReadMetaJson(metaFile);
-                var dict = (IDictionary<string, object>)json;
-                var changed = false;
-                if (_removeDependencies) {
-                    changed |= RemoveDependecies(varPath, dict);
-                }
-
-                if (_disableMorphPreload) {
-                    changed |= DisableMorphPreload(varPath, dict);
-                }
+                var metaContentLazy = new Lazy<IDictionary<string, object>?>(() => ReadMetaJson(metaFile));
+                var changed = RunFixers(var, zip, metaContentLazy);
 
                 if (changed) {
 
                     if (!_context.DryRun) {
-                        BackupMeta(zip, metaFile, varPath);
-                        await WriteNewMetaFile(json, zip, metaFile);
+                        if (metaContentLazy.Value is not null) {
+                            BackupMeta(zip, metaFile, varPath);
+                            await WriteNewMetaFile(metaContentLazy.Value, zip, metaFile);
+                        }
+
                         await using var outputStream = _fileSystem.File.OpenWrite(varTmpPath);
                         zip.Save(outputStream);
                     }
@@ -106,7 +97,17 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         }
     }
 
-    private async Task WriteNewMetaFile(dynamic json, ZipFile zip, ZipEntry metaFile)
+    private bool RunFixers(VarPackage var, ZipFile zip, Lazy<IDictionary<string, object>?> metaContentLazy)
+    {
+        var changed = false;
+        foreach (var varFixer in _varFixers) {
+            changed |= varFixer.Process(var, zip, metaContentLazy);
+        }
+
+        return changed;
+    }
+
+    private async Task WriteNewMetaFile(dynamic? json, ZipFile zip, ZipEntry metaFile)
     {
         var oldMetaCreationTime = metaFile.CreationTime;
         var oldMetaModifiedTime = metaFile.LastModified;
@@ -135,8 +136,12 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         }
     }
 
-    private dynamic ReadMetaJson(ZipEntry metaFile)
+    private IDictionary<string, object>? ReadMetaJson(ZipEntry? metaFile)
     {
+        if (metaFile is null) {
+            return null;
+        }
+
         using var memoryStream = new MemoryStream();
         metaFile.Extract(memoryStream);
         memoryStream.Position = 0;
@@ -144,65 +149,17 @@ public class MetaJsonUpdaterOperation : IMetaJsonUpdaterOperation
         using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
         using var jsonReader = new JsonTextReader(streamReader);
 
-        dynamic json = _serializer.Deserialize<ExpandoObject>(jsonReader);
-        return json;
+        return _serializer.Deserialize<ExpandoObject>(jsonReader)!;
     }
 
-    private bool DisableMorphPreload(string varPath, IDictionary<string, object> dict)
+    private async Task RunInParallel(IEnumerable<VarPackage> vars, Func<VarPackage, Task> act)
     {
-        var customOptionsExists = dict.ContainsKey("customOptions");
-        if (customOptionsExists)
-        {
-            var customOptions = (IDictionary<string, object>)dict["customOptions"];
-            if (customOptions.ContainsKey("preloadMorphs") && (string)customOptions["preloadMorphs"] == "true")
-            {
-                customOptions["preloadMorphs"] = "false";
-                _logger.Log($"Disabling 'preloadMorphs' for {varPath}");
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool RemoveDependecies(string varPath, IDictionary<string, object> dict)
-    {
-        var changed = false;
-        if (dict.ContainsKey("dependencies") && ((IDictionary<string, object>)dict["dependencies"]).Count > 0)
-        {
-            var depsCount = ((IDictionary<string, object>)dict["dependencies"]).Count;
-            dict["dependencies"] = new object();
-            _logger.Log($"Removing {depsCount} dependencies from {varPath}");
-            changed = true;
-        }
-
-        if (dict.ContainsKey("hadReferenceIssues") && (string)dict["hadReferenceIssues"] == "true")
-        {
-            dict.Remove("hadReferenceIssues");
-            _logger.Log($"Removing 'hadReferenceIssues' from {varPath}");
-            changed = true;
-        }
-
-        if (dict.ContainsKey("referenceIssues") && ((List<object>)dict["referenceIssues"]).Count > 0)
-        {
-            dict.Remove("referenceIssues");
-            _logger.Log($"Removing 'referenceIssues' from {varPath}");
-            changed = true;
-        }
-
-        return changed;
-    }
-
-    private async Task RunInParallel(IEnumerable<VarPackage> vars, Func<string, Task> act)
-    {
-        var depScanBlock = new ActionBlock<string>(async t => await act(t), new ExecutionDataflowBlockOptions {
+        var depScanBlock = new ActionBlock<VarPackage>(async t => await act(t), new ExecutionDataflowBlockOptions {
             MaxDegreeOfParallelism = _context.Threads
         });
 
         var files = vars
             .Where(t => t.SourcePathIfSoftLink is null)
-            .Where(t => _removeDependencies || (_disableMorphPreload && !t.IsMorphPack))
-            .Select(t => t.FullPath)
             .ToList();
 
         _total = files.Count;
