@@ -4,22 +4,22 @@ using VamToolbox.Models;
 
 namespace VamToolbox.Operations.Destructive.VarFixers;
 
-public class DisableMorphVarFixer : IVarFixer
+public class DisableMorphPreloadVarFixer : IVarFixer
 {
     private readonly ILogger _logger;
 
-    public DisableMorphVarFixer(ILogger logger) => _logger = logger;
+    public DisableMorphPreloadVarFixer(ILogger logger) => _logger = logger;
 
     public bool Process(VarPackage var, ZipFile zip, Lazy<IDictionary<string, object>?> metaFileLazy)
     {
         if (var.IsMorphPack) {
-            _logger.Log($"Skipping {nameof(DisableMorphVarFixer)} because it's a morph-pack {var.FullPath}");
+            _logger.Log($"Skipping {nameof(DisableMorphPreloadVarFixer)} because it's a morph-pack {var.FullPath}");
             return false;
         }
 
         var metaFile = metaFileLazy.Value;
         if (metaFile is null) {
-            _logger.Log($"Skipping {nameof(DisableMorphVarFixer)} because meta.json not found: {var.FullPath}");
+            _logger.Log($"Skipping {nameof(DisableMorphPreloadVarFixer)} because meta.json not found: {var.FullPath}");
             return false;
         }
 

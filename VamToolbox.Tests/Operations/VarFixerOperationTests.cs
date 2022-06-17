@@ -241,7 +241,7 @@ public class VarFixerOperationTests
         }
 
         var fixers = new List<IVarFixer>();
-        if(disableMorphs) fixers.Add(_fixture.Create<DisableMorphVarFixer>());
+        if(disableMorphs) fixers.Add(_fixture.Create<DisableMorphPreloadVarFixer>());
         if(removeDeps) fixers.Add(_fixture.Create<RemoveDependenciesVarFixer>());
 
         return _operation.Execute(new OperationContext {

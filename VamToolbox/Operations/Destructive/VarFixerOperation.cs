@@ -62,7 +62,7 @@ public class VarFixerOperation : IVarFixerOperation
                 zip.CaseSensitiveRetrieval = true;
 
                 var metaFile = zip["meta.json"];
-                var metaContentLazy = new Lazy<IDictionary<string, object>?>(() => ReadMetaJson(metaFile));
+                var metaContentLazy = new Lazy<IDictionary<string, object>?>(() => ReadMetaJson(varPath, metaFile));
                 var changed = RunFixers(var, zip, metaContentLazy);
 
                 if (changed) {
@@ -136,20 +136,28 @@ public class VarFixerOperation : IVarFixerOperation
         }
     }
 
-    private IDictionary<string, object>? ReadMetaJson(ZipEntry? metaFile)
+    private IDictionary<string, object>? ReadMetaJson(string varPath, ZipEntry? metaFile)
     {
         if (metaFile is null) {
             return null;
         }
 
-        using var memoryStream = new MemoryStream();
-        metaFile.Extract(memoryStream);
-        memoryStream.Position = 0;
+        try {
+            using var memoryStream = new MemoryStream();
+            metaFile.Extract(memoryStream);
+            memoryStream.Position = 0;
 
-        using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
-        using var jsonReader = new JsonTextReader(streamReader);
+            using var streamReader = new StreamReader(memoryStream, Encoding.UTF8);
+            using var jsonReader = new JsonTextReader(streamReader);
 
-        return _serializer.Deserialize<ExpandoObject>(jsonReader)!;
+            return _serializer.Deserialize<ExpandoObject>(jsonReader)!;
+        } 
+        catch (Exception e) 
+        {
+            Interlocked.Increment(ref _errors);
+            _logger.Log($"Unable to read meta.json for {varPath}. Error: {e.Message}");
+            return null;
+        }
     }
 
     private async Task RunInParallel(IEnumerable<VarPackage> vars, Func<VarPackage, Task> act)

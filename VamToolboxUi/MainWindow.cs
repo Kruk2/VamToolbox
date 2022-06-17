@@ -317,7 +317,7 @@ public partial class MainWindow : Form, IProgressTracker
         await using var scope = _ctx.BeginLifetimeScope();
         var vars = await scope.Resolve<IScanVarPackagesOperation>().ExecuteAsync(ctx, new());
         var fixers = new List<IVarFixer>();
-        if(disableMorphPreloadChk.Checked) fixers.Add(scope.Resolve<DisableMorphVarFixer>());
+        if(disableMorphPreloadChk.Checked) fixers.Add(scope.Resolve<DisableMorphPreloadVarFixer>());
         if(removeDependenciesFromMetaChk.Checked) fixers.Add(scope.Resolve<RemoveDependenciesVarFixer>());
         if(removeVirusMorphsChk.Checked) fixers.Add(scope.Resolve<RemoveVirusMorphsVarFixer>());
         if(removeDsfMorphsChk.Checked) fixers.Add(scope.Resolve<RemoveDsfMorphsVarFixer>());
