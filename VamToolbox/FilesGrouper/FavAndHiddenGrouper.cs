@@ -31,7 +31,7 @@ public class FavAndHiddenGrouper : IFavAndHiddenGrouper
 
         foreach (var file in files) {
             var fav = favMorphs[file.MorphName!]
-                .SingleOrDefault(t => file.LocalPath.StartsWith(t.basePath, StringComparison.OrdinalIgnoreCase));
+                .SingleOrDefault(t => file.LocalPath.StartsWith(t.basePath + '/', StringComparison.OrdinalIgnoreCase));
             if (fav.file is not null) {
                 file.FavFilePath = fav.file.LocalPath;
             }
