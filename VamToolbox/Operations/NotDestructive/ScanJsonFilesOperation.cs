@@ -23,6 +23,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private readonly ConcurrentBag<string> _errors = new();
     private int _scanned;
     private int _total;
+    private int _unknownErrorsCount;
 
     private OperationContext _context = null!;
     private IVarFilters? _filters;
@@ -70,7 +71,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
         var scenes = _jsonFiles.OrderBy(s => s.ToString()).ToList();
         await Task.Run(() => PrintWarnings(scenes, varFiles));
 
-        _progressTracker.Complete($"Scanned {_scanned} json files for references. Found {missingCount} missing and {resolvedCount} resolved references.\r\nTook {stopWatch.Elapsed:hh\\:mm\\:ss}");
+        _progressTracker.Complete($"Scanned {_scanned} json files for references. Got {_unknownErrorsCount} unknown errors - check logs.\r\n Found {missingCount} missing and {resolvedCount} resolved references.Took {stopWatch.Elapsed:hh\\:mm\\:ss}");
         return scenes;
     }
 
@@ -203,6 +204,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 await ScanJsonAsync(openedJson, potentialJson);
 
         } catch (Exception ex) {
+            Interlocked.Increment(ref _unknownErrorsCount);
             _errors.Add($"[UNKNOWN-ERROR] Unable to process {potentialJson.Name} because: {ex}");
         } finally {
             potentialJson.Dispose();
