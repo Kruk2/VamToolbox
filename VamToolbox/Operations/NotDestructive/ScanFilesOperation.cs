@@ -95,7 +95,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
         foreach (var freeFile in files
                      .SelfAndChildren()
                      .Where(t => t.ExtLower is ".vmi" or ".vam" || KnownNames.IsPotentialJsonFile(t.ExtLower))) {
-            if (!_uuidCache.TryGetValue(freeFile.FullPath, out var uuidEntry)) {
+            if (!_uuidCache.TryGetValue(freeFile.SourcePathIfSoftLink ?? freeFile.FullPath, out var uuidEntry)) {
                 freeFile.Dirty = true;
                 continue;
             }

@@ -218,7 +218,7 @@ public sealed class Database : IDatabase
         commandInsert.Parameters.Add(paramTimestamp);
 
         foreach (var file in files.Keys) {
-            paramFullPath.Value = file.IsVar ? file.Var.FullPath : file.Free.FullPath;
+            paramFullPath.Value = file.IsVar ? file.Var.SourcePathIfSoftLink ?? file.Var.FullPath : file.Free.SourcePathIfSoftLink ?? file.Free.FullPath;
             localPath.Value = (object?)(file.IsVar ? file.VarFile.LocalPath : null) ?? string.Empty;
             uuid.Value = (object?)(file.MorphName ?? file.InternalId) ?? DBNull.Value;
             paramSize.Value = file.Size;
