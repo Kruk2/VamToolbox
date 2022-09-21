@@ -51,6 +51,9 @@ public partial class MainWindow : Form, IProgressTracker
         if (!Directory.Exists(Path.Combine(vamDir, KnownNames.AddonPackages))) {
             MessageBox.Show("VaM dir doesn't contain AddonPackages");
             vamDirTxt.Text = string.Empty;
+        } else if (Directory.Exists(additionalVarsDir.Text) && !ArePathsExclusive(additionalVarsDir.Text, vamDir)) {
+            MessageBox.Show("VaM dir has to be outside REPO and vice-versa");
+            vamDirTxt.Text = string.Empty;
         } else {
             vamDirTxt.Text = vamDir;
         }
@@ -59,7 +62,13 @@ public partial class MainWindow : Form, IProgressTracker
     private void additionalVarsBtn_Click(object sender, EventArgs e)
     {
         var (selected, dir) = AskFirDirectory();
-        if (selected) {
+        if (!selected)
+            return;
+
+        if (Directory.Exists(vamDirTxt.Text) && !ArePathsExclusive(vamDirTxt.Text, dir)) {
+            MessageBox.Show("VaM dir has to be outside REPO and vice-versa");
+            additionalVarsDir.Text = string.Empty;
+        } else {
             additionalVarsDir.Text = dir;
         }
     }
@@ -390,4 +399,19 @@ public partial class MainWindow : Form, IProgressTracker
     }
 
     private void MoveToStage(string text) => stageTxt.Text = $"{(_stage++) + 1}/{_totalStages} {text}";
+
+    private static bool ArePathsExclusive(string subPath, string subPath1)
+    {
+        return !IsSubPathOf(subPath, subPath1) && !IsSubPathOf(subPath1, subPath) && !string.Equals(subPath, subPath1, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSubPathOf(string subPath, string basePath)
+    {
+        var rel = Path.GetRelativePath(basePath, subPath);
+        return rel != "."
+               && rel != ".."
+               && !rel.StartsWith("../", StringComparison.OrdinalIgnoreCase)
+               && !rel.StartsWith(@"..\", StringComparison.OrdinalIgnoreCase)
+               && !Path.IsPathRooted(rel);
+    }
 }
