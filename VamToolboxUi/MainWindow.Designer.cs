@@ -57,11 +57,11 @@ namespace VamToolboxUi
             this.stageTxt = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.removeDsfMorphsChk = new System.Windows.Forms.CheckBox();
             this.removeVirusMorphsChk = new System.Windows.Forms.CheckBox();
             this.runVarFixersBtn = new System.Windows.Forms.Button();
             this.removeDependenciesFromMetaChk = new System.Windows.Forms.CheckBox();
             this.disableMorphPreloadChk = new System.Windows.Forms.CheckBox();
-            this.removeDsfMorphsChk = new System.Windows.Forms.CheckBox();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -217,11 +217,11 @@ namespace VamToolboxUi
             // 
             // downloadFromHubBtn
             // 
-            this.downloadFromHubBtn.Location = new System.Drawing.Point(336, 20);
+            this.downloadFromHubBtn.Location = new System.Drawing.Point(353, 20);
             this.downloadFromHubBtn.Name = "downloadFromHubBtn";
-            this.downloadFromHubBtn.Size = new System.Drawing.Size(135, 75);
+            this.downloadFromHubBtn.Size = new System.Drawing.Size(118, 75);
             this.downloadFromHubBtn.TabIndex = 28;
-            this.downloadFromHubBtn.Text = "Download missing dependencies from Virt-a HUB";
+            this.downloadFromHubBtn.Text = "Download missing and updated VARs from Virt-a HUB";
             this.downloadFromHubBtn.UseVisualStyleBackColor = true;
             this.downloadFromHubBtn.Click += new System.EventHandler(this.downloadFromHubBtn_Click);
             // 
@@ -369,6 +369,16 @@ namespace VamToolboxUi
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Var Fixers";
             // 
+            // removeDsfMorphsChk
+            // 
+            this.removeDsfMorphsChk.AutoSize = true;
+            this.removeDsfMorphsChk.Location = new System.Drawing.Point(298, 41);
+            this.removeDsfMorphsChk.Name = "removeDsfMorphsChk";
+            this.removeDsfMorphsChk.Size = new System.Drawing.Size(132, 19);
+            this.removeDsfMorphsChk.TabIndex = 32;
+            this.removeDsfMorphsChk.Text = "Remove dsf morphs";
+            this.removeDsfMorphsChk.UseVisualStyleBackColor = true;
+            // 
             // removeVirusMorphsChk
             // 
             this.removeVirusMorphsChk.AutoSize = true;
@@ -408,16 +418,6 @@ namespace VamToolboxUi
             this.disableMorphPreloadChk.TabIndex = 0;
             this.disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
             this.disableMorphPreloadChk.UseVisualStyleBackColor = true;
-            // 
-            // removeDsfMorphsChk
-            // 
-            this.removeDsfMorphsChk.AutoSize = true;
-            this.removeDsfMorphsChk.Location = new System.Drawing.Point(298, 41);
-            this.removeDsfMorphsChk.Name = "removeDsfMorphsChk";
-            this.removeDsfMorphsChk.Size = new System.Drawing.Size(132, 19);
-            this.removeDsfMorphsChk.TabIndex = 32;
-            this.removeDsfMorphsChk.Text = "Remove dsf morphs";
-            this.removeDsfMorphsChk.UseVisualStyleBackColor = true;
             // 
             // MainWindow
             // 

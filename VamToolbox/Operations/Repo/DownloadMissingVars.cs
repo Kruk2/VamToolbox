@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Newtonsoft.Json;
 using RestEase;
 using VamToolbox.Logging;
@@ -111,7 +112,12 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
     private static async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<VarPackageName> unresolvedVars, IEnumerable<VarPackageName> existingVarsList)
     {
         var service = RestClient.For<IVamService>();
-        var query = new VamQuery { Packages = string.Join(',', unresolvedVars.Select(t => t.Filename)) };
+        var packagesToQuery = unresolvedVars.Select(t => t.Filename);
+        packagesToQuery = packagesToQuery
+            .Concat(existingVarsList.Select(t => t.PackageNameWithoutVersion))
+            .Distinct(StringComparer.InvariantCultureIgnoreCase);
+
+        var query = new VamQuery { Packages = string.Join(',', packagesToQuery) };
         var result = await service.FindPackages(query);
         var packagesToDownload = result.Packages.Values
             .Where(t => !string.IsNullOrEmpty(t.DownloadUrl) && t.DownloadUrl != "null")
