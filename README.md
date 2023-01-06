@@ -33,8 +33,8 @@ Trust scripts from all vars that are located in ```VAM```.
 Scan ```VAM``` and ```REPO``` directories for errors/missing vars or assets. Check logs in exe directory for details.  
 You can fix some of them manually like invalid var filename or missing meta.json
 
-4. ![image](https://user-images.githubusercontent.com/59397941/156947430-d014f2a5-e478-4499-978a-8f8e323dd098.png)  
-This will check what vars are missing in your ```VAM``` directory and download them from HUB. They will be downloaded to ```VAM/AddonPackages/other``` directory.
+4. ![image](https://user-images.githubusercontent.com/59397941/211112989-9ca0f4bb-0281-4dc0-8cc8-3674ff6d5d43.png)
+This will check what vars are missing or have never version in your ```VAM``` directory and download them from HUB. They will be downloaded to ```VAM/AddonPackages/other``` directory.
 
 5. ![image](https://user-images.githubusercontent.com/59397941/174407559-b517e42d-9df4-41be-8cd7-170a0b23a168.png)     
 - ```Disable morph-preload``` will remove preloadMorphs: true from every meta.json that it has. It will do it only for vars that are not morphpacks (i.e. vars that only contain morphs).  
