@@ -141,7 +141,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
         try {
             varFullPath = varFullPath.NormalizePathSeparators();
             var isInVamDir = varFullPath.StartsWith(_context.VamDir, StringComparison.Ordinal);
-            var fileInfo = softLink != null ? _fs.FileInfo.FromFileName(softLink) : _fs.FileInfo.FromFileName(varFullPath);
+            var fileInfo = softLink != null ? _fs.FileInfo.New(softLink) : _fs.FileInfo.New(varFullPath);
             var varPackage = new VarPackage(name, varFullPath, softLink, isInVamDir, fileInfo.Length);
 
             await using var stream = _fs.File.OpenRead(varFullPath);

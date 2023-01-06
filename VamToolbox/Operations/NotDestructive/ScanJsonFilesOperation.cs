@@ -214,7 +214,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
     private async Task ScanJsonAsync(OpenedPotentialJson openedJson, PotentialJsonFile potentialJson)
     {
         using var streamReader = openedJson.Stream == null ? null : new StreamReader(openedJson.Stream);
-        var localJsonPath = _fs.Path.GetDirectoryName(openedJson.File.LocalPath).NormalizePathSeparators();
+        var localJsonPath = _fs.Path.GetDirectoryName(openedJson.File.LocalPath)!.NormalizePathSeparators();
 
         Reference? nextScanForUuidOrMorphName = null;
         JsonReference? resolvedReferenceWhenUuidMatchingFails = null;

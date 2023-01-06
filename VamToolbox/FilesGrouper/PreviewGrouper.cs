@@ -23,7 +23,7 @@ public sealed class PreviewGrouper : IPreviewGrouper
 
         foreach (var possibleFileWithPreview in possibleFilesWithPreview) {
             foreach (var ext in KnownNames.PreviewExtensions) {
-                var previewFileName = _fs.Path.Combine(Path.GetDirectoryName(possibleFileWithPreview.LocalPath), possibleFileWithPreview.FilenameWithoutExt + ext).NormalizePathSeparators();
+                var previewFileName = _fs.Path.Combine(Path.GetDirectoryName(possibleFileWithPreview.LocalPath)!, possibleFileWithPreview.FilenameWithoutExt + ext).NormalizePathSeparators();
                 if (!possiblePreviews.TryGetValue(previewFileName, out var child)) continue;
 
                 possibleFileWithPreview.AddChildren(child);

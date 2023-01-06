@@ -31,8 +31,8 @@ public sealed class PotentialJsonFile : IDisposable
             IDictionary<string, ZipEntry>? entries = null;
 
             foreach (var potentialJsonFile in potentialJsonFiles) {
-                if (_varFilesReferenceCache.ContainsKey(potentialJsonFile.LocalPath)) {
-                    yield return new OpenedPotentialJson(potentialJsonFile) { CachedReferences = _varFilesReferenceCache[potentialJsonFile.LocalPath] };
+                if (_varFilesReferenceCache.TryGetValue(potentialJsonFile.LocalPath, out var cachedFiles)) {
+                    yield return new OpenedPotentialJson(potentialJsonFile) { CachedReferences = cachedFiles };
                 } else {
                     if (!potentialJsonFile.Dirty) throw new InvalidOperationException($"Tried to read not-dirty var file {potentialJsonFile}");
                     _varFileStream ??= File.OpenRead(Var.FullPath);

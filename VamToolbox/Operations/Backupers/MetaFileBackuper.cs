@@ -51,7 +51,7 @@ public class MetaFileRestorer : IMetaFileRestorer
 
     private async Task RestoreMeta(string varPath)
     {
-        var oldModifiedDate = _fileSystem.FileInfo.FromFileName(varPath).LastWriteTimeUtc;
+        var oldModifiedDate = _fileSystem.FileInfo.New(varPath).LastWriteTimeUtc;
         var varTmpPath = varPath + ".tmp";
 
         try {

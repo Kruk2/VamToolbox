@@ -28,7 +28,7 @@ public sealed class ScriptGrouper : IScriptGrouper
             .Where(f => f.ExtLower == ".cs")
             .ToDictionary(f => f.LocalPath);
         foreach (var cslist in files.Where(f => f.ExtLower == ".cslist")) {
-            var cslistFolder = _fs.Path.GetDirectoryName(cslist.LocalPath);
+            var cslistFolder = _fs.Path.GetDirectoryName(cslist.LocalPath)!;
             using var streamReader = new StreamReader(openFileStream(cslist.LocalPath));
 
             while (!streamReader.EndOfStream) {

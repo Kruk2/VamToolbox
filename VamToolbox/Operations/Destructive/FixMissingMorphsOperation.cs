@@ -53,7 +53,7 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
             var matchingMorphs = allMorphsByName[missingMorphName].DistinctBy(t => t.Size).ToList();
             if (matchingMorphs.Count == 1) {
                 _logger.Log($"Found match for {missingMorph.LocalPath} as {matchingMorphs[0].LocalPath}");
-                var destPath = _fs.Path.Combine(_fs.Path.GetDirectoryName(missingMorph.FullPath), missingMorphName);
+                var destPath = _fs.Path.Combine(_fs.Path.GetDirectoryName(missingMorph.FullPath)!, missingMorphName);
                 if (_fs.File.Exists(destPath)) {
                     _logger.Log($"ERROR: Dest path already exists for: {destPath}");
                     continue;
@@ -88,7 +88,7 @@ public sealed class FixMissingMorphsOperation : IFixMissingMorphsOperation
                 if (!_context.DryRun) {
                     var relativePath = _fs.Path.GetRelativePath(_context.VamDir, missingMorph.FullPath);
                     var destPath = _fs.Path.Combine(invalidMorphsDirectory, relativePath);
-                    Directory.CreateDirectory(_fs.Path.GetDirectoryName(destPath));
+                    Directory.CreateDirectory(_fs.Path.GetDirectoryName(destPath)!);
                     _fs.File.Move(missingMorph.FullPath, destPath);
                 }
             }

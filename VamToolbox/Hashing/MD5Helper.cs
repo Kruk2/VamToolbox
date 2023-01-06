@@ -8,8 +8,7 @@ public sealed class MD5Helper : IHashingAlgo
 {
     public async Task<string> GetHash(Stream stream)
     {
-        using var md5 = MD5.Create();
-        var hash = await md5.ComputeHashAsync(stream);
+        var hash = await MD5.HashDataAsync(stream);
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
@@ -18,9 +17,8 @@ public sealed class MD5Helper : IHashingAlgo
         if (!values.Any())
             return initial;
 
-        using var md5 = MD5.Create();
         var bytes = Encoding.ASCII.GetBytes(initial + string.Join(string.Empty, values));
-        var hash = md5.ComputeHash(bytes);
+        var hash = MD5.HashData(bytes);
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 }

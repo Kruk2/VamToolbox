@@ -244,6 +244,6 @@ public sealed class Database : IDatabase
             return new AppSettings();
         }
 
-        return Newtonsoft.Json.JsonConvert.DeserializeObject<AppSettings>(json);
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
     }
 }

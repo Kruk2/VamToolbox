@@ -25,13 +25,13 @@ public class RemoveDependenciesVarFixer : IVarFixer
             changed = true;
         }
 
-        if (metaFile.ContainsKey("hadReferenceIssues") && (string)metaFile["hadReferenceIssues"] == "true") {
+        if (metaFile.TryGetValue("hadReferenceIssues", out var value) && (string)value == "true") {
             metaFile.Remove("hadReferenceIssues");
             _logger.Log($"Removing 'hadReferenceIssues' from {var.FullPath}");
             changed = true;
         }
 
-        if (metaFile.ContainsKey("referenceIssues") && ((List<object>)metaFile["referenceIssues"]).Count > 0) {
+        if (metaFile.TryGetValue("referenceIssues", out var value2) && ((List<object>)value2).Count > 0) {
             metaFile.Remove("referenceIssues");
             _logger.Log($"Removing 'referenceIssues' from {var.FullPath}");
             changed = true;

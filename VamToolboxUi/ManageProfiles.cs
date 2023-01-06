@@ -106,7 +106,7 @@ public partial class ManageProfiles : Form
         if (SelectedProfile is null) return;
 
         while (listBox.SelectedItems.Count > 0) {
-            var selected = listBox.SelectedItems[0];
+            var selected = listBox.SelectedItems[0]!;
             listBox.Items.Remove(selected);
 
             var list = ReferenceEquals(listBox, dirList) ? SelectedProfile.Dirs : SelectedProfile.Files;

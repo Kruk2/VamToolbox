@@ -51,8 +51,8 @@ public class VarFixerOperation : IVarFixerOperation
     private async Task ProcessVar(VarPackage var)
     {
         var varPath = var.FullPath;
-        var oldModifiedDate = _fileSystem.FileInfo.FromFileName(varPath).LastWriteTimeUtc;
-        var oldCreatedDate = _fileSystem.FileInfo.FromFileName(varPath).CreationTimeUtc;
+        var oldModifiedDate = _fileSystem.FileInfo.New(varPath).LastWriteTimeUtc;
+        var oldCreatedDate = _fileSystem.FileInfo.New(varPath).CreationTimeUtc;
         var varTmpPath = varPath + ".tmp";
 
         try {

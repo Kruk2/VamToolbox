@@ -28,7 +28,7 @@ public sealed class PresetGrouper : IPresetGrouper
     {
         var presetFiles = files
             .Where(t => t.ExtLower == ".vap" || KnownNames.PreviewExtensions.Contains(t.ExtLower))
-            .ToLookup(t => _fs.Path.GetDirectoryName(t.LocalPath).NormalizePathSeparators());
+            .ToLookup(t => _fs.Path.GetDirectoryName(t.LocalPath)!.NormalizePathSeparators());
 
         var grouped = files
             .Where(f => f.ExtLower is ".vaj" or ".vam" or ".vab" || KnownNames.PreviewExtensions.Contains(f.ExtLower))
@@ -52,7 +52,7 @@ public sealed class PresetGrouper : IPresetGrouper
                 vam.InternalId = await ReadVamInternalId(vam, openFileStream);
             }
 
-            var localDir = _fs.Path.GetDirectoryName(notNullPreset.LocalPath).NormalizePathSeparators();
+            var localDir = _fs.Path.GetDirectoryName(notNullPreset.LocalPath)!.NormalizePathSeparators();
             var pathWithoutExtension = _fs.Path.Combine(localDir, _fs.Path.GetFileNameWithoutExtension(notNullPreset.LocalPath)).NormalizePathSeparators();
             GroupAssetPresets(notNullPreset, notNullPreset.FilenameWithoutExt, presetFiles[localDir], filesMovedAsChildren);
 
