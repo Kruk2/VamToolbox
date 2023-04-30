@@ -177,6 +177,7 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
             .SelectMany(t => t.Missing.Where(x => x.EstimatedVarName != null).Select(x => x.EstimatedVarName!))
             .Distinct()
             .OrderBy(t => t.Filename);
+
         foreach (var varName in missingVars) {
             if (!varIndex.Contains(varName.PackageNameWithoutVersion)) {
                 _logger.Log(varName.Filename);

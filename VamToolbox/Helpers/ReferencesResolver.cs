@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Abstractions;
-using MoreLinq;
 using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
@@ -57,19 +56,7 @@ public class ReferencesResolver : IReferencesResolver
                 return default;
             }
 
-            if (!_varFilesIndex.Contains(varFile.PackageNameWithoutVersion)) {
-                return default;
-            }
-
-            if (varFile.Version == -1) {
-                varToSearch = MoreEnumerable.MaxBy(_varFilesIndex[varFile.PackageNameWithoutVersion], t => t.Name.Version).First();
-            } else if (varFile.MinVersion) {
-                varToSearch = MoreEnumerable.MaxBy(_varFilesIndex[varFile.PackageNameWithoutVersion]
-                    .Where(t => t.Name.Version >= varFile.Version), t => t.Name.Version).First();
-            } else {
-                varToSearch = _varFilesIndex[varFile.PackageNameWithoutVersion]
-                    .FirstOrDefault(t => t.Name.Version == varFile.Version);
-            }
+            varToSearch = FindVar(varFile);
         }
 
         if (varToSearch != null) {
@@ -91,5 +78,26 @@ public class ReferencesResolver : IReferencesResolver
         }
 
         return null;
+    }
+
+    private VarPackage? FindVar(VarPackageName varFile)
+    {
+        if (!_varFilesIndex.Contains(varFile.PackageNameWithoutVersion)) {
+            return null;
+        }
+
+        var possibleVarsToSearch = _varFilesIndex[varFile.PackageNameWithoutVersion];
+        if (varFile.MinVersion)
+        {
+            possibleVarsToSearch = _varFilesIndex[varFile.PackageNameWithoutVersion].Where(t => t.Name.Version >= varFile.Version);
+        }
+        else if (varFile.Version != -1)
+        {
+            possibleVarsToSearch = _varFilesIndex[varFile.PackageNameWithoutVersion].Where(t => t.Name.Version == varFile.Version);
+        }
+
+        // VAM will use latest available version when exact match was not found
+        return possibleVarsToSearch.MaxBy(t => t.Name.Version) ??
+                      _varFilesIndex[varFile.PackageNameWithoutVersion].MaxBy(t => t.Name.Version);
     }
 }
