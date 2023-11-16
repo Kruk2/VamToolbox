@@ -111,7 +111,11 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
 
     private static async Task<List<PackageInfo>> QueryVam(IReadOnlyCollection<VarPackageName> unresolvedVars, IEnumerable<VarPackageName> existingVarsList)
     {
-        var service = RestClient.For<IVamService>();
+        using var httpClient = new HttpClient {
+            BaseAddress = new Uri("https://hub.virtamate.com"),
+            Timeout = TimeSpan.FromMinutes(5)
+        };
+        var service = RestClient.For<IVamService>(httpClient);
         var packagesToQuery = unresolvedVars.Select(t => t.Filename);
         packagesToQuery = packagesToQuery
             .Concat(existingVarsList.Select(t => t.PackageNameWithoutVersion))
@@ -168,6 +172,8 @@ public class VamQuery
 
 
 [BaseAddress("https://hub.virtamate.com")]
+[Header("User-Agent", "UnityPlayer/2018.1.9f1 (UnityWebRequest/1.0, libcurl/7.51.0-DEV)")]
+[Header("X-Unity-Version", "2018.1.9f1")]
 public interface IVamService
 {
     [Post("citizenx/api.php")]
