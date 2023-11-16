@@ -201,7 +201,7 @@ public partial class MainWindow : Form, IProgressTracker
 
         var ctx = new OperationContext {
             DryRun = dryRunCheckbox.Checked,
-            Threads = (int)comboThreads.SelectedItem,
+            Threads = (int)comboThreads.SelectedItem!,
             RepoDir = additionalVarsDir.Text,
             VamDir = vamDirTxt.Text
         };
@@ -222,7 +222,7 @@ public partial class MainWindow : Form, IProgressTracker
         {
             AdditionalVars = additionalVarsDir.Text,
             VamDir = vamDirTxt.Text,
-            Threads = (int)comboThreads.SelectedItem,
+            Threads = (int)comboThreads.SelectedItem!,
             RemoveSoftLinksBefore = removeAllSoftLinkBeforeChk.Checked,
             Profiles = _profiles
         };
@@ -305,7 +305,7 @@ public partial class MainWindow : Form, IProgressTracker
         _profiles.ForEach(t => profilesListBox.Items.Add(t));
     }
 
-    private IVarFilters BuildFilters()
+    private VarFilters BuildFilters()
     {
         var filters = new VarFilters();
         profilesListBox.CheckedItems

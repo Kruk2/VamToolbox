@@ -18,20 +18,20 @@ public class RemoveDependenciesVarFixer : IVarFixer
         }
 
         var changed = false;
-        if (metaFile.ContainsKey("dependencies") && ((IDictionary<string, object>)metaFile["dependencies"]).Count > 0) {
-            var depsCount = ((IDictionary<string, object>)metaFile["dependencies"]).Count;
+        if (metaFile.TryGetValue("dependencies", out object? value) && ((IDictionary<string, object>)value).Count > 0) {
+            var depsCount = ((IDictionary<string, object>)value).Count;
             metaFile["dependencies"] = new object();
             _logger.Log($"Removing {depsCount} dependencies from {var.FullPath}");
             changed = true;
         }
 
-        if (metaFile.TryGetValue("hadReferenceIssues", out var value) && (string)value == "true") {
+        if (metaFile.TryGetValue("hadReferenceIssues", out var value2) && (string)value2 == "true") {
             metaFile.Remove("hadReferenceIssues");
             _logger.Log($"Removing 'hadReferenceIssues' from {var.FullPath}");
             changed = true;
         }
 
-        if (metaFile.TryGetValue("referenceIssues", out var value2) && ((List<object>)value2).Count > 0) {
+        if (metaFile.TryGetValue("referenceIssues", out var value3) && ((List<object>)value3).Count > 0) {
             metaFile.Remove("referenceIssues");
             _logger.Log($"Removing 'referenceIssues' from {var.FullPath}");
             changed = true;

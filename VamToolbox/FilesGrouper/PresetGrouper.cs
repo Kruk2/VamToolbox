@@ -86,7 +86,7 @@ public sealed class PresetGrouper : IPresetGrouper
         files.RemoveAll(t => filesMovedAsChildren.Contains(t));
     }
 
-    private static void GroupAssetPresets<T>(T notNullPreset, string fileNameWithoutExtensions, IEnumerable<T> presetFilesWithPreviews, ISet<T> filesMovedAsChildren) where T : FileReferenceBase
+    private static void GroupAssetPresets<T>(T notNullPreset, string fileNameWithoutExtensions, IEnumerable<T> presetFilesWithPreviews, HashSet<T> filesMovedAsChildren) where T : FileReferenceBase
     {
         var allowedPresetName = fileNameWithoutExtensions + "_";
         foreach (var additionalPreset in presetFilesWithPreviews.Where(t => t.ExtLower == ".vap" && t.FilenameLower.StartsWith(allowedPresetName, StringComparison.OrdinalIgnoreCase))) {
@@ -103,14 +103,16 @@ public sealed class PresetGrouper : IPresetGrouper
         }
     }
 
+    private static readonly JsonSerializerOptions Options = new() {
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    };
+
     private async Task<string?> ReadVamInternalId<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
         await using var streamReader = openFileStream(vam.LocalPath);
         try {
-            var reader = await JsonSerializer.DeserializeAsync<VamFile>(streamReader, new JsonSerializerOptions {
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
+            var reader = await JsonSerializer.DeserializeAsync<VamFile>(streamReader, Options);
             if (!string.IsNullOrWhiteSpace(reader?.Uid)) {
                 return reader.Uid;
             }

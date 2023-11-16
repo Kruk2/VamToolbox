@@ -26,7 +26,7 @@ public class DisableMorphPreloadVarFixer : IVarFixer
         var customOptionsExists = metaFile.ContainsKey("customOptions");
         if (customOptionsExists) {
             var customOptions = (IDictionary<string, object>)metaFile["customOptions"];
-            if (customOptions.ContainsKey("preloadMorphs") && (string)customOptions["preloadMorphs"] == "true") {
+            if (customOptions.TryGetValue("preloadMorphs", out object? value) && (string)value == "true") {
                 customOptions["preloadMorphs"] = "false";
                 _logger.Log($"Disabling 'preloadMorphs' for {var.FullPath}");
                 return true;

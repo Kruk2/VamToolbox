@@ -20,9 +20,4 @@ internal class VamToolboxException : Exception
         : base(message, innerException)
     {
     }
-
-    protected VamToolboxException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-    {
-    }
 }

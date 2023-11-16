@@ -10,28 +10,21 @@ using VamToolbox.Operations.Abstract;
 
 namespace VamToolbox.Operations.Destructive;
 
-public sealed class FixJsonDependenciesOperation : IFixJsonDependenciesOperation
+public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracker, ILogger logger, IFileSystem fs)
+    : IFixJsonDependenciesOperation
 {
-    private readonly IProgressTracker _progressTracker;
-    private readonly ILogger _logger;
-    private readonly IFileSystem _fs;
+    private readonly ILogger _logger = logger;
+    private readonly IFileSystem _fs = fs;
     private ILookup<string, FileReferenceBase> _filesByName = null!;
     private ILookup<string, FileReferenceBase> _filesByPath = null!;
-    private IDictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
+    private Dictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
     private readonly ConcurrentDictionary<string, string> _filesToCopy = new();
     private OperationContext _context = null!;
-
-    public FixJsonDependenciesOperation(IProgressTracker progressTracker, ILogger logger, IFileSystem fs)
-    {
-        _progressTracker = progressTracker;
-        _logger = logger;
-        _fs = fs;
-    }
 
     public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, IList<JsonFile> jsonFiles, bool makeBackup)
     {
         _context = context;
-        _progressTracker.InitProgress("Fixing json dependencies");
+        progressTracker.InitProgress("Fixing json dependencies");
         InitLookups(vars, freeFiles);
 
         var jsonWithMissingReferences = jsonFiles

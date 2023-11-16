@@ -72,14 +72,16 @@ public sealed class MorphGrouper : IMorphGrouper
             });
     }
 
+    private static readonly JsonSerializerOptions Options = new() {
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    };
+
     private async Task<string?> ReadVmiName<T>(T vam, Func<string, Stream> openFileStream) where T : FileReferenceBase
     {
         await using var streamReader = openFileStream(vam.LocalPath);
         try {
-            var reader = await JsonSerializer.DeserializeAsync<VamFile>(streamReader, new JsonSerializerOptions {
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
+            var reader = await JsonSerializer.DeserializeAsync<VamFile>(streamReader, Options);
             if (!string.IsNullOrWhiteSpace(reader?.DisplayName)) {
                 return reader.DisplayName;
             }

@@ -136,7 +136,9 @@ public class VarFixerOperation : IVarFixerOperation
         }
     }
 
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
     private IDictionary<string, object>? ReadMetaJson(string varPath, ZipEntry? metaFile)
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
     {
         if (metaFile is null) {
             return null;
