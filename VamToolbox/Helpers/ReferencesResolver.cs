@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Abstractions;
+using MoreLinq;
 using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
@@ -97,7 +98,7 @@ public class ReferencesResolver : IReferencesResolver
         }
 
         // VAM will use latest available version when exact match was not found
-        return possibleVarsToSearch.MaxBy(t => t.Name.Version) ??
-                      _varFilesIndex[varFile.PackageNameWithoutVersion].MaxBy(t => t.Name.Version);
+        return possibleVarsToSearch.Maxima(t => t.Name.Version).MinBy(t => t.FullPath.Length) ??
+                      _varFilesIndex[varFile.PackageNameWithoutVersion].Maxima(t => t.Name.Version).MinBy(t => t.FullPath.Length);
     }
 }

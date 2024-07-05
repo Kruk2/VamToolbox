@@ -119,11 +119,13 @@ public class UuidReferencesResolver : IUuidReferenceResolver
             if (bestMatches.Take(2).Count() == 1) {
                 bestMatch = bestMatches.First();
             } else {
-                var byMostUsedFile = MoreLinq.MoreEnumerable.Maxima(bestMatches, t => t.UsedByVarPackagesOrFreeFilesCount);
-                var bySmallestSize = MoreLinq.MoreEnumerable.Minima(byMostUsedFile,
-                    t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren);
-                var byNewerVar = MoreLinq.MoreEnumerable.Maxima(bySmallestSize, t => t.IsVar ? t.Var.Name.Version : int.MaxValue);
-                bestMatch = byNewerVar.OrderBy(t => t.ToString()).First();
+                bestMatch = bestMatches
+                    .OrderByDescending(t => t.IsInVaMDir ? 1 : 0)
+                    .ThenBy(t => t.Var?.FullPath.Length ?? 0)
+                    .ThenByDescending(t => t.UsedByVarPackagesOrFreeFilesCount) // most used
+                    .ThenBy(t => t is VarPackageFile varFile ? varFile.ParentVar.Size : ((FreeFile)t).SizeWithChildren) // smallest
+                    .ThenByDescending(t => t.IsVar ? t.Var.Name.Version : int.MaxValue)
+                    .First();
             }
 
             AddReference(bestMatch);
