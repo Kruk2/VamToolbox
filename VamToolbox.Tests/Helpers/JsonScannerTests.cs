@@ -16,6 +16,7 @@ public class JsonScannerTests
     [InlineData(@"""plugin#0"" : ""./detention/RT_LipSync.dll""", "./detention/RT_LipSync.dll")]
     [InlineData(@"""assetDllUrl"" : ""Custom/Assets/!Favorite/merin-tail.dll""", "Custom/Assets/!Favorite/merin-tail.dll")]
     [InlineData(@"   ""customTexture_MainTex"" : ""a.jpg"" ", "a.jpg")]
+    [InlineData(@"         ""customTexture_MainTex"" : ""CuteSvetlana.VempireFemaleMakeUp.latest:/Custom/Atom/Person/Textures/decals/[Vempire] makeup/MAKEUP black 3.png"", ", "CuteSvetlana.VempireFemaleMakeUp.latest:/Custom/Atom/Person/Textures/decals/[Vempire] makeup/MAKEUP black 3.png")]
     [InlineData(@"   ""customTexture_AlphaTex"" : ""a.png"" ", "a.png")]
     [InlineData(@"   ""customTexture_BumpMap"" : ""a.jpeg"" ", "a.jpeg")]
     [InlineData(@"   ""customTexture_GlossTex"" : ""a.tif"" ", "a.tif")]
