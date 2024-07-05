@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.IO.Abstractions;
 using System.IO.Compression;
 using System.Threading.Tasks.Dataflow;
@@ -21,7 +22,7 @@ public sealed class HashFilesOperation : IHashFilesOperation
 
     private readonly ConcurrentDictionary<(string fullPath, string localAssetPath), string> _newHashes = new();
     private readonly ConcurrentBag<string> _errors = new();
-    private ConcurrentDictionary<(string fullPath, string localAssetPath), string> _hashes = new();
+    private FrozenDictionary<(string fullPath, string localAssetPath), string> _hashes = FrozenDictionary<(string fullPath, string localAssetPath), string>.Empty;
     private OperationContext _context = new();
     private int _scanned;
     private int _totalFiles;

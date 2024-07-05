@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using VamToolbox.Models;
 
@@ -10,12 +11,10 @@ public interface IJsonFileParser
 
 public sealed class JsonFileParser : IJsonFileParser
 {
-    private static readonly HashSet<int> Extensions = new[]{
+    private static readonly FrozenSet<int> Extensions = new[]{
         "vmi", "vam", "vaj", "vap", "jpg", "jpeg", "tif", "png", "mp3", "ogg", "wav", "assetbundle", "scene",
         "cs", "cslist", "tiff", "dll", "audiobundle", "voicebundle", "json"
-    }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToHashSet();
-
-    //public static readonly ConcurrentDictionary<string, string> SeenExtensions = new();
+    }.Select(t => string.GetHashCode(t, StringComparison.OrdinalIgnoreCase)).ToFrozenSet();
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Reference? GetAsset(ReadOnlySpan<char> line, int offset, FileReferenceBase fromFile, out string? outputError)

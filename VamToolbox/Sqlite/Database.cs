@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using VamToolbox.Models;
@@ -89,14 +90,13 @@ public sealed class Database : IDatabase
         return string.IsNullOrEmpty(tableName) || foundTable != tableName;
     }
 
-    public async Task<ConcurrentDictionary<(string fullPath, string localAssetPath), string>> GetHashes()
+    public async Task<FrozenDictionary<(string fullPath, string localAssetPath), string>> GetHashes()
     {
         var hashes = await _connection.QueryAsync<(string fullPath, string localAssethPath, string hash)>("SELECT * FROM hashes");
 
         var grouped = hashes
             .Select(t => new KeyValuePair<(string fullPath, string localAssetPath), string>((t.fullPath, t.localAssethPath), t.hash));
-        return new ConcurrentDictionary<(string fullPath, string localAssetPath), string>(grouped);
-
+        return grouped.ToFrozenDictionary(t => t.Key, t => t.Value);
     }
 
     public async Task AddHashes(ConcurrentDictionary<(string fullPath, string localAssetPath), string> hashes)

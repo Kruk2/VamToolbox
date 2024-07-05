@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json;
 using RestEase;
@@ -136,7 +137,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             .ToList();
         validDownloads.AddRange(packagesToDownload.Where(t => !t.DownloadUrl.EndsWith("?file=", StringComparison.OrdinalIgnoreCase)));
 
-        var existingVarsSet = new HashSet<string>(existingVarsList.Select(t => t.Filename), StringComparer.OrdinalIgnoreCase);
+        var existingVarsSet = existingVarsList.Select(t => t.Filename).ToFrozenSet(StringComparer.OrdinalIgnoreCase);
         validDownloads.RemoveAll(t => existingVarsSet.Contains(t.Filename));
 
         return validDownloads.DistinctBy(t => t.DownloadUrl).ToList();

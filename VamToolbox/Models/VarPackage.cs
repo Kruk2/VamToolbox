@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using VamToolbox.Helpers;
 
 namespace VamToolbox.Models;
@@ -37,12 +38,12 @@ public sealed class VarPackage : IVamObjectWithDependencies
         .SelectMany(t => t.Missing.Select(x => x.EstimatedReferenceLocation + " from " + t))
         .Distinct();
 
-    private Dictionary<string, VarPackageFile>? _filesDict;
+    private FrozenDictionary<string, VarPackageFile>? _filesDict;
 
-    public Dictionary<string, VarPackageFile> FilesDict => _filesDict ??= Files
+    public FrozenDictionary<string, VarPackageFile> FilesDict => _filesDict ??= Files
         .SelfAndChildren()
         .GroupBy(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase)
-        .ToDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
+        .ToFrozenDictionary(t => t.Key, t => t.First(), StringComparer.InvariantCultureIgnoreCase);
 
     public VarPackage(
         VarPackageName name,

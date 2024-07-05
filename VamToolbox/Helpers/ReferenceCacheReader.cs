@@ -1,4 +1,5 @@
-﻿using VamToolbox.Logging;
+﻿using System.Collections.Frozen;
+using VamToolbox.Logging;
 using VamToolbox.Models;
 using VamToolbox.Operations.Abstract;
 using VamToolbox.Sqlite;
@@ -70,7 +71,7 @@ public class ReferenceCache : IReferenceCache
 
         var referenceCache = _database.ReadReferenceCache()
             .GroupBy(t => t.FilePath, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
+            .ToFrozenDictionary(t => t.Key, t => t.ToLookup(x => x.LocalPath));
 
         foreach (var json in potentialScenes) {
             switch (json.IsVar) {
@@ -84,7 +85,7 @@ public class ReferenceCache : IReferenceCache
         }
     }
 
-    private static void ReadReferenceCache(PotentialJsonFile potentialJsonFile, Dictionary<string, ILookup<string, ReferenceEntry>> globalReferenceCache)
+    private static void ReadReferenceCache(PotentialJsonFile potentialJsonFile, FrozenDictionary<string, ILookup<string, ReferenceEntry>> globalReferenceCache)
     {
         if (globalReferenceCache is null) throw new InvalidOperationException("Cache not initialized");
 

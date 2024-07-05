@@ -1,4 +1,5 @@
-﻿using System.IO.Abstractions;
+﻿using System.Collections.Frozen;
+using System.IO.Abstractions;
 using VamToolbox.Helpers;
 using VamToolbox.Logging;
 using VamToolbox.Models;
@@ -26,7 +27,7 @@ public sealed class ScriptGrouper : IScriptGrouper
         var filesMovedAsChildren = new HashSet<T>();
         var filesIndex = files
             .Where(f => f.ExtLower == ".cs")
-            .ToDictionary(f => f.LocalPath);
+            .ToFrozenDictionary(f => f.LocalPath);
         foreach (var cslist in files.Where(f => f.ExtLower == ".cslist")) {
             var cslistFolder = _fs.Path.GetDirectoryName(cslist.LocalPath)!;
             using var streamReader = new StreamReader(openFileStream(cslist.LocalPath));

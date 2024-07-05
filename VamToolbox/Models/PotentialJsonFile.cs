@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using Ionic.Zip;
 using VamToolbox.Helpers;
 
@@ -28,7 +29,7 @@ public sealed class PotentialJsonFile : IDisposable
             var potentialJsonFiles = Var.Files
                 .SelfAndChildren()
                 .Where(t => t.FilenameLower != "meta.json" && KnownNames.IsPotentialJsonFile(t.ExtLower));
-            IDictionary<string, ZipEntry>? entries = null;
+            FrozenDictionary<string, ZipEntry>? entries = null;
 
             foreach (var potentialJsonFile in potentialJsonFiles) {
                 if (_varFilesReferenceCache.TryGetValue(potentialJsonFile.LocalPath, out var cachedFiles)) {
@@ -38,7 +39,7 @@ public sealed class PotentialJsonFile : IDisposable
                     _varFileStream ??= File.OpenRead(Var.FullPath);
                     _varArchive ??= ZipFile.Read(_varFileStream);
                     _varArchive.CaseSensitiveRetrieval = true;
-                    entries ??= _varArchive.Entries.Where(t => !t.IsDirectory).ToDictionary(t => t.FileName.NormalizePathSeparators());
+                    entries ??= _varArchive.Entries.Where(t => !t.IsDirectory).ToFrozenDictionary(t => t.FileName.NormalizePathSeparators());
 
                     yield return new OpenedPotentialJson(potentialJsonFile) { Stream = entries[potentialJsonFile.LocalPath].OpenReader() };
                 }

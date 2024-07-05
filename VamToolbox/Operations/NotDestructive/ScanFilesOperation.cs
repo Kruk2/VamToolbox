@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.IO.Abstractions;
 using VamToolbox.FilesGrouper;
 using VamToolbox.Helpers;
@@ -17,7 +18,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
     private readonly IDatabase _database;
     private OperationContext _context = null!;
     private readonly ISoftLinker _softLinker;
-    private Dictionary<string, (long size, DateTime modifiedTime, string? uuid)> _uuidCache = null!;
+    private FrozenDictionary<string, (long size, DateTime modifiedTime, string? uuid)> _uuidCache = null!;
 
     public ScanFilesOperation(IProgressTracker reporter, IFileSystem fs, ILogger logger, IFileGroupers groupers, IDatabase database, ISoftLinker softLinker)
     {
@@ -50,7 +51,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
         var files = new List<FreeFile>();
 
         await Task.Run(async () => {
-            _uuidCache = _database.ReadFreeFilesCache().ToDictionary(t => t.fullPath, t => (t.size, t.modifiedTime, t.uuid), StringComparer.OrdinalIgnoreCase);
+            _uuidCache = _database.ReadFreeFilesCache().ToFrozenDictionary(t => t.fullPath, t => (t.size, t.modifiedTime, t.uuid), StringComparer.OrdinalIgnoreCase);
 
             _reporter.Report("Scanning Custom folder", forceShow: true);
             files.AddRange(ScanFolder(rootDir, "Custom"));

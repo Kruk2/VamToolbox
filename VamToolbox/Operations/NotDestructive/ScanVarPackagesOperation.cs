@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
@@ -29,7 +30,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
     private int _totalVarsCount;
     private OperationContext _context = null!;
     private readonly IDatabase _database;
-    private Dictionary<string, Dictionary<string, (long size, DateTime modifiedTime, string? uuid)>> _uuidCache = null!;
+    private FrozenDictionary<string, FrozenDictionary<string, (long size, DateTime modifiedTime, string? uuid)>> _uuidCache = null!;
 
     public ScanVarPackagesOperation(IFileSystem fs, IProgressTracker progressTracker, ILogger logger, IFileGroupers groupers, ISoftLinker softLinker, IDatabase database, IFavAndHiddenGrouper favHideenGrouper)
     {
@@ -115,9 +116,9 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
 
             _uuidCache = _database.ReadVarFilesCache()
                 .GroupBy(t => t.fullPath, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
+                .ToFrozenDictionary(
                     t => t.Key,
-                    t => t.ToDictionary(x => x.localPath, x => (x.size, x.modifiedTime, x.uuid)),
+                    t => t.ToFrozenDictionary(x => x.localPath, x => (x.size, x.modifiedTime, x.uuid)),
                     StringComparer.OrdinalIgnoreCase);
 
             return packageFiles
@@ -174,7 +175,7 @@ public sealed class ScanVarPackagesOperation : IScanVarPackagesOperation
             var varFilesList = (List<VarPackageFile>)varPackage.Files;
             _packages.Add(varPackage);
 
-            var entries = archive.Entries.ToDictionary(t => t.FileName.NormalizePathSeparators());
+            var entries = archive.Entries.ToFrozenDictionary(t => t.FileName.NormalizePathSeparators());
             Stream OpenFileStream(string p) => entries[p].OpenReader();
 
             LookupDirtyPackages(varPackage);

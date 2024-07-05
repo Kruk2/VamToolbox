@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.IO.Abstractions;
 using System.IO.Compression;
 using System.Text;
@@ -17,7 +18,7 @@ public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracke
     private readonly IFileSystem _fs = fs;
     private ILookup<string, FileReferenceBase> _filesByName = null!;
     private ILookup<string, FileReferenceBase> _filesByPath = null!;
-    private Dictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
+    private FrozenDictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
     private readonly ConcurrentDictionary<string, string> _filesToCopy = new();
     private OperationContext _context = null!;
 
@@ -223,7 +224,7 @@ public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracke
 
 
         _varsByAuthor = vars.GroupBy(t => t.Name.Author, StringComparer.InvariantCultureIgnoreCase)
-            .ToDictionary(t => t.Key, t => t.SelectMany(x => x.Files).SelectMany(x => x.SelfAndChildren())
+            .ToFrozenDictionary(t => t.Key, t => t.SelectMany(x => x.Files).SelectMany(x => x.SelfAndChildren())
                     .ToLookup(x => x.FilenameLower, StringComparer.InvariantCultureIgnoreCase),
                 StringComparer.InvariantCultureIgnoreCase);
     }
