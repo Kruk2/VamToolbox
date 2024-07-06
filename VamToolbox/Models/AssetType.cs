@@ -3,7 +3,7 @@ namespace VamToolbox.Models;
 [Flags]
 public enum AssetType : ulong
 {
-    Empty = 0,
+    None = 0,
     FemaleNormalMorph = 1 << 0,
     FemaleGenMorph = 1 << 1,
     MaleNormalMorph = 1 << 2,

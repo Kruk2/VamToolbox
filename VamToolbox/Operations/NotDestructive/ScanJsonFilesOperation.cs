@@ -244,9 +244,9 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                 continue;
 
             if (nextScanForUuidOrMorphName != null) {
-                if (line.Contains("\"internalId\"")) {
-                    var internalId = line.Replace("\"internalId\"", "");
-                    nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf('\"') + 1)..internalId.LastIndexOf('\"')];
+                if (line.Contains("\"internalId\"", StringComparison.Ordinal)) {
+                    var internalId = line.Replace("\"internalId\"", "", StringComparison.Ordinal);
+                    nextScanForUuidOrMorphName.InternalId = internalId[(internalId.IndexOf('\"', StringComparison.Ordinal) + 1)..internalId.LastIndexOf('\"')];
                     ProcessVamReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;
@@ -255,9 +255,9 @@ public sealed class ScanJsonFilesOperation : IScanJsonFilesOperation
                     continue;
                 }
 
-                if (line.Contains("\"name\"")) {
-                    var morphName = line.Replace("\"name\"", "");
-                    nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf('\"') + 1)..morphName.LastIndexOf('\"')];
+                if (line.Contains("\"name\"", StringComparison.Ordinal)) {
+                    var morphName = line.Replace("\"name\"", "", StringComparison.Ordinal);
+                    nextScanForUuidOrMorphName.MorphName = morphName[(morphName.IndexOf('\"', StringComparison.Ordinal) + 1)..morphName.LastIndexOf('\"')];
                     ProcessMorphReference(nextScanForUuidOrMorphName);
 
                     nextScanForUuidOrMorphName = null;

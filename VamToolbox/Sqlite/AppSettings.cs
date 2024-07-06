@@ -3,6 +3,7 @@ using VamToolbox.Operations.Repo;
 
 namespace VamToolbox.Sqlite;
 
+#pragma warning disable CA2227 // Collection properties should be read only
 [ExcludeFromCodeCoverage]
 public class AppSettings 
 {
@@ -13,3 +14,4 @@ public class AppSettings
     public List<ProfileModel> Profiles { get; set; } = new();
     public CopyMode? CopyMode { get; set; }
 }
+#pragma warning restore CA2227 // Collection properties should be read only

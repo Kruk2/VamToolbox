@@ -44,6 +44,7 @@ public sealed class ThreadSafeFileBuffer : IAsyncDisposable
 
         _requestStop = true;
         _stopped.WaitOne();
+        _stopped.Dispose();
         await _timer.DisposeAsync();
 
         FlushBuffer();

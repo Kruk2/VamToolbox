@@ -5,7 +5,7 @@ namespace VamToolbox;
 
 [Serializable]
 [ExcludeFromCodeCoverage]
-internal class VamToolboxException : Exception
+public class VamToolboxException : Exception
 {
     public VamToolboxException()
     {

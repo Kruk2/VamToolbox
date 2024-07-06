@@ -101,7 +101,7 @@ public sealed class Database : IDatabase
 
     public async Task AddHashes(ConcurrentDictionary<(string fullPath, string localAssetPath), string> hashes)
     {
-        await using var transaction = _connection.BeginTransaction();
+        await using var transaction = await _connection.BeginTransactionAsync();
         var command = _connection.CreateCommand();
         command.CommandText =
             @"INSERT INTO hashes VALUES($fullPath, $localAssetPath, $hash) ";

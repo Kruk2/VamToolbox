@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.IO.Compression;
 using System.Text;
@@ -11,11 +12,9 @@ using VamToolbox.Operations.Abstract;
 
 namespace VamToolbox.Operations.Destructive;
 
-public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracker, ILogger logger, IFileSystem fs)
+public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracker)
     : IFixJsonDependenciesOperation
 {
-    private readonly ILogger _logger = logger;
-    private readonly IFileSystem _fs = fs;
     private ILookup<string, FileReferenceBase> _filesByName = null!;
     private ILookup<string, FileReferenceBase> _filesByPath = null!;
     private FrozenDictionary<string, ILookup<string, VarPackageFile>> _varsByAuthor = null!;
@@ -42,13 +41,14 @@ public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracke
     {
         lock (_filesToCopy) {
             var index = 0;
-            IEnumerable<string> destinations;
+            ImmutableList<string> destinations;
             var originalDirName = Path.GetFileName(destDir);
 
             while (true) {
                 destinations = bestReference.SelfAndChildren()
                     .Select(t => Path.GetRelativePath(Path.GetDirectoryName(bestReference.LocalPath)!, t.LocalPath))
-                    .Select(t => Path.Combine(destDir, t).NormalizePathSeparators());
+                    .Select(t => Path.Combine(destDir, t).NormalizePathSeparators())
+                    .ToImmutableList();
 
                 var hasFileConflicts = destinations
                     .Any(File.Exists);
@@ -217,7 +217,8 @@ public sealed class FixJsonDependenciesOperation(IProgressTracker progressTracke
             .SelectMany(t => t.Files)
             .SelectMany(t => t.SelfAndChildren())
             .Cast<FileReferenceBase>()
-            .Concat(freeFiles.SelectMany(t => t.SelfAndChildren()));
+            .Concat(freeFiles.SelectMany(t => t.SelfAndChildren()))
+            .ToImmutableList();
 
         _filesByName = allFiles.ToLookup(t => t.FilenameLower, StringComparer.InvariantCultureIgnoreCase);
         _filesByPath = allFiles.ToLookup(t => t.LocalPath, StringComparer.InvariantCultureIgnoreCase);

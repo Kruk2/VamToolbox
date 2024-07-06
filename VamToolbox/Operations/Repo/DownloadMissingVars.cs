@@ -38,7 +38,7 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
             Directory.CreateDirectory(folderDestination);
         var count = vamResult.Count;
 
-        using var handler = new HttpClientHandler { UseCookies = false };
+        using var handler = new HttpClientHandler { UseCookies = false, CheckCertificateRevocationList = true};
         using var client = new HttpClient(handler);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36 Edg/99.0.1150.30");
 
@@ -144,6 +144,8 @@ public sealed class DownloadMissingVars : IDownloadMissingVars
     }
 }
 
+#pragma warning disable CA2227 // Collection properties should be read only
+#pragma warning disable CA1056
 [ExcludeFromCodeCoverage]
 public class VamResult
 {
@@ -180,6 +182,7 @@ public interface IVamService
     [Post("citizenx/api.php")]
     Task<VamResult> FindPackages([Body] VamQuery query);
 }
+#pragma warning restore CA2227 // Collection properties should be read only
 
 public interface IDownloadMissingVars : IOperation
 {

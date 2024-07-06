@@ -3,7 +3,7 @@ using VamToolbox.Models;
 
 namespace VamToolbox.Helpers;
 
-public static class Extensions
+public static class PathsExtensions
 {
     public static string RelativeTo(this string path, string root)
     {
@@ -14,7 +14,7 @@ public static class Extensions
     public static string SimplifyRelativePath(this IFileSystem fs, string localFolder, string assetPath)
     {
         var relativePath = fs.Path.Combine(localFolder, assetPath);
-        return fs.Path.GetFullPath(relativePath, "Z:/").NormalizePathSeparators().Replace("Z:/", "");
+        return fs.Path.GetFullPath(relativePath, "Z:/").NormalizePathSeparators().Replace("Z:/", "", StringComparison.Ordinal);
     }
 
     public static string NormalizePathSeparators(this string path)

@@ -79,7 +79,7 @@ public sealed class Reference
         // var
         string varName;
         if (refPathSplit[0].StartsWith(KnownNames.AddonPackages + '/', StringComparison.OrdinalIgnoreCase)) {
-            varName = refPathSplit[0].Replace(KnownNames.AddonPackages + '/', "");
+            varName = refPathSplit[0].Replace(KnownNames.AddonPackages + '/', "", StringComparison.OrdinalIgnoreCase);
         } else {
             varName = refPathSplit[0];
         }

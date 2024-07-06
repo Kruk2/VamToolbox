@@ -81,7 +81,7 @@ public sealed class ScanFilesOperation : IScanFilesOperation
         var isVamDir = _context.VamDir == rootDir;
         var files = _fs.Directory
             .EnumerateFiles(searchDir, "*.*", SearchOption.AllDirectories)
-            .Where(f => !f.Contains(@"\.") && !f.NormalizePathSeparators().Contains(@"/Saves/PluginData/JayJayWon/BrowserAssist"))
+            .Where(f => !f.Contains(@"\.", StringComparison.Ordinal) && !f.NormalizePathSeparators().Contains("/Saves/PluginData/JayJayWon/BrowserAssist", StringComparison.Ordinal))
             .Select(f => (path: f, softLink: _softLinker.GetSoftLink(f)))
             .Where(f => f.softLink is null || File.Exists(f.softLink))
             .Select(f => (f.path, fileInfo: _fs.FileInfo.New(f.softLink ?? f.path), f.softLink))

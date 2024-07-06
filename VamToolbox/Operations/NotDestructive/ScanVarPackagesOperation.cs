@@ -237,6 +237,7 @@ public interface IScanVarPackagesOperation : IOperation
 [ExcludeFromCodeCoverage]
 public class VarScanResults
 {
+#pragma warning disable CA2227 // Collection properties should be read only
     public List<VarPackage> Vars { get; set; } = new();
     public ConcurrentBag<string> InvalidVars { get; } = new();
     public ConcurrentBag<string> InvalidVarName { get; } = new();
@@ -246,4 +247,5 @@ public class VarScanResults
     public ConcurrentBag<string> MissingPresetsFiles { get; } = new();
     public ConcurrentBag<string> MissingScriptFiles { get; } = new();
     public List<List<string>> DuplicatedVars { get; set; } = new();
+#pragma warning restore CA2227 // Collection properties should be read only
 }
