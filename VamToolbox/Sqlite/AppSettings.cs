@@ -11,4 +11,5 @@ public class AppSettings
     public int Threads { get; set; }
     public bool RemoveSoftLinksBefore { get; set; }
     public List<ProfileModel> Profiles { get; set; } = new();
+    public CopyMode? CopyMode { get; set; }
 }

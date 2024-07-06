@@ -6,7 +6,7 @@
 		<RootNamespace>VamToolbox</RootNamespace>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<Platforms>x64</Platforms>
-		<AnalysisMode>Recommended</AnalysisMode>
+		<AnalysisMode>All</AnalysisMode>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

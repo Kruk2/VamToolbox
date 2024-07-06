@@ -233,7 +233,7 @@ public sealed class Database : IDatabase
 
     public void SaveSettings(AppSettings appSettings)
     {
-        var json = Newtonsoft.Json.JsonConvert.SerializeObject(appSettings)!;
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(appSettings);
         _connection.Execute($"insert or replace into {AppSettingsTable} values (@SettingsVersion, @Data)", new { SettingsVersion, Data=json });
     }
 

@@ -82,8 +82,9 @@ public partial class MainWindow : Form, IProgressTracker
         await using var scope = _ctx.BeginLifetimeScope();
         await RemoveOldLinks(scope, ctx);
         var (vars, freeFiles) = await ScanJsonFiles(scope, ctx);
+        var mode = Enum.Parse<CopyMode>(modeComboBox.Text);
         await scope.Resolve<ICopyMissingVarDependenciesFromRepo>()
-            .ExecuteAsync(ctx, vars, freeFiles, moveMissingDepsChk.Checked);
+            .ExecuteAsync(ctx, vars, freeFiles, mode);
 
         if (MessageBox.Show("Do you want to try to download missing vars from HUB?", "Hub",
                 MessageBoxButtons.YesNo) == DialogResult.Yes) {
@@ -246,6 +247,7 @@ public partial class MainWindow : Form, IProgressTracker
         vamDirTxt.Text = appSettings.VamDir;
         comboThreads.SelectedItem = appSettings.Threads == 0 ? Environment.ProcessorCount : appSettings.Threads;
         removeAllSoftLinkBeforeChk.Checked = appSettings.RemoveSoftLinksBefore;
+        modeComboBox.Text = appSettings.CopyMode is null ? string.Empty : appSettings.CopyMode.ToString();
         _profiles = appSettings.Profiles;
 
         ReloadProfiles();

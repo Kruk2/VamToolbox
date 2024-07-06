@@ -29,430 +29,456 @@ namespace VamToolboxUi
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
-            this.vamDirTxt = new System.Windows.Forms.TextBox();
-            this.selectVamDirBtn = new System.Windows.Forms.Button();
-            this.label2 = new System.Windows.Forms.Label();
-            this.additionalVarsDir = new System.Windows.Forms.TextBox();
-            this.additionalVarsBtn = new System.Windows.Forms.Button();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.operationStatusLabel = new System.Windows.Forms.Label();
-            this.copyVarsFromRepoBtn = new System.Windows.Forms.Button();
-            this.dryRunCheckbox = new System.Windows.Forms.CheckBox();
-            this.copyMissingDepsFromRepoBtn = new System.Windows.Forms.Button();
-            this.scanJsonFilesBtn = new System.Windows.Forms.Button();
-            this.clearCacheBtn = new System.Windows.Forms.Button();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.restoreMetaJsonBtn = new System.Windows.Forms.Button();
-            this.downloadFromHubBtn = new System.Windows.Forms.Button();
-            this.trustAllVarsBtn = new System.Windows.Forms.Button();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.profilesListBox = new System.Windows.Forms.CheckedListBox();
-            this.manageProfilesBtn = new System.Windows.Forms.Button();
-            this.removeAllSoftLinkBeforeChk = new System.Windows.Forms.CheckBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.comboThreads = new System.Windows.Forms.ComboBox();
-            this.clearRepoDirBtn = new System.Windows.Forms.Button();
-            this.moveMissingDepsChk = new System.Windows.Forms.CheckBox();
-            this.stageTxt = new System.Windows.Forms.Label();
-            this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.removeDsfMorphsChk = new System.Windows.Forms.CheckBox();
-            this.removeVirusMorphsChk = new System.Windows.Forms.CheckBox();
-            this.runVarFixersBtn = new System.Windows.Forms.Button();
-            this.removeDependenciesFromMetaChk = new System.Windows.Forms.CheckBox();
-            this.disableMorphPreloadChk = new System.Windows.Forms.CheckBox();
-            this.groupBox2.SuspendLayout();
-            this.groupBox3.SuspendLayout();
-            this.groupBox4.SuspendLayout();
-            this.groupBox1.SuspendLayout();
-            this.SuspendLayout();
+            label1 = new Label();
+            vamDirTxt = new TextBox();
+            selectVamDirBtn = new Button();
+            label2 = new Label();
+            additionalVarsDir = new TextBox();
+            additionalVarsBtn = new Button();
+            progressBar = new ProgressBar();
+            operationStatusLabel = new Label();
+            copyVarsFromRepoBtn = new Button();
+            dryRunCheckbox = new CheckBox();
+            copyMissingDepsFromRepoBtn = new Button();
+            scanJsonFilesBtn = new Button();
+            clearCacheBtn = new Button();
+            groupBox2 = new GroupBox();
+            restoreMetaJsonBtn = new Button();
+            downloadFromHubBtn = new Button();
+            trustAllVarsBtn = new Button();
+            groupBox3 = new GroupBox();
+            profilesListBox = new CheckedListBox();
+            manageProfilesBtn = new Button();
+            removeAllSoftLinkBeforeChk = new CheckBox();
+            label4 = new Label();
+            comboThreads = new ComboBox();
+            clearRepoDirBtn = new Button();
+            stageTxt = new Label();
+            groupBox4 = new GroupBox();
+            modeComboBox = new ComboBox();
+            label3 = new Label();
+            groupBox1 = new GroupBox();
+            removeDsfMorphsChk = new CheckBox();
+            removeVirusMorphsChk = new CheckBox();
+            runVarFixersBtn = new Button();
+            removeDependenciesFromMetaChk = new CheckBox();
+            disableMorphPreloadChk = new CheckBox();
+            groupBox2.SuspendLayout();
+            groupBox3.SuspendLayout();
+            groupBox4.SuspendLayout();
+            groupBox1.SuspendLayout();
+            SuspendLayout();
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 9);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(88, 15);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "VAM directory: ";
+            label1.AutoSize = true;
+            label1.Location = new Point(14, 11);
+            label1.Name = "label1";
+            label1.Size = new Size(104, 19);
+            label1.TabIndex = 0;
+            label1.Text = "VAM directory: ";
             // 
             // vamDirTxt
             // 
-            this.vamDirTxt.Location = new System.Drawing.Point(106, 6);
-            this.vamDirTxt.Name = "vamDirTxt";
-            this.vamDirTxt.ReadOnly = true;
-            this.vamDirTxt.Size = new System.Drawing.Size(301, 23);
-            this.vamDirTxt.TabIndex = 1;
+            vamDirTxt.Location = new Point(121, 8);
+            vamDirTxt.Margin = new Padding(3, 4, 3, 4);
+            vamDirTxt.Name = "vamDirTxt";
+            vamDirTxt.ReadOnly = true;
+            vamDirTxt.Size = new Size(343, 26);
+            vamDirTxt.TabIndex = 1;
             // 
             // selectVamDirBtn
             // 
-            this.selectVamDirBtn.Location = new System.Drawing.Point(413, 5);
-            this.selectVamDirBtn.Name = "selectVamDirBtn";
-            this.selectVamDirBtn.Size = new System.Drawing.Size(121, 23);
-            this.selectVamDirBtn.TabIndex = 2;
-            this.selectVamDirBtn.Text = "Select";
-            this.selectVamDirBtn.UseVisualStyleBackColor = true;
-            this.selectVamDirBtn.Click += new System.EventHandler(this.selectVamDirBtn_Click);
+            selectVamDirBtn.Location = new Point(472, 6);
+            selectVamDirBtn.Margin = new Padding(3, 4, 3, 4);
+            selectVamDirBtn.Name = "selectVamDirBtn";
+            selectVamDirBtn.Size = new Size(138, 29);
+            selectVamDirBtn.TabIndex = 2;
+            selectVamDirBtn.Text = "Select";
+            selectVamDirBtn.UseVisualStyleBackColor = true;
+            selectVamDirBtn.Click += selectVamDirBtn_Click;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 40);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(68, 15);
-            this.label2.TabIndex = 3;
-            this.label2.Text = "VARs REPO:";
+            label2.AutoSize = true;
+            label2.Location = new Point(14, 51);
+            label2.Name = "label2";
+            label2.Size = new Size(81, 19);
+            label2.TabIndex = 3;
+            label2.Text = "VARs REPO:";
             // 
             // additionalVarsDir
             // 
-            this.additionalVarsDir.Location = new System.Drawing.Point(106, 36);
-            this.additionalVarsDir.Name = "additionalVarsDir";
-            this.additionalVarsDir.ReadOnly = true;
-            this.additionalVarsDir.Size = new System.Drawing.Size(301, 23);
-            this.additionalVarsDir.TabIndex = 4;
+            additionalVarsDir.Location = new Point(121, 46);
+            additionalVarsDir.Margin = new Padding(3, 4, 3, 4);
+            additionalVarsDir.Name = "additionalVarsDir";
+            additionalVarsDir.ReadOnly = true;
+            additionalVarsDir.Size = new Size(343, 26);
+            additionalVarsDir.TabIndex = 4;
             // 
             // additionalVarsBtn
             // 
-            this.additionalVarsBtn.Location = new System.Drawing.Point(413, 36);
-            this.additionalVarsBtn.Name = "additionalVarsBtn";
-            this.additionalVarsBtn.Size = new System.Drawing.Size(61, 23);
-            this.additionalVarsBtn.TabIndex = 5;
-            this.additionalVarsBtn.Text = "Select";
-            this.additionalVarsBtn.UseVisualStyleBackColor = true;
-            this.additionalVarsBtn.Click += new System.EventHandler(this.additionalVarsBtn_Click);
+            additionalVarsBtn.Location = new Point(472, 46);
+            additionalVarsBtn.Margin = new Padding(3, 4, 3, 4);
+            additionalVarsBtn.Name = "additionalVarsBtn";
+            additionalVarsBtn.Size = new Size(70, 29);
+            additionalVarsBtn.TabIndex = 5;
+            additionalVarsBtn.Text = "Select";
+            additionalVarsBtn.UseVisualStyleBackColor = true;
+            additionalVarsBtn.Click += additionalVarsBtn_Click;
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(3, 604);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(622, 42);
-            this.progressBar.TabIndex = 7;
+            progressBar.Location = new Point(3, 765);
+            progressBar.Margin = new Padding(3, 4, 3, 4);
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(711, 53);
+            progressBar.TabIndex = 7;
             // 
             // operationStatusLabel
             // 
-            this.operationStatusLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.operationStatusLabel.AutoSize = true;
-            this.operationStatusLabel.Location = new System.Drawing.Point(3, 571);
-            this.operationStatusLabel.Name = "operationStatusLabel";
-            this.operationStatusLabel.Size = new System.Drawing.Size(38, 30);
-            this.operationStatusLabel.TabIndex = 8;
-            this.operationStatusLabel.Text = "status\r\nstatus";
-            this.operationStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            operationStatusLabel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            operationStatusLabel.AutoSize = true;
+            operationStatusLabel.Location = new Point(3, 723);
+            operationStatusLabel.Name = "operationStatusLabel";
+            operationStatusLabel.Size = new Size(46, 38);
+            operationStatusLabel.TabIndex = 8;
+            operationStatusLabel.Text = "status\r\nstatus";
+            operationStatusLabel.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // copyVarsFromRepoBtn
             // 
-            this.copyVarsFromRepoBtn.Location = new System.Drawing.Point(481, 19);
-            this.copyVarsFromRepoBtn.Name = "copyVarsFromRepoBtn";
-            this.copyVarsFromRepoBtn.Size = new System.Drawing.Size(135, 44);
-            this.copyVarsFromRepoBtn.TabIndex = 9;
-            this.copyVarsFromRepoBtn.Text = "Soft-link selected profile(s) to VAM";
-            this.copyVarsFromRepoBtn.UseVisualStyleBackColor = true;
-            this.copyVarsFromRepoBtn.Click += new System.EventHandler(this.softLinkVarsBtn_Click);
+            copyVarsFromRepoBtn.Location = new Point(550, 24);
+            copyVarsFromRepoBtn.Margin = new Padding(3, 4, 3, 4);
+            copyVarsFromRepoBtn.Name = "copyVarsFromRepoBtn";
+            copyVarsFromRepoBtn.Size = new Size(154, 56);
+            copyVarsFromRepoBtn.TabIndex = 9;
+            copyVarsFromRepoBtn.Text = "Soft-link selected profile(s) to VAM";
+            copyVarsFromRepoBtn.UseVisualStyleBackColor = true;
+            copyVarsFromRepoBtn.Click += softLinkVarsBtn_Click;
             // 
             // dryRunCheckbox
             // 
-            this.dryRunCheckbox.AutoSize = true;
-            this.dryRunCheckbox.Location = new System.Drawing.Point(502, 22);
-            this.dryRunCheckbox.Name = "dryRunCheckbox";
-            this.dryRunCheckbox.Size = new System.Drawing.Size(65, 19);
-            this.dryRunCheckbox.TabIndex = 12;
-            this.dryRunCheckbox.Text = "Dry run";
-            this.dryRunCheckbox.UseVisualStyleBackColor = true;
+            dryRunCheckbox.AutoSize = true;
+            dryRunCheckbox.Location = new Point(574, 28);
+            dryRunCheckbox.Margin = new Padding(3, 4, 3, 4);
+            dryRunCheckbox.Name = "dryRunCheckbox";
+            dryRunCheckbox.Size = new Size(75, 23);
+            dryRunCheckbox.TabIndex = 12;
+            dryRunCheckbox.Text = "Dry run";
+            dryRunCheckbox.UseVisualStyleBackColor = true;
             // 
             // copyMissingDepsFromRepoBtn
             // 
-            this.copyMissingDepsFromRepoBtn.Location = new System.Drawing.Point(477, 20);
-            this.copyMissingDepsFromRepoBtn.Name = "copyMissingDepsFromRepoBtn";
-            this.copyMissingDepsFromRepoBtn.Size = new System.Drawing.Size(135, 75);
-            this.copyMissingDepsFromRepoBtn.TabIndex = 13;
-            this.copyMissingDepsFromRepoBtn.Text = "Search for missing dependencies in VAM and soft-link them from REPO";
-            this.copyMissingDepsFromRepoBtn.UseVisualStyleBackColor = true;
-            this.copyMissingDepsFromRepoBtn.Click += new System.EventHandler(this.copyMissingDepsFromRepoBtn_Click);
+            copyMissingDepsFromRepoBtn.Location = new Point(545, 25);
+            copyMissingDepsFromRepoBtn.Margin = new Padding(3, 4, 3, 4);
+            copyMissingDepsFromRepoBtn.Name = "copyMissingDepsFromRepoBtn";
+            copyMissingDepsFromRepoBtn.Size = new Size(154, 95);
+            copyMissingDepsFromRepoBtn.TabIndex = 13;
+            copyMissingDepsFromRepoBtn.Text = "Search for missing dependencies in VAM and soft-link them from REPO";
+            copyMissingDepsFromRepoBtn.UseVisualStyleBackColor = true;
+            copyMissingDepsFromRepoBtn.Click += copyMissingDepsFromRepoBtn_Click;
             // 
             // scanJsonFilesBtn
             // 
-            this.scanJsonFilesBtn.Location = new System.Drawing.Point(540, 5);
-            this.scanJsonFilesBtn.Name = "scanJsonFilesBtn";
-            this.scanJsonFilesBtn.Size = new System.Drawing.Size(85, 54);
-            this.scanJsonFilesBtn.TabIndex = 15;
-            this.scanJsonFilesBtn.Text = "Scan";
-            this.scanJsonFilesBtn.UseVisualStyleBackColor = true;
-            this.scanJsonFilesBtn.Click += new System.EventHandler(this.scanJsonFilesBtn_Click);
+            scanJsonFilesBtn.Location = new Point(617, 6);
+            scanJsonFilesBtn.Margin = new Padding(3, 4, 3, 4);
+            scanJsonFilesBtn.Name = "scanJsonFilesBtn";
+            scanJsonFilesBtn.Size = new Size(97, 68);
+            scanJsonFilesBtn.TabIndex = 15;
+            scanJsonFilesBtn.Text = "Scan";
+            scanJsonFilesBtn.UseVisualStyleBackColor = true;
+            scanJsonFilesBtn.Click += scanJsonFilesBtn_Click;
             // 
             // clearCacheBtn
             // 
-            this.clearCacheBtn.Location = new System.Drawing.Point(208, 52);
-            this.clearCacheBtn.Name = "clearCacheBtn";
-            this.clearCacheBtn.Size = new System.Drawing.Size(129, 23);
-            this.clearCacheBtn.TabIndex = 17;
-            this.clearCacheBtn.Text = "Clear internal cache";
-            this.clearCacheBtn.UseVisualStyleBackColor = true;
-            this.clearCacheBtn.Click += new System.EventHandler(this.clearCache_Click);
+            clearCacheBtn.Location = new Point(238, 66);
+            clearCacheBtn.Margin = new Padding(3, 4, 3, 4);
+            clearCacheBtn.Name = "clearCacheBtn";
+            clearCacheBtn.Size = new Size(147, 29);
+            clearCacheBtn.TabIndex = 17;
+            clearCacheBtn.Text = "Clear internal cache";
+            clearCacheBtn.UseVisualStyleBackColor = true;
+            clearCacheBtn.Click += clearCache_Click;
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.restoreMetaJsonBtn);
-            this.groupBox2.Controls.Add(this.downloadFromHubBtn);
-            this.groupBox2.Controls.Add(this.copyMissingDepsFromRepoBtn);
-            this.groupBox2.Controls.Add(this.trustAllVarsBtn);
-            this.groupBox2.Location = new System.Drawing.Point(3, 265);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(622, 102);
-            this.groupBox2.TabIndex = 19;
-            this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Tools";
+            groupBox2.Controls.Add(restoreMetaJsonBtn);
+            groupBox2.Controls.Add(downloadFromHubBtn);
+            groupBox2.Controls.Add(copyMissingDepsFromRepoBtn);
+            groupBox2.Controls.Add(trustAllVarsBtn);
+            groupBox2.Location = new Point(3, 336);
+            groupBox2.Margin = new Padding(3, 4, 3, 4);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Padding = new Padding(3, 4, 3, 4);
+            groupBox2.Size = new Size(711, 129);
+            groupBox2.TabIndex = 19;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Tools";
             // 
             // restoreMetaJsonBtn
             // 
-            this.restoreMetaJsonBtn.Location = new System.Drawing.Point(125, 22);
-            this.restoreMetaJsonBtn.Name = "restoreMetaJsonBtn";
-            this.restoreMetaJsonBtn.Size = new System.Drawing.Size(111, 49);
-            this.restoreMetaJsonBtn.TabIndex = 21;
-            this.restoreMetaJsonBtn.Text = "Restore meta.json";
-            this.restoreMetaJsonBtn.UseVisualStyleBackColor = true;
-            this.restoreMetaJsonBtn.Click += new System.EventHandler(this.restoreMetaJsonBtn_Click);
+            restoreMetaJsonBtn.Location = new Point(143, 28);
+            restoreMetaJsonBtn.Margin = new Padding(3, 4, 3, 4);
+            restoreMetaJsonBtn.Name = "restoreMetaJsonBtn";
+            restoreMetaJsonBtn.Size = new Size(127, 62);
+            restoreMetaJsonBtn.TabIndex = 21;
+            restoreMetaJsonBtn.Text = "Restore meta.json";
+            restoreMetaJsonBtn.UseVisualStyleBackColor = true;
+            restoreMetaJsonBtn.Click += restoreMetaJsonBtn_Click;
             // 
             // downloadFromHubBtn
             // 
-            this.downloadFromHubBtn.Location = new System.Drawing.Point(353, 20);
-            this.downloadFromHubBtn.Name = "downloadFromHubBtn";
-            this.downloadFromHubBtn.Size = new System.Drawing.Size(118, 75);
-            this.downloadFromHubBtn.TabIndex = 28;
-            this.downloadFromHubBtn.Text = "Download missing and updated VARs from Virt-a HUB";
-            this.downloadFromHubBtn.UseVisualStyleBackColor = true;
-            this.downloadFromHubBtn.Click += new System.EventHandler(this.downloadFromHubBtn_Click);
+            downloadFromHubBtn.Location = new Point(403, 25);
+            downloadFromHubBtn.Margin = new Padding(3, 4, 3, 4);
+            downloadFromHubBtn.Name = "downloadFromHubBtn";
+            downloadFromHubBtn.Size = new Size(135, 95);
+            downloadFromHubBtn.TabIndex = 28;
+            downloadFromHubBtn.Text = "Download missing and updated VARs from Virt-a HUB";
+            downloadFromHubBtn.UseVisualStyleBackColor = true;
+            downloadFromHubBtn.Click += downloadFromHubBtn_Click;
             // 
             // trustAllVarsBtn
             // 
-            this.trustAllVarsBtn.Location = new System.Drawing.Point(6, 22);
-            this.trustAllVarsBtn.Name = "trustAllVarsBtn";
-            this.trustAllVarsBtn.Size = new System.Drawing.Size(113, 49);
-            this.trustAllVarsBtn.TabIndex = 18;
-            this.trustAllVarsBtn.Text = "Trust scripts for all VARs in .prefs files";
-            this.trustAllVarsBtn.UseVisualStyleBackColor = true;
-            this.trustAllVarsBtn.Click += new System.EventHandler(this.trustAllVarsBtn_Click);
+            trustAllVarsBtn.Location = new Point(7, 28);
+            trustAllVarsBtn.Margin = new Padding(3, 4, 3, 4);
+            trustAllVarsBtn.Name = "trustAllVarsBtn";
+            trustAllVarsBtn.Size = new Size(129, 62);
+            trustAllVarsBtn.TabIndex = 18;
+            trustAllVarsBtn.Text = "Trust scripts for all VARs in .prefs files";
+            trustAllVarsBtn.UseVisualStyleBackColor = true;
+            trustAllVarsBtn.Click += trustAllVarsBtn_Click;
             // 
             // groupBox3
             // 
-            this.groupBox3.Controls.Add(this.profilesListBox);
-            this.groupBox3.Controls.Add(this.manageProfilesBtn);
-            this.groupBox3.Controls.Add(this.copyVarsFromRepoBtn);
-            this.groupBox3.Location = new System.Drawing.Point(3, 373);
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(622, 155);
-            this.groupBox3.TabIndex = 20;
-            this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Profiles";
+            groupBox3.Controls.Add(profilesListBox);
+            groupBox3.Controls.Add(manageProfilesBtn);
+            groupBox3.Controls.Add(copyVarsFromRepoBtn);
+            groupBox3.Location = new Point(3, 472);
+            groupBox3.Margin = new Padding(3, 4, 3, 4);
+            groupBox3.Name = "groupBox3";
+            groupBox3.Padding = new Padding(3, 4, 3, 4);
+            groupBox3.Size = new Size(711, 196);
+            groupBox3.TabIndex = 20;
+            groupBox3.TabStop = false;
+            groupBox3.Text = "Profiles";
             // 
             // profilesListBox
             // 
-            this.profilesListBox.FormattingEnabled = true;
-            this.profilesListBox.Items.AddRange(new object[] {
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1",
-            "test1"});
-            this.profilesListBox.Location = new System.Drawing.Point(6, 19);
-            this.profilesListBox.MultiColumn = true;
-            this.profilesListBox.Name = "profilesListBox";
-            this.profilesListBox.Size = new System.Drawing.Size(469, 130);
-            this.profilesListBox.TabIndex = 17;
+            profilesListBox.FormattingEnabled = true;
+            profilesListBox.Items.AddRange(new object[] { "test1", "test1", "test1", "test1", "test1", "test1", "test1", "test1", "test1", "test1", "test1" });
+            profilesListBox.Location = new Point(7, 24);
+            profilesListBox.Margin = new Padding(3, 4, 3, 4);
+            profilesListBox.MultiColumn = true;
+            profilesListBox.Name = "profilesListBox";
+            profilesListBox.Size = new Size(535, 151);
+            profilesListBox.TabIndex = 17;
             // 
             // manageProfilesBtn
             // 
-            this.manageProfilesBtn.Location = new System.Drawing.Point(481, 69);
-            this.manageProfilesBtn.Name = "manageProfilesBtn";
-            this.manageProfilesBtn.Size = new System.Drawing.Size(135, 24);
-            this.manageProfilesBtn.TabIndex = 16;
-            this.manageProfilesBtn.Text = "Manage profiles";
-            this.manageProfilesBtn.UseVisualStyleBackColor = true;
-            this.manageProfilesBtn.Click += new System.EventHandler(this.manageProfilesBtn_Click);
+            manageProfilesBtn.Location = new Point(550, 87);
+            manageProfilesBtn.Margin = new Padding(3, 4, 3, 4);
+            manageProfilesBtn.Name = "manageProfilesBtn";
+            manageProfilesBtn.Size = new Size(154, 30);
+            manageProfilesBtn.TabIndex = 16;
+            manageProfilesBtn.Text = "Manage profiles";
+            manageProfilesBtn.UseVisualStyleBackColor = true;
+            manageProfilesBtn.Click += manageProfilesBtn_Click;
             // 
             // removeAllSoftLinkBeforeChk
             // 
-            this.removeAllSoftLinkBeforeChk.AutoSize = true;
-            this.removeAllSoftLinkBeforeChk.Location = new System.Drawing.Point(237, 22);
-            this.removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
-            this.removeAllSoftLinkBeforeChk.Size = new System.Drawing.Size(259, 19);
-            this.removeAllSoftLinkBeforeChk.TabIndex = 18;
-            this.removeAllSoftLinkBeforeChk.Text = "Remove all soft-links before applying profile";
-            this.removeAllSoftLinkBeforeChk.UseVisualStyleBackColor = true;
+            removeAllSoftLinkBeforeChk.AutoSize = true;
+            removeAllSoftLinkBeforeChk.Location = new Point(271, 28);
+            removeAllSoftLinkBeforeChk.Margin = new Padding(3, 4, 3, 4);
+            removeAllSoftLinkBeforeChk.Name = "removeAllSoftLinkBeforeChk";
+            removeAllSoftLinkBeforeChk.Size = new Size(295, 23);
+            removeAllSoftLinkBeforeChk.TabIndex = 18;
+            removeAllSoftLinkBeforeChk.Text = "Remove all soft-links before applying profile";
+            removeAllSoftLinkBeforeChk.UseVisualStyleBackColor = true;
             // 
             // label4
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(9, 56);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(110, 15);
-            this.label4.TabIndex = 21;
-            this.label4.Text = "Number of threads:";
+            label4.AutoSize = true;
+            label4.Location = new Point(10, 71);
+            label4.Name = "label4";
+            label4.Size = new Size(128, 19);
+            label4.TabIndex = 21;
+            label4.Text = "Number of threads:";
             // 
             // comboThreads
             // 
-            this.comboThreads.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboThreads.FormattingEnabled = true;
-            this.comboThreads.Location = new System.Drawing.Point(125, 53);
-            this.comboThreads.Name = "comboThreads";
-            this.comboThreads.Size = new System.Drawing.Size(68, 23);
-            this.comboThreads.TabIndex = 22;
+            comboThreads.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboThreads.FormattingEnabled = true;
+            comboThreads.Location = new Point(143, 67);
+            comboThreads.Margin = new Padding(3, 4, 3, 4);
+            comboThreads.Name = "comboThreads";
+            comboThreads.Size = new Size(77, 27);
+            comboThreads.TabIndex = 22;
             // 
             // clearRepoDirBtn
             // 
-            this.clearRepoDirBtn.Location = new System.Drawing.Point(480, 36);
-            this.clearRepoDirBtn.Name = "clearRepoDirBtn";
-            this.clearRepoDirBtn.Size = new System.Drawing.Size(54, 23);
-            this.clearRepoDirBtn.TabIndex = 23;
-            this.clearRepoDirBtn.Text = "Clear";
-            this.clearRepoDirBtn.UseVisualStyleBackColor = true;
-            this.clearRepoDirBtn.Click += new System.EventHandler(this.clearRepoDirBtn_Click);
-            // 
-            // moveMissingDepsChk
-            // 
-            this.moveMissingDepsChk.AutoSize = true;
-            this.moveMissingDepsChk.Location = new System.Drawing.Point(12, 22);
-            this.moveMissingDepsChk.Name = "moveMissingDepsChk";
-            this.moveMissingDepsChk.Size = new System.Drawing.Size(216, 19);
-            this.moveMissingDepsChk.TabIndex = 24;
-            this.moveMissingDepsChk.Text = "Move files instead of doing soft-link";
-            this.moveMissingDepsChk.UseVisualStyleBackColor = true;
+            clearRepoDirBtn.Location = new Point(549, 46);
+            clearRepoDirBtn.Margin = new Padding(3, 4, 3, 4);
+            clearRepoDirBtn.Name = "clearRepoDirBtn";
+            clearRepoDirBtn.Size = new Size(62, 29);
+            clearRepoDirBtn.TabIndex = 23;
+            clearRepoDirBtn.Text = "Clear";
+            clearRepoDirBtn.UseVisualStyleBackColor = true;
+            clearRepoDirBtn.Click += clearRepoDirBtn_Click;
             // 
             // stageTxt
             // 
-            this.stageTxt.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.stageTxt.AutoSize = true;
-            this.stageTxt.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.stageTxt.Location = new System.Drawing.Point(3, 541);
-            this.stageTxt.Name = "stageTxt";
-            this.stageTxt.Size = new System.Drawing.Size(28, 15);
-            this.stageTxt.TabIndex = 26;
-            this.stageTxt.Text = "Idle";
-            this.stageTxt.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            stageTxt.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            stageTxt.AutoSize = true;
+            stageTxt.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            stageTxt.Location = new Point(3, 685);
+            stageTxt.Name = "stageTxt";
+            stageTxt.Size = new Size(28, 15);
+            stageTxt.TabIndex = 26;
+            stageTxt.Text = "Idle";
+            stageTxt.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // groupBox4
             // 
-            this.groupBox4.Controls.Add(this.moveMissingDepsChk);
-            this.groupBox4.Controls.Add(this.clearCacheBtn);
-            this.groupBox4.Controls.Add(this.removeAllSoftLinkBeforeChk);
-            this.groupBox4.Controls.Add(this.dryRunCheckbox);
-            this.groupBox4.Controls.Add(this.label4);
-            this.groupBox4.Controls.Add(this.comboThreads);
-            this.groupBox4.Location = new System.Drawing.Point(3, 65);
-            this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(622, 98);
-            this.groupBox4.TabIndex = 27;
-            this.groupBox4.TabStop = false;
-            this.groupBox4.Text = "General Options";
+            groupBox4.Controls.Add(modeComboBox);
+            groupBox4.Controls.Add(label3);
+            groupBox4.Controls.Add(clearCacheBtn);
+            groupBox4.Controls.Add(removeAllSoftLinkBeforeChk);
+            groupBox4.Controls.Add(dryRunCheckbox);
+            groupBox4.Controls.Add(label4);
+            groupBox4.Controls.Add(comboThreads);
+            groupBox4.Location = new Point(3, 82);
+            groupBox4.Margin = new Padding(3, 4, 3, 4);
+            groupBox4.Name = "groupBox4";
+            groupBox4.Padding = new Padding(3, 4, 3, 4);
+            groupBox4.Size = new Size(711, 124);
+            groupBox4.TabIndex = 27;
+            groupBox4.TabStop = false;
+            groupBox4.Text = "General Options";
+            // 
+            // modeComboBox
+            // 
+            modeComboBox.FormattingEnabled = true;
+            modeComboBox.Items.AddRange(new object[] { "", "SoftLink", "Copy", "Move" });
+            modeComboBox.Location = new Point(65, 26);
+            modeComboBox.Name = "modeComboBox";
+            modeComboBox.Size = new Size(155, 27);
+            modeComboBox.TabIndex = 24;
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(11, 29);
+            label3.Name = "label3";
+            label3.Size = new Size(48, 19);
+            label3.TabIndex = 23;
+            label3.Text = "Mode:";
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.removeDsfMorphsChk);
-            this.groupBox1.Controls.Add(this.removeVirusMorphsChk);
-            this.groupBox1.Controls.Add(this.runVarFixersBtn);
-            this.groupBox1.Controls.Add(this.removeDependenciesFromMetaChk);
-            this.groupBox1.Controls.Add(this.disableMorphPreloadChk);
-            this.groupBox1.Location = new System.Drawing.Point(3, 169);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(622, 99);
-            this.groupBox1.TabIndex = 31;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Var Fixers";
+            groupBox1.Controls.Add(removeDsfMorphsChk);
+            groupBox1.Controls.Add(removeVirusMorphsChk);
+            groupBox1.Controls.Add(runVarFixersBtn);
+            groupBox1.Controls.Add(removeDependenciesFromMetaChk);
+            groupBox1.Controls.Add(disableMorphPreloadChk);
+            groupBox1.Location = new Point(3, 214);
+            groupBox1.Margin = new Padding(3, 4, 3, 4);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Padding = new Padding(3, 4, 3, 4);
+            groupBox1.Size = new Size(711, 125);
+            groupBox1.TabIndex = 31;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Var Fixers";
             // 
             // removeDsfMorphsChk
             // 
-            this.removeDsfMorphsChk.AutoSize = true;
-            this.removeDsfMorphsChk.Location = new System.Drawing.Point(298, 41);
-            this.removeDsfMorphsChk.Name = "removeDsfMorphsChk";
-            this.removeDsfMorphsChk.Size = new System.Drawing.Size(132, 19);
-            this.removeDsfMorphsChk.TabIndex = 32;
-            this.removeDsfMorphsChk.Text = "Remove dsf morphs";
-            this.removeDsfMorphsChk.UseVisualStyleBackColor = true;
+            removeDsfMorphsChk.AutoSize = true;
+            removeDsfMorphsChk.Location = new Point(341, 52);
+            removeDsfMorphsChk.Margin = new Padding(3, 4, 3, 4);
+            removeDsfMorphsChk.Name = "removeDsfMorphsChk";
+            removeDsfMorphsChk.Size = new Size(150, 23);
+            removeDsfMorphsChk.TabIndex = 32;
+            removeDsfMorphsChk.Text = "Remove dsf morphs";
+            removeDsfMorphsChk.UseVisualStyleBackColor = true;
             // 
             // removeVirusMorphsChk
             // 
-            this.removeVirusMorphsChk.AutoSize = true;
-            this.removeVirusMorphsChk.Location = new System.Drawing.Point(298, 22);
-            this.removeVirusMorphsChk.Name = "removeVirusMorphsChk";
-            this.removeVirusMorphsChk.Size = new System.Drawing.Size(213, 19);
-            this.removeVirusMorphsChk.TabIndex = 31;
-            this.removeVirusMorphsChk.Text = "Remove virus-morphs (RG morphs)";
-            this.removeVirusMorphsChk.UseVisualStyleBackColor = true;
+            removeVirusMorphsChk.AutoSize = true;
+            removeVirusMorphsChk.Location = new Point(341, 28);
+            removeVirusMorphsChk.Margin = new Padding(3, 4, 3, 4);
+            removeVirusMorphsChk.Name = "removeVirusMorphsChk";
+            removeVirusMorphsChk.Size = new Size(244, 23);
+            removeVirusMorphsChk.TabIndex = 31;
+            removeVirusMorphsChk.Text = "Remove virus-morphs (RG morphs)";
+            removeVirusMorphsChk.UseVisualStyleBackColor = true;
             // 
             // runVarFixersBtn
             // 
-            this.runVarFixersBtn.Location = new System.Drawing.Point(246, 66);
-            this.runVarFixersBtn.Name = "runVarFixersBtn";
-            this.runVarFixersBtn.Size = new System.Drawing.Size(114, 24);
-            this.runVarFixersBtn.TabIndex = 30;
-            this.runVarFixersBtn.Text = "Run var fixers";
-            this.runVarFixersBtn.UseVisualStyleBackColor = true;
-            this.runVarFixersBtn.Click += new System.EventHandler(this.runVarFixersBtn_Click);
+            runVarFixersBtn.Location = new Point(281, 84);
+            runVarFixersBtn.Margin = new Padding(3, 4, 3, 4);
+            runVarFixersBtn.Name = "runVarFixersBtn";
+            runVarFixersBtn.Size = new Size(130, 30);
+            runVarFixersBtn.TabIndex = 30;
+            runVarFixersBtn.Text = "Run var fixers";
+            runVarFixersBtn.UseVisualStyleBackColor = true;
+            runVarFixersBtn.Click += runVarFixersBtn_Click;
             // 
             // removeDependenciesFromMetaChk
             // 
-            this.removeDependenciesFromMetaChk.AutoSize = true;
-            this.removeDependenciesFromMetaChk.Location = new System.Drawing.Point(6, 47);
-            this.removeDependenciesFromMetaChk.Name = "removeDependenciesFromMetaChk";
-            this.removeDependenciesFromMetaChk.Size = new System.Drawing.Size(268, 19);
-            this.removeDependenciesFromMetaChk.TabIndex = 1;
-            this.removeDependenciesFromMetaChk.Text = "Remove dependencies from all meta.json files";
-            this.removeDependenciesFromMetaChk.UseVisualStyleBackColor = true;
+            removeDependenciesFromMetaChk.AutoSize = true;
+            removeDependenciesFromMetaChk.Location = new Point(7, 60);
+            removeDependenciesFromMetaChk.Margin = new Padding(3, 4, 3, 4);
+            removeDependenciesFromMetaChk.Name = "removeDependenciesFromMetaChk";
+            removeDependenciesFromMetaChk.Size = new Size(304, 23);
+            removeDependenciesFromMetaChk.TabIndex = 1;
+            removeDependenciesFromMetaChk.Text = "Remove dependencies from all meta.json files";
+            removeDependenciesFromMetaChk.UseVisualStyleBackColor = true;
             // 
             // disableMorphPreloadChk
             // 
-            this.disableMorphPreloadChk.AutoSize = true;
-            this.disableMorphPreloadChk.Location = new System.Drawing.Point(6, 22);
-            this.disableMorphPreloadChk.Name = "disableMorphPreloadChk";
-            this.disableMorphPreloadChk.Size = new System.Drawing.Size(271, 19);
-            this.disableMorphPreloadChk.TabIndex = 0;
-            this.disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
-            this.disableMorphPreloadChk.UseVisualStyleBackColor = true;
+            disableMorphPreloadChk.AutoSize = true;
+            disableMorphPreloadChk.Location = new Point(7, 28);
+            disableMorphPreloadChk.Margin = new Padding(3, 4, 3, 4);
+            disableMorphPreloadChk.Name = "disableMorphPreloadChk";
+            disableMorphPreloadChk.Size = new Size(310, 23);
+            disableMorphPreloadChk.TabIndex = 0;
+            disableMorphPreloadChk.Text = "Disable morphPreload for all non-morphpacks";
+            disableMorphPreloadChk.UseVisualStyleBackColor = true;
             // 
             // MainWindow
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(641, 658);
-            this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.scanJsonFilesBtn);
-            this.Controls.Add(this.groupBox4);
-            this.Controls.Add(this.stageTxt);
-            this.Controls.Add(this.clearRepoDirBtn);
-            this.Controls.Add(this.groupBox3);
-            this.Controls.Add(this.groupBox2);
-            this.Controls.Add(this.additionalVarsDir);
-            this.Controls.Add(this.operationStatusLabel);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.progressBar);
-            this.Controls.Add(this.additionalVarsBtn);
-            this.Controls.Add(this.selectVamDirBtn);
-            this.Controls.Add(this.vamDirTxt);
-            this.Controls.Add(this.label1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Name = "MainWindow";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "VamToolbox ";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainWindow_FormClosing);
-            this.groupBox2.ResumeLayout(false);
-            this.groupBox3.ResumeLayout(false);
-            this.groupBox4.ResumeLayout(false);
-            this.groupBox4.PerformLayout();
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new SizeF(8F, 19F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(733, 833);
+            Controls.Add(groupBox1);
+            Controls.Add(scanJsonFilesBtn);
+            Controls.Add(groupBox4);
+            Controls.Add(stageTxt);
+            Controls.Add(clearRepoDirBtn);
+            Controls.Add(groupBox3);
+            Controls.Add(groupBox2);
+            Controls.Add(additionalVarsDir);
+            Controls.Add(operationStatusLabel);
+            Controls.Add(label2);
+            Controls.Add(progressBar);
+            Controls.Add(additionalVarsBtn);
+            Controls.Add(selectVamDirBtn);
+            Controls.Add(vamDirTxt);
+            Controls.Add(label1);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            Margin = new Padding(3, 4, 3, 4);
+            Name = "MainWindow";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "VamToolbox ";
+            FormClosing += MainWindow_FormClosing;
+            groupBox2.ResumeLayout(false);
+            groupBox3.ResumeLayout(false);
+            groupBox4.ResumeLayout(false);
+            groupBox4.PerformLayout();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -478,7 +504,6 @@ namespace VamToolboxUi
         private System.Windows.Forms.CheckedListBox profilesListBox;
         private System.Windows.Forms.CheckBox removeAllSoftLinkBeforeChk;
         private System.Windows.Forms.Button clearRepoDirBtn;
-        private System.Windows.Forms.CheckBox moveMissingDepsChk;
         private System.Windows.Forms.Button trustAllVarsBtn;
         private System.Windows.Forms.Label stageTxt;
         private System.Windows.Forms.GroupBox groupBox4;
@@ -490,6 +515,8 @@ namespace VamToolboxUi
         private CheckBox disableMorphPreloadChk;
         private CheckBox removeVirusMorphsChk;
         private CheckBox removeDsfMorphsChk;
+        private ComboBox modeComboBox;
+        private Label label3;
     }
 }
 

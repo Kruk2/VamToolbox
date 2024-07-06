@@ -20,7 +20,7 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
     }
 
     public async Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles,
-        bool moveVars)
+        CopyMode mode)
     {
         _reporter.InitProgress("Copying missing dependencies from REPO to VAM");
         _context = context;
@@ -32,12 +32,12 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
 
         await Task.Run(() => {
             var (varsToMove, filesToMove) = DependencyCalculator.GetFilesToMove(vars, freeFiles);
-            LinkFiles(moveVars, filesToMove.ToList(), varsToMove.ToList());
+            LinkFiles(mode, filesToMove.ToList(), varsToMove.ToList());
         });
     }
 
     private void LinkFiles(
-        bool moveVars,
+        CopyMode mode,
         IReadOnlyCollection<FreeFile> existingFiles, IReadOnlyCollection<VarPackage> exitingVars)
     {
         var count = existingFiles.Count + exitingVars.Count;
@@ -54,18 +54,23 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
                 _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
                 continue;
             }
-            if (moveVars && !_context.DryRun)
+            if (mode == CopyMode.Move && !_context.DryRun)
                 File.Move(existingVar.FullPath, varDestination);
-            else {
+            else if(mode == CopyMode.Copy && !_context.DryRun)
+                File.Copy(existingVar.FullPath, varDestination);
+            else if (mode == CopyMode.SoftLink)
+            {
                 var success = _linker.SoftLink(varDestination, existingVar.FullPath, _context.DryRun);
                 if (!success) {
                     _logger.Log($"Error soft-link. You didn't run the program as admin Dest: {varDestination} source: {existingVar.FullPath}");
                     _reporter.Complete("Failed. Unable to create symlink. Probably missing admin privilege.");
                     continue;
                 }
+            } else {
+                throw new ArgumentOutOfRangeException(nameof(mode));
             }
 
-            _logger.Log($"{(moveVars ? "Moved" : "Sym-link")}: {Path.GetFileName(varDestination)}");
+            _logger.Log($"{mode}: {Path.GetFileName(varDestination)}");
             _reporter.Report(new ProgressInfo(++processed, count, existingVar.Name.Filename));
         }
 
@@ -80,9 +85,11 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
             if (!_context.DryRun)
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
-            if (moveVars && !_context.DryRun) {
+            if (mode == CopyMode.Move && !_context.DryRun) {
                 File.Move(file.FullPath, destinationPath);
-            } else {
+            } else if (mode == CopyMode.Copy && !_context.DryRun) {
+                File.Copy(file.FullPath, destinationPath);
+            } else if (mode == CopyMode.SoftLink) {
                 var success = _linker.SoftLink(destinationPath, file.FullPath, _context.DryRun);
                 if (!success) {
                     _logger.Log($"Error soft-link. Code {success} Dest: {destinationPath} source: {file.FullPath}");
@@ -90,10 +97,12 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
                         $"Failed. Unable to create symlink. Probably missing admin privilege. Error code: {success}.");
                     continue;
                 }
+            } else {
+                throw new ArgumentOutOfRangeException(nameof(mode));
             }
 
 
-            _logger.Log($"{(moveVars ? "Moved" : "Sym-link")}: {Path.GetFileName(file.FilenameWithoutExt)}");
+            _logger.Log($"{mode}: {Path.GetFileName(file.FilenameWithoutExt)}");
             _reporter.Report(new ProgressInfo(++processed, count, file.FilenameWithoutExt));
         }
 
@@ -103,5 +112,5 @@ public sealed class CopyMissingVarDependenciesFromRepo : ICopyMissingVarDependen
 
 public interface ICopyMissingVarDependenciesFromRepo : IOperation
 {
-    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, bool moveVars);
+    Task ExecuteAsync(OperationContext context, IList<VarPackage> vars, IList<FreeFile> freeFiles, CopyMode mode);
 }
