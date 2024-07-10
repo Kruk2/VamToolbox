@@ -225,7 +225,8 @@ public partial class MainWindow : Form, IProgressTracker
             VamDir = vamDirTxt.Text,
             Threads = (int)comboThreads.SelectedItem!,
             RemoveSoftLinksBefore = removeAllSoftLinkBeforeChk.Checked,
-            Profiles = _profiles
+            Profiles = _profiles,
+            CopyMode = string.IsNullOrEmpty(modeComboBox.Text) ? null : Enum.Parse<CopyMode>(modeComboBox.Text)
         };
 
         {
